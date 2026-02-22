@@ -20,6 +20,8 @@ def create_listing(
     current_user: User = Depends(get_current_user),
 ):
     """Create a new listing."""
+    if current_user.role not in ("provider", "admin"):
+        raise HTTPException(status_code=403, detail="Only providers can create listings")
     listing = Listing(
         owner_id=current_user.id,
         title=data.title,
