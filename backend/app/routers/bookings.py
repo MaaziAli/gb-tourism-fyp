@@ -34,6 +34,7 @@ def create_booking(
         db.query(Booking)
         .filter(
             Booking.listing_id == data.listing_id,
+            Booking.status == "active",
             Booking.check_in < data.check_out,
             Booking.check_out > data.check_in,
         )
@@ -63,13 +64,13 @@ def get_my_bookings(
     return db.query(Booking).filter(Booking.user_id == current_user.id).all()
 
 
-@router.delete("/{booking_id}", status_code=204)
+@router.delete("/{booking_id}", response_model=BookingResponse)
 def cancel_booking(
     booking_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Cancel a booking."""
+    """Cancel a booking (sets status to cancelled)."""
     booking = db.get(Booking, booking_id)
     if booking is None:
         raise HTTPException(status_code=404, detail="Booking not found")
@@ -81,6 +82,7 @@ def cancel_booking(
     check_in_start = datetime.combine(booking.check_in, time.min)
     if (check_in_start - now) < timedelta(hours=24):
         raise HTTPException(status_code=400, detail="Cancellation period has expired")
-    db.delete(booking)
+    booking.status = "cancelled"
     db.commit()
-    return None
+    db.refresh(booking)
+    return booking

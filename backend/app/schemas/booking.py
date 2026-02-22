@@ -14,6 +14,7 @@ class BookingResponse(BaseModel):
     listing_id: int
     check_in: date
     check_out: date
+    status: str
     created_at: datetime
 
     model_config = {"from_attributes": True}

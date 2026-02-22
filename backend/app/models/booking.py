@@ -14,6 +14,7 @@ class Booking(Base):
     listing_id = Column(Integer, ForeignKey("listings.id"), nullable=False)
     check_in = Column(Date, nullable=False)
     check_out = Column(Date, nullable=False)
+    status = Column(String, default="active", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="bookings")
