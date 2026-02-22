@@ -21,9 +21,11 @@ def create_listing(
 ):
     """Create a new listing."""
     listing = Listing(
+        owner_id=current_user.id,
         title=data.title,
         location=data.location,
         price=data.price_per_night,
+        service_type=data.service_type,
     )
     db.add(listing)
     db.commit()
@@ -57,6 +59,8 @@ def update_listing(
     listing = db.get(Listing, listing_id)
     if listing is None:
         raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this listing")
     update_data = data.model_dump(exclude_unset=True)
     if "price_per_night" in update_data:
         update_data["price"] = update_data.pop("price_per_night")
@@ -77,6 +81,8 @@ def delete_listing(
     listing = db.get(Listing, listing_id)
     if listing is None:
         raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this listing")
     db.delete(listing)
     db.commit()
     return None

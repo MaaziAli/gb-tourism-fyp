@@ -17,3 +17,4 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     bookings = relationship("Booking", back_populates="user")
+    owned_listings = relationship("Listing", back_populates="owner")
