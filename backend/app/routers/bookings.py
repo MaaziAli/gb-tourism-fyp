@@ -1,6 +1,8 @@
 """
-Bookings router - create and list bookings.
+Bookings router - create, list, and cancel bookings.
 """
+from datetime import datetime, time, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -59,3 +61,26 @@ def get_my_bookings(
 ):
     """Get all bookings for the current user."""
     return db.query(Booking).filter(Booking.user_id == current_user.id).all()
+
+
+@router.delete("/{booking_id}", status_code=204)
+def cancel_booking(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Cancel a booking."""
+    booking = db.get(Booking, booking_id)
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to cancel this booking")
+    now = datetime.utcnow()
+    if now.date() >= booking.check_in:
+        raise HTTPException(status_code=400, detail="Cannot cancel past bookings")
+    check_in_start = datetime.combine(booking.check_in, time.min)
+    if (check_in_start - now) < timedelta(hours=24):
+        raise HTTPException(status_code=400, detail="Cancellation period has expired")
+    db.delete(booking)
+    db.commit()
+    return None
