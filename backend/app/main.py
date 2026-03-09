@@ -1,8 +1,9 @@
 """
 GB Tourism - FastAPI Backend Application
 """
-from fastapi import FastAPI
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import Base, engine
 from app.routers import auth, bookings, listings
@@ -13,6 +14,19 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.APP_TITLE,
         version=settings.APP_VERSION,
+    )
+
+    # Enable CORS for React frontend
+    origins = [
+        "http://localhost:5173",
+    ]
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # Create database tables
