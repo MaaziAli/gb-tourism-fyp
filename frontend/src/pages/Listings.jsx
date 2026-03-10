@@ -6,6 +6,30 @@ function Listings() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  const handleBookNow = async (listing) => {
+    const check_in_date = prompt('Enter check-in date (YYYY-MM-DD)')
+    if (!check_in_date) {
+      return
+    }
+
+    const check_out_date = prompt('Enter check-out date (YYYY-MM-DD)')
+    if (!check_out_date) {
+      return
+    }
+
+    try {
+      await api.post('/bookings', {
+        listing_id: listing.id,
+        check_in_date,
+        check_out_date,
+      })
+      alert('Booking created successfully')
+    } catch (err) {
+      console.error('Failed to create booking', err)
+      alert('Failed to create booking')
+    }
+  }
+
   useEffect(() => {
     api.get('/listings')
       .then((response) => {
@@ -80,7 +104,7 @@ function Listings() {
             <div style={{ marginTop: '12px' }}>
               <button
                 type="button"
-                onClick={() => console.log('Book listing', listing.id)}
+                onClick={() => handleBookNow(listing)}
                 style={{
                   padding: '8px 16px',
                   borderRadius: '4px',
