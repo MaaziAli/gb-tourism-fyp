@@ -1,15 +1,19 @@
 from datetime import datetime
+from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class UserBase(BaseModel):
     full_name: str
-    email: str
+    email: EmailStr
 
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    full_name: str
+    email: EmailStr
     password: str
+    role: Optional[str] = "user"
 
 
 class UserResponse(UserBase):

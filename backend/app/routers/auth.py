@@ -23,6 +23,8 @@ class LoginRequest(BaseModel):
 @router.post("/register", response_model=UserResponse)
 def register(data: UserCreate, db: Session = Depends(get_db)):
     """Register a new user."""
+    if data.role not in ("user", "provider", "admin"):
+        raise HTTPException(status_code=400, detail="Invalid role")
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -30,6 +32,7 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
         full_name=data.full_name,
         email=data.email,
         hashed_password=hash_password(data.password),
+        role=data.role or "user",
     )
     db.add(user)
     db.commit()
