@@ -12,7 +12,11 @@ function Login() {
     e.preventDefault()
     setError('')
     try {
-      const { data } = await api.post('/auth/login', { email, password })
+      const formData = new URLSearchParams()
+      formData.append('username', email)
+      formData.append('password', password)
+
+      const { data } = await api.post('/auth/login', formData)
       localStorage.setItem('token', data.access_token)
       navigate('/')
     } catch (err) {
