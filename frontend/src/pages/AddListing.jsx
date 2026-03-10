@@ -35,28 +35,44 @@ function AddListing() {
   return (
     <div
       style={{
-        maxWidth: '600px',
-        margin: '40px auto',
-        padding: '0 16px',
+        maxWidth: '1000px',
+        margin: '0 auto',
+        padding: '20px',
       }}
     >
-      <h1 style={{ marginBottom: '24px' }}>Add Listing</h1>
-      <form
-        onSubmit={handleSubmit}
+      <div
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
+          maxWidth: '480px',
+          margin: '40px auto',
+          backgroundColor: '#ffffff',
+          padding: '24px',
+          borderRadius: '8px',
+          boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <h1 style={{ marginBottom: '24px' }}>Add Listing</h1>
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <label htmlFor="title">Title</label>
           <input
             id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            style={{ padding: '8px', fontSize: '0.95rem' }}
+            style={{
+              padding: '8px',
+              fontSize: '0.95rem',
+              borderRadius: '6px',
+              border: '1px solid #d1d5db',
+              width: '100%',
+            }}
             required
           />
         </div>
@@ -68,7 +84,13 @@ function AddListing() {
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            style={{ padding: '8px', fontSize: '0.95rem' }}
+            style={{
+              padding: '8px',
+              fontSize: '0.95rem',
+              borderRadius: '6px',
+              border: '1px solid #d1d5db',
+              width: '100%',
+            }}
             required
           />
         </div>
@@ -80,7 +102,13 @@ function AddListing() {
             type="number"
             value={pricePerNight}
             onChange={(e) => setPricePerNight(e.target.value)}
-            style={{ padding: '8px', fontSize: '0.95rem' }}
+            style={{
+              padding: '8px',
+              fontSize: '0.95rem',
+              borderRadius: '6px',
+              border: '1px solid #d1d5db',
+              width: '100%',
+            }}
             required
             min="0"
             step="0.01"
@@ -93,7 +121,13 @@ function AddListing() {
             id="serviceType"
             value={serviceType}
             onChange={(e) => setServiceType(e.target.value)}
-            style={{ padding: '8px', fontSize: '0.95rem' }}
+            style={{
+              padding: '8px',
+              fontSize: '0.95rem',
+              borderRadius: '6px',
+              border: '1px solid #d1d5db',
+              width: '100%',
+            }}
           >
             <option value="hotel">hotel</option>
             <option value="tour">tour</option>
@@ -107,7 +141,7 @@ function AddListing() {
           style={{
             marginTop: '8px',
             padding: '10px 16px',
-            borderRadius: '4px',
+            borderRadius: '6px',
             border: 'none',
             backgroundColor: '#2563eb',
             color: '#ffffff',
@@ -129,6 +163,7 @@ function AddListing() {
           {error}
         </p>
       )}
+      </div>
     </div>
   )
 }

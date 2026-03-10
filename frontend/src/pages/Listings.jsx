@@ -55,24 +55,42 @@ function Listings() {
       })
   }, [])
 
+  const containerStyle = {
+    maxWidth: '1000px',
+    margin: '0 auto',
+    padding: '20px',
+  }
+
+  const cardStyle = {
+    backgroundColor: '#ffffff',
+    borderRadius: '8px',
+    padding: '16px 20px',
+    marginBottom: '16px',
+    boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  }
+
   if (loading) {
-    return <p>Loading listings...</p>
+    return (
+      <div style={containerStyle}>
+        <p>Loading listings...</p>
+      </div>
+    )
   }
 
   if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>
+    return (
+      <div style={containerStyle}>
+        <p style={{ color: 'red' }}>{error}</p>
+      </div>
+    )
   }
 
   if (listings.length === 0) {
     return (
-      <div
-        style={{
-          maxWidth: '960px',
-          margin: '40px auto',
-          padding: '0 16px',
-          textAlign: 'center',
-        }}
-      >
+      <div style={containerStyle}>
         <h1 style={{ marginBottom: '16px' }}>Listings</h1>
         <p>No listings available.</p>
       </div>
@@ -80,29 +98,11 @@ function Listings() {
   }
 
   return (
-    <div
-      style={{
-        maxWidth: '960px',
-        margin: '40px auto',
-        padding: '0 16px',
-      }}
-    >
+    <div style={containerStyle}>
       <h1 style={{ marginBottom: '24px' }}>Listings</h1>
       <div>
         {listings.map((listing) => (
-          <div
-            key={listing.id}
-            style={{
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              padding: '16px 20px',
-              marginBottom: '16px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-            }}
-          >
+          <div key={listing.id} style={cardStyle}>
             <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{listing.title}</h2>
             <p style={{ margin: 0 }}>
               <strong>Location:</strong> {listing.location}
