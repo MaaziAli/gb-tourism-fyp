@@ -14,7 +14,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
-    role = Column(String, default="tourist", nullable=False)
+    # Supported roles: "user", "provider", "admin"
+    role = Column(String, default="user", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     bookings = relationship("Booking", back_populates="user")
