@@ -219,61 +219,69 @@ function Listings() {
           <p>No listings match your filters.</p>
         ) : (
           filteredListings.map((listing) => (
-          <div key={listing.id} style={cardStyle}>
-            <div
-              style={{
-                width: '100%',
-                height: '200px',
-                overflow: 'hidden',
-                borderTopLeftRadius: '8px',
-                borderTopRightRadius: '8px',
-              }}
-            >
-              <img
-                src={
-                  listing.image_url ||
-                  'https://via.placeholder.com/800x200?text=Tourism+Listing'
-                }
-                alt={listing.title}
+            <div key={listing.id} style={cardStyle}>
+              <div
                 style={{
                   width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-              />
-            </div>
-            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{listing.title}</h2>
-              <p style={{ margin: 0 }}>
-                <strong>Location:</strong> {listing.location}
-              </p>
-              <p style={{ margin: 0 }}>
-                <strong>Price:</strong> ${listing.price_per_night} / night
-              </p>
-              <p style={{ margin: 0 }}>
-                <strong>Service:</strong> {listing.service_type}
-              </p>
-            </div>
-            <div style={{ marginTop: '12px' }}>
-              <button
-                type="button"
-                onClick={() => navigate(`/booking/${listing.id}`)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  backgroundColor: '#2563eb',
-                  color: '#ffffff',
-                  cursor: 'pointer',
-                  fontSize: '0.95rem',
+                  height: '200px',
+                  overflow: 'hidden',
+                  borderTopLeftRadius: '8px',
+                  borderTopRightRadius: '8px',
                 }}
               >
-                Book Now
-              </button>
+                <img
+                  src={
+                    listing.image_url ||
+                    'https://via.placeholder.com/800x200?text=Tourism+Listing'
+                  }
+                  alt={listing.title}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  padding: '16px 20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+              >
+                <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{listing.title}</h2>
+                <p style={{ margin: 0 }}>
+                  <strong>Location:</strong> {listing.location}
+                </p>
+                <p style={{ margin: 0 }}>
+                  <strong>Price:</strong> ${listing.price_per_night} / night
+                </p>
+                <p style={{ margin: 0 }}>
+                  <strong>Service:</strong> {listing.service_type}
+                </p>
+              </div>
+              <div style={{ marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/booking/${listing.id}`)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    backgroundColor: '#2563eb',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    fontSize: '0.95rem',
+                  }}
+                >
+                  Book Now
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   )
