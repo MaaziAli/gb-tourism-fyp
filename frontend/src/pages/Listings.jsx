@@ -262,7 +262,14 @@ function Listings() {
                   <strong>Service:</strong> {listing.service_type}
                 </p>
               </div>
-              <div style={{ marginTop: '12px' }}>
+              <div
+                style={{
+                  marginTop: '12px',
+                  display: 'flex',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => navigate(`/booking/${listing.id}`)}
@@ -277,6 +284,21 @@ function Listings() {
                   }}
                 >
                   Book Now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/edit-listing/${listing.id}`)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #2563eb',
+                    backgroundColor: '#ffffff',
+                    color: '#2563eb',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  Edit
                 </button>
               </div>
             </div>
