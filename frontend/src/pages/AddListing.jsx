@@ -6,6 +6,7 @@ function AddListing() {
   const [location, setLocation] = useState('')
   const [pricePerNight, setPricePerNight] = useState('')
   const [serviceType, setServiceType] = useState('hotel')
+  const [imageUrl, setImageUrl] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -20,12 +21,14 @@ function AddListing() {
         location,
         price_per_night: Number(pricePerNight),
         service_type: serviceType,
+        image_url: imageUrl || null,
       })
       setMessage('Listing created successfully')
       setTitle('')
       setLocation('')
       setPricePerNight('')
       setServiceType('hotel')
+      setImageUrl('')
     } catch (err) {
       console.error('Failed to create listing', {
         message: err.message,
@@ -138,6 +141,24 @@ function AddListing() {
             <option value="transport">transport</option>
             <option value="activity">activity</option>
           </select>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label htmlFor="imageUrl">Image URL (optional)</label>
+          <input
+            id="imageUrl"
+            type="url"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            style={{
+              padding: '8px',
+              fontSize: '0.95rem',
+              borderRadius: '6px',
+              border: '1px solid #d1d5db',
+              width: '100%',
+            }}
+          />
         </div>
 
         <button
