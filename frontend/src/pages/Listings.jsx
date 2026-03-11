@@ -7,6 +7,10 @@ function Listings() {
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+   const [locationFilter, setLocationFilter] = useState('')
+   const [minPrice, setMinPrice] = useState('')
+   const [maxPrice, setMaxPrice] = useState('')
+   const [serviceFilter, setServiceFilter] = useState('')
 
   useEffect(() => {
     api.get('/listings')
@@ -38,6 +42,26 @@ function Listings() {
     gap: '6px',
   }
 
+  const filteredListings = listings.filter((listing) => {
+    const matchesLocation = locationFilter
+      ? listing.location.toLowerCase().includes(locationFilter.toLowerCase())
+      : true
+
+    const matchesMinPrice = minPrice
+      ? listing.price_per_night >= Number(minPrice)
+      : true
+
+    const matchesMaxPrice = maxPrice
+      ? listing.price_per_night <= Number(maxPrice)
+      : true
+
+    const matchesService = serviceFilter
+      ? listing.service_type === serviceFilter
+      : true
+
+    return matchesLocation && matchesMinPrice && matchesMaxPrice && matchesService
+  })
+
   if (loading) {
     return (
       <div style={containerStyle}>
@@ -65,9 +89,136 @@ function Listings() {
 
   return (
     <div style={containerStyle}>
-      <h1 style={{ marginBottom: '24px' }}>Listings</h1>
+      <h1 style={{ marginBottom: '16px' }}>Listings</h1>
+      <div
+        style={{
+          maxWidth: '1000px',
+          marginBottom: '24px',
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '8px',
+            padding: '16px 20px',
+            boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            marginBottom: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label htmlFor="locationFilter">Location</label>
+              <input
+                id="locationFilter"
+                type="text"
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                placeholder="Search by location"
+                style={{
+                  padding: '8px',
+                  fontSize: '0.95rem',
+                  borderRadius: '6px',
+                  border: '1px solid #d1d5db',
+                  width: '100%',
+                }}
+              />
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ flex: '1 1 120px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label htmlFor="minPrice">Min price</label>
+                <input
+                  id="minPrice"
+                  type="number"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  placeholder="0"
+                  style={{
+                    padding: '8px',
+                    fontSize: '0.95rem',
+                    borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                    width: '100%',
+                  }}
+                  min="0"
+                />
+              </div>
+              <div style={{ flex: '1 1 120px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label htmlFor="maxPrice">Max price</label>
+                <input
+                  id="maxPrice"
+                  type="number"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  placeholder="Any"
+                  style={{
+                    padding: '8px',
+                    fontSize: '0.95rem',
+                    borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                    width: '100%',
+                  }}
+                  min="0"
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label htmlFor="serviceFilter">Service type</label>
+              <select
+                id="serviceFilter"
+                value={serviceFilter}
+                onChange={(e) => setServiceFilter(e.target.value)}
+                style={{
+                  padding: '8px',
+                  fontSize: '0.95rem',
+                  borderRadius: '6px',
+                  border: '1px solid #d1d5db',
+                  width: '100%',
+                }}
+              >
+                <option value="">All</option>
+                <option value="hotel">Hotel</option>
+                <option value="tour">Tour</option>
+                <option value="transport">Transport</option>
+                <option value="activity">Activity</option>
+              </select>
+            </div>
+          </div>
+          {/* Search button included for UX; filtering is live on change */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={() => {
+                // No-op: filters already applied via state.
+              }}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: '#2563eb',
+                color: '#ffffff',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+              }}
+            >
+              Search
+            </button>
+          </div>
+        </div>
+      </div>
       <div>
-        {listings.map((listing) => (
+        {filteredListings.length === 0 ? (
+          <p>No listings match your filters.</p>
+        ) : (
+          filteredListings.map((listing) => (
           <div key={listing.id} style={cardStyle}>
             <div
               style={{
