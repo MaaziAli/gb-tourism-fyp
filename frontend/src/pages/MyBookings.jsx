@@ -28,9 +28,28 @@ function MyBookings() {
     setError('')
     api
       .get('/bookings/me')
-      .then((response) => {
+      .then(async (response) => {
         console.log('Loaded bookings response', response.data)
-        setBookings(response.data)
+        const baseBookings = response.data || []
+
+        // Fetch listing details for each booking and merge into booking.listing
+        const withListings = await Promise.all(
+          baseBookings.map(async (booking) => {
+            try {
+              const listingRes = await api.get(`/listings/${booking.listing_id}`)
+              return { ...booking, listing: listingRes.data }
+            } catch (err) {
+              console.error('Failed to load listing for booking', booking.id, {
+                message: err.message,
+                status: err.response?.status,
+                data: err.response?.data,
+              })
+              return booking
+            }
+          }),
+        )
+
+        setBookings(withListings)
       })
       .catch((err) => {
         setError(err.response?.data?.detail || 'Failed to load bookings.')
@@ -88,8 +107,8 @@ function MyBookings() {
       <h1 style={{ marginBottom: '24px' }}>My Bookings</h1>
       <div>
         {bookings.map((booking) => {
-          const checkIn = booking.check_in_date
-          const checkOut = booking.check_out_date
+          const checkIn = booking.check_in
+          const checkOut = booking.check_out
           const pricePerNight =
             booking.listing?.price_per_night ?? booking.price_per_night ?? 0
 
