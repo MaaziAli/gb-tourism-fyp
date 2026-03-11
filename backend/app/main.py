@@ -14,7 +14,7 @@ from app.database import Base, engine
 from app.routers import auth, bookings, listings
 
 
-UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
 
 
 def _reset_sqlite_db_if_needed() -> None:
