@@ -15,7 +15,7 @@ function AddListing() {
     setError('')
 
     try {
-      await api.post('/listings', {
+      await api.post('/listings/', {
         title,
         location,
         price_per_night: Number(pricePerNight),
@@ -27,7 +27,11 @@ function AddListing() {
       setPricePerNight('')
       setServiceType('hotel')
     } catch (err) {
-      console.error('Failed to create listing', err)
+      console.error('Failed to create listing', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      })
       setError('Failed to create listing')
     }
   }
