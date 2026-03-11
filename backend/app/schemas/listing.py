@@ -6,6 +6,7 @@ class ListingBase(BaseModel):
     location: str
     price_per_night: float
     service_type: str
+    image_url: str | None = None
 
 
 class ListingCreate(ListingBase):

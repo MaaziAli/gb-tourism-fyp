@@ -6,7 +6,7 @@ function AddListing() {
   const [location, setLocation] = useState('')
   const [pricePerNight, setPricePerNight] = useState('')
   const [serviceType, setServiceType] = useState('hotel')
-  const [imageUrl, setImageUrl] = useState('')
+  const [imageFile, setImageFile] = useState(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -16,19 +16,24 @@ function AddListing() {
     setError('')
 
     try {
-      await api.post('/listings/', {
-        title,
-        location,
-        price_per_night: Number(pricePerNight),
-        service_type: serviceType,
-        image_url: imageUrl || null,
+      const formData = new FormData()
+      formData.append('title', title)
+      formData.append('location', location)
+      formData.append('price_per_night', pricePerNight)
+      formData.append('service_type', serviceType)
+      if (imageFile) {
+        formData.append('image', imageFile)
+      }
+
+      await api.post('/listings/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       })
       setMessage('Listing created successfully')
       setTitle('')
       setLocation('')
       setPricePerNight('')
       setServiceType('hotel')
-      setImageUrl('')
+      setImageFile(null)
     } catch (err) {
       console.error('Failed to create listing', {
         message: err.message,
@@ -144,19 +149,15 @@ function AddListing() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="imageUrl">Image URL (optional)</label>
+          <label htmlFor="imageFile">Image (optional)</label>
           <input
-            id="imageUrl"
-            type="url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://example.com/image.jpg"
+            id="imageFile"
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
             style={{
-              padding: '8px',
+              padding: '4px 0',
               fontSize: '0.95rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              width: '100%',
             }}
           />
         </div>

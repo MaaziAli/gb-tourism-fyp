@@ -10,6 +10,7 @@ function EditListing() {
   const [location, setLocation] = useState('')
   const [pricePerNight, setPricePerNight] = useState('')
   const [serviceType, setServiceType] = useState('hotel')
+  const [imageFile, setImageFile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -51,11 +52,17 @@ function EditListing() {
     setError('')
     setSaving(true)
     try {
-      await api.put(`/listings/${listingId}`, {
-        title,
-        location,
-        price_per_night: Number(pricePerNight),
-        service_type: serviceType,
+      const formData = new FormData()
+      formData.append('title', title)
+      formData.append('location', location)
+      formData.append('price_per_night', pricePerNight)
+      formData.append('service_type', serviceType)
+      if (imageFile) {
+        formData.append('image', imageFile)
+      }
+
+      await api.put(`/listings/${listingId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       })
       navigate('/')
     } catch (err) {
@@ -188,6 +195,20 @@ function EditListing() {
               <option value="transport">transport</option>
               <option value="activity">activity</option>
             </select>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label htmlFor="imageFile">Image (optional)</label>
+            <input
+              id="imageFile"
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+              style={{
+                padding: '4px 0',
+                fontSize: '0.95rem',
+              }}
+            />
           </div>
 
           {error && (

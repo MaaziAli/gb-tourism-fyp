@@ -231,8 +231,9 @@ function Listings() {
               >
                 <img
                   src={
-                    listing.image_url ||
-                    'https://via.placeholder.com/800x200?text=Tourism+Listing'
+                    listing.image_url
+                      ? `http://localhost:8000/uploads/${listing.image_url}`
+                      : 'https://via.placeholder.com/800x200?text=Tourism+Listing'
                   }
                   alt={listing.title}
                   style={{
