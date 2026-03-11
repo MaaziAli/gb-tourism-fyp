@@ -27,8 +27,9 @@ function MyBookings() {
     setLoading(true)
     setError('')
     api
-      .get('/bookings')
+      .get('/bookings/me')
       .then((response) => {
+        console.log('Loaded bookings response', response.data)
         setBookings(response.data)
       })
       .catch((err) => {
