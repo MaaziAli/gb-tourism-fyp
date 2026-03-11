@@ -1,46 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 
 function Listings() {
+  const navigate = useNavigate()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [selectedListingId, setSelectedListingId] = useState(null)
-  const [checkInDate, setCheckInDate] = useState('')
-  const [checkOutDate, setCheckOutDate] = useState('')
-  const [bookingMessage, setBookingMessage] = useState('')
-
-  const handleOpenBookingForm = (listingId) => {
-    setSelectedListingId(listingId)
-    setCheckInDate('')
-    setCheckOutDate('')
-    setBookingMessage('')
-  }
-
-  const handleConfirmBooking = async () => {
-    if (!selectedListingId || !checkInDate || !checkOutDate) {
-      return
-    }
-
-    try {
-      await api.post('/bookings', {
-        listing_id: selectedListingId,
-        check_in_date: checkInDate,
-        check_out_date: checkOutDate,
-      })
-      setBookingMessage('Booking created successfully')
-    } catch (err) {
-      console.error('Failed to create booking', err)
-      setBookingMessage('Failed to create booking')
-    }
-  }
-
-  const handleCancelBooking = () => {
-    setSelectedListingId(null)
-    setCheckInDate('')
-    setCheckOutDate('')
-    setBookingMessage('')
-  }
 
   useEffect(() => {
     api.get('/listings')
@@ -116,7 +82,7 @@ function Listings() {
             <div style={{ marginTop: '12px' }}>
               <button
                 type="button"
-                onClick={() => handleOpenBookingForm(listing.id)}
+                onClick={() => navigate(`/booking/${listing.id}`)}
                 style={{
                   padding: '8px 16px',
                   borderRadius: '4px',
@@ -129,86 +95,6 @@ function Listings() {
               >
                 Book Now
               </button>
-              {selectedListingId === listing.id && (
-                <div
-                  style={{
-                    marginTop: '12px',
-                    paddingTop: '12px',
-                    borderTop: '1px solid #eee',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}
-                >
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <label style={{ fontSize: '0.85rem', marginBottom: '4px' }}>
-                        Check-in date
-                      </label>
-                      <input
-                        type="date"
-                        value={checkInDate}
-                        onChange={(e) => setCheckInDate(e.target.value)}
-                        style={{ padding: '4px 6px', fontSize: '0.9rem' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <label style={{ fontSize: '0.85rem', marginBottom: '4px' }}>
-                        Check-out date
-                      </label>
-                      <input
-                        type="date"
-                        value={checkOutDate}
-                        onChange={(e) => setCheckOutDate(e.target.value)}
-                        style={{ padding: '4px 6px', fontSize: '0.9rem' }}
-                      />
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={handleConfirmBooking}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: '4px',
-                        border: 'none',
-                        backgroundColor: '#16a34a',
-                        color: '#ffffff',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem',
-                      }}
-                    >
-                      Confirm Booking
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCancelBooking}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: '4px',
-                        border: '1px solid #d1d5db',
-                        backgroundColor: '#ffffff',
-                        color: '#374151',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem',
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                  {bookingMessage && (
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: '0.9rem',
-                        color: bookingMessage.includes('successfully') ? 'green' : 'red',
-                      }}
-                    >
-                      {bookingMessage}
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         ))}
