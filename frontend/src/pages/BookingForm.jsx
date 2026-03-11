@@ -47,11 +47,13 @@ function BookingForm() {
     setSubmitting(true)
     setError('')
     try {
-      await api.post('/bookings', {
+      const payload = {
         listing_id: Number(listingId),
-        check_in_date: checkInDate,
-        check_out_date: checkOutDate,
-      })
+        check_in: checkInDate,
+        check_out: checkOutDate,
+      }
+      console.log('Creating booking with payload', payload)
+      await api.post('/bookings/', payload)
       navigate('/my-bookings')
     } catch (err) {
       console.error('Failed to create booking', {
