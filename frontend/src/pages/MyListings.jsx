@@ -156,7 +156,7 @@ function MyListings() {
                   style={{
                     padding: '8px 14px',
                     borderRadius: '6px',
-                    border: '1px solid '#dc2626',
+                  border: '1px solid #dc2626',
                     backgroundColor: '#ffffff',
                     color: '#dc2626',
                     cursor: 'pointer',
