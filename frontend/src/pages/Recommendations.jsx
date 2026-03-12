@@ -207,7 +207,9 @@ function Recommendations() {
                     display: 'block',
                   }}
                   onError={(e) => {
-                    e.target.src = 'https://placehold.co/400x250?text=No+Image'
+                    e.target.onerror = null
+                    e.target.src =
+                      'https://placehold.co/400x250/e5e7eb/9ca3af?text=GB+Tourism'
                   }}
                 />
                 <span

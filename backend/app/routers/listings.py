@@ -23,6 +23,9 @@ UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
 
 
 def _save_image(image: UploadFile | None) -> str | None:
+    """
+    Persist an uploaded image to backend/uploads/ and return the filename.
+    """
     if image is None:
         return None
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -113,13 +116,89 @@ def update_listing(
     listing.location = location
     listing.price = price_per_night
     listing.service_type = service_type
+
+    # When a new image is uploaded, replace the old file on disk and update image_url.
     if image is not None:
+        old_image = listing.image_url
         image_filename = _save_image(image)
         if image_filename is not None:
             listing.image_url = image_filename
+            if old_image:
+                old_file = UPLOAD_DIR / old_image
+                if old_file.exists():
+                    old_file.unlink()
     db.commit()
     db.refresh(listing)
     return listing
+
+
+@router.get("/check-images")
+def check_listing_images(db: Session = Depends(get_db)):
+    """
+    Utility endpoint to report which listings have missing image files.
+
+    This is intended for development-time cleanup only.
+    """
+    listings = db.query(Listing).all()
+    total = len(listings)
+    with_image = 0
+    files_found = 0
+    files_missing = 0
+    missing: list[dict] = []
+    found: list[dict] = []
+
+    for listing in listings:
+        if not listing.image_url:
+            continue
+        with_image += 1
+        image_path = UPLOAD_DIR / listing.image_url
+        info = {
+            "id": listing.id,
+            "title": listing.title,
+            "image_url": listing.image_url,
+        }
+        if image_path.exists():
+            files_found += 1
+            found.append(info)
+        else:
+            files_missing += 1
+            missing.append(info)
+
+    return {
+        "total_listings": total,
+        "listings_with_image_url": with_image,
+        "files_found": files_found,
+        "files_missing": files_missing,
+        "missing": missing,
+        "found": found,
+    }
+
+
+@router.post("/clear-missing-images")
+def clear_missing_listing_images(db: Session = Depends(get_db)):
+    """
+    Utility endpoint to clear image_url for listings whose files are missing.
+
+    One-time cleanup helper for development:
+    1. Call /listings/check-images to inspect.
+    2. Call this endpoint to set image_url=None for broken entries.
+    3. Re-upload images via the Edit Listing page.
+    """
+    listings = db.query(Listing).all()
+    cleared_ids: list[int] = []
+
+    for listing in listings:
+        if not listing.image_url:
+            continue
+        image_path = UPLOAD_DIR / listing.image_url
+        if not image_path.exists():
+            listing.image_url = None
+            cleared_ids.append(listing.id)
+
+    if cleared_ids:
+        db.commit()
+
+    return {"cleared": len(cleared_ids), "listing_ids_cleared": cleared_ids}
 
 
 @router.delete("/{listing_id}", status_code=204)

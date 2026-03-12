@@ -279,7 +279,9 @@ function MyBookings() {
                       display: 'block',
                     }}
                     onError={(e) => {
-                      e.target.style.display = 'none'
+                      e.target.onerror = null
+                      e.target.src =
+                        'https://placehold.co/400x250/e5e7eb/9ca3af?text=GB+Tourism'
                     }}
                   />
                 ) : (
