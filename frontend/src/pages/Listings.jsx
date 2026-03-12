@@ -218,7 +218,9 @@ function Listings() {
         {filteredListings.length === 0 ? (
           <p>No listings match your filters.</p>
         ) : (
-          filteredListings.map((listing) => (
+          filteredListings.map((listing) => {
+            console.log('Listing image:', listing.image_url)
+            return (
             <div key={listing.id} style={cardStyle}>
               <div
                 style={{
@@ -232,7 +234,7 @@ function Listings() {
                 <img
                   src={
                     listing.image_url
-                      ? `http://localhost:8000/uploads/${listing.image_url}`
+                      ? `http://127.0.0.1:8000/uploads/${listing.image_url}`
                       : 'https://via.placeholder.com/800x200?text=Tourism+Listing'
                   }
                   alt={listing.title}
@@ -303,7 +305,7 @@ function Listings() {
                 </button>
               </div>
             </div>
-          ))
+          )})
         )}
       </div>
     </div>
