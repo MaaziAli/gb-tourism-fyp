@@ -230,7 +230,7 @@ function Listings() {
                 padding: '8px 12px',
                 fontSize: '0.9rem',
                 borderRadius: '8px',
-                border: '1px solid '#d1d5db',
+                border: '1px solid #d1d5db',
                 width: '100%',
               }}
               min="0"
