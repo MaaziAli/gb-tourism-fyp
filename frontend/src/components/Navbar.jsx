@@ -1,6 +1,14 @@
 import { Link } from 'react-router-dom'
 
 function Navbar() {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    window.location.href = '/login'
+  }
+
   return (
     <nav
       style={{
@@ -42,23 +50,52 @@ function Navbar() {
             Add Listing
           </Link>
           <Link
-            to="/login"
-            style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '0.95rem' }}
-          >
-            Login
-          </Link>
-          <Link
-            to="/register"
-            style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '0.95rem' }}
-          >
-            Register
-          </Link>
-          <Link
             to="/my-bookings"
             style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '0.95rem' }}
           >
             My Bookings
           </Link>
+          {!token && (
+            <>
+              <Link
+                to="/login"
+                style={{
+                  color: '#e5e7eb',
+                  textDecoration: 'none',
+                  fontSize: '0.95rem',
+                }}
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                style={{
+                  color: '#e5e7eb',
+                  textDecoration: 'none',
+                  fontSize: '0.95rem',
+                }}
+              >
+                Register
+              </Link>
+            </>
+          )}
+          {token && (
+            <button
+              type="button"
+              onClick={handleLogout}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                border: '1px solid #4b5563',
+                backgroundColor: 'transparent',
+                color: '#e5e7eb',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+              }}
+            >
+              Logout
+            </button>
+          )}
         </div>
       </div>
     </nav>

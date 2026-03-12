@@ -7,10 +7,14 @@ function Listings() {
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-   const [locationFilter, setLocationFilter] = useState('')
-   const [minPrice, setMinPrice] = useState('')
-   const [maxPrice, setMaxPrice] = useState('')
-   const [serviceFilter, setServiceFilter] = useState('')
+  const [locationFilter, setLocationFilter] = useState('')
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
+  const [serviceFilter, setServiceFilter] = useState('')
+  const userId =
+    typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('user') || 'null')?.id
+      : null
 
   useEffect(() => {
     api.get('/listings')
@@ -219,7 +223,7 @@ function Listings() {
           <p>No listings match your filters.</p>
         ) : (
           filteredListings.map((listing) => {
-            console.log('Listing image:', listing.image_url)
+            console.log('Listing:', listing)
             return (
             <div key={listing.id} style={cardStyle}>
               <div
@@ -288,21 +292,23 @@ function Listings() {
                 >
                   Book Now
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/edit-listing/${listing.id}`)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #2563eb',
-                    backgroundColor: '#ffffff',
-                    color: '#2563eb',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                  }}
-                >
-                  Edit
-                </button>
+                {userId === listing.owner_id && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/edit-listing/${listing.id}`)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #2563eb',
+                      backgroundColor: '#ffffff',
+                      color: '#2563eb',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
             </div>
           )})

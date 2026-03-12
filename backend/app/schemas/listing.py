@@ -22,5 +22,6 @@ class ListingUpdate(BaseModel):
 
 class ListingResponse(ListingBase):
     id: int
+    owner_id: int
 
     model_config = {"from_attributes": True}
