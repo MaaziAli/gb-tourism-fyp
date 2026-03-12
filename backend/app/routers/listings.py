@@ -17,7 +17,8 @@ from app.schemas.listing import ListingResponse, ListingUpdate
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
 
-UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
+# Save listing images under backend/uploads/
+UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
 
 
 def _save_image(image: UploadFile | None) -> str | None:

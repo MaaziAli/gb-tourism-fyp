@@ -117,6 +117,28 @@ function MyListings() {
           const bookings = bookingsByListing[listing.id] || []
           return (
             <div key={listing.id} style={cardStyle}>
+              {listing.image_url && (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    overflow: 'hidden',
+                    borderRadius: '8px',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <img
+                    src={`http://127.0.0.1:8000/uploads/${listing.image_url}`}
+                    alt={listing.title}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                </div>
+              )}
               <h2 style={{ margin: 0, fontSize: '1.15rem' }}>{listing.title}</h2>
               <p style={{ margin: 0 }}>
                 <strong>Location:</strong> {listing.location}

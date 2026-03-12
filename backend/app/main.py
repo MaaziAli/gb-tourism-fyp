@@ -13,7 +13,8 @@ from app.database import Base, engine
 from app.routers import auth, bookings, listings, users
 
 
-UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
+# Save and serve uploads from backend/uploads/
+UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
 
 
 def create_app() -> FastAPI:
