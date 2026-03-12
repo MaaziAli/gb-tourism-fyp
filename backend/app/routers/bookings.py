@@ -4,6 +4,7 @@ Bookings router - create, list, and cancel bookings.
 from datetime import datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.dependencies.auth import get_current_user
@@ -58,6 +59,39 @@ def create_booking(
     db.commit()
     db.refresh(booking)
     return booking
+
+
+@router.get("/listing/{listing_id}/bookings", response_model=list[BookingResponse])
+def get_listing_bookings(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all bookings for a specific listing owned by the current provider."""
+    listing = db.get(Listing, listing_id)
+    if listing is None:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not your listing")
+    return db.query(Booking).filter(Booking.listing_id == listing_id).all()
+
+
+@router.get("/provider/revenue")
+def get_provider_revenue(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get total revenue for bookings on the current provider's listings."""
+    if current_user.role != "provider":
+        raise HTTPException(status_code=403, detail="Only providers can access this")
+    total = (
+        db.query(func.count(Booking.id))
+        .join(Listing, Booking.listing_id == Listing.id)
+        .filter(Listing.owner_id == current_user.id, Booking.status == "active")
+        .scalar()
+        or 0
+    )
+    return {"total_bookings": total}
 
 
 @router.get("/me", response_model=list[BookingResponse])
