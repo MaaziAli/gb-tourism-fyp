@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getUser, getRole } from '../utils/role'
+import { getImageUrl } from '../utils/image'
 
 function Listings() {
   const navigate = useNavigate()
@@ -240,17 +241,17 @@ function Listings() {
                 }}
               >
                 <img
-                  src={
-                    listing.image_url
-                      ? `http://127.0.0.1:8000/uploads/${listing.image_url}`
-                      : 'https://via.placeholder.com/800x200?text=Tourism+Listing'
-                  }
-                  alt={listing.title}
+                  src={getImageUrl(listing.image_url)}
+                  alt={listing.title || 'Listing image'}
                   style={{
                     width: '100%',
-                    height: '100%',
+                    height: '200px',
                     objectFit: 'cover',
+                    borderRadius: '6px',
                     display: 'block',
+                  }}
+                  onError={(e) => {
+                    e.target.src = 'https://placehold.co/400x250?text=No+Image'
                   }}
                 />
               </div>
