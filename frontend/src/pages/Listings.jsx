@@ -19,7 +19,8 @@ function Listings() {
   const isProviderUser = role === 'provider'
 
   useEffect(() => {
-    api.get('/listings')
+    api
+      .get('/listings')
       .then((response) => {
         const data = response.data
         console.log('Listings data from API:', data)
@@ -40,15 +41,21 @@ function Listings() {
     padding: '20px',
   }
 
+  const gridStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gap: '24px',
+  }
+
   const cardStyle = {
     backgroundColor: '#ffffff',
-    borderRadius: '8px',
-    padding: '0 0 16px 0',
-    marginBottom: '16px',
-    boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+    overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    transition: 'box-shadow 0.2s ease',
   }
 
   const filteredListings = listings.filter((listing) => {
@@ -71,10 +78,34 @@ function Listings() {
     return matchesLocation && matchesMinPrice && matchesMaxPrice && matchesService
   })
 
+  const getServiceBadgeColor = (serviceType) => {
+    switch (serviceType) {
+      case 'hotel':
+        return '#2563eb'
+      case 'tour':
+        return '#16a34a'
+      case 'transport':
+        return '#d97706'
+      case 'activity':
+        return '#7c3aed'
+      default:
+        return '#6b7280'
+    }
+  }
+
+  const formatPrice = (price) => {
+    if (typeof price !== 'number') return '0'
+    try {
+      return price.toLocaleString('en-PK')
+    } catch {
+      return String(price)
+    }
+  }
+
   if (loading) {
     return (
       <div style={containerStyle}>
-        <p>Loading listings...</p>
+        <p style={{ textAlign: 'center', color: '#6b7280' }}>Loading listings...</p>
       </div>
     )
   }
@@ -90,132 +121,217 @@ function Listings() {
   if (listings.length === 0) {
     return (
       <div style={containerStyle}>
-        <h1 style={{ marginBottom: '16px' }}>Listings</h1>
-        <p>No listings available.</p>
+        <div style={{ textAlign: 'center', marginTop: '40px' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🏔️</div>
+          <h2 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 600 }}>
+            No listings found
+          </h2>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>
+            Try adjusting your search filters.
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
     <div style={containerStyle}>
-      <h1 style={{ marginBottom: '16px' }}>Listings</h1>
+      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: '2rem',
+            fontWeight: 700,
+            color: '#111827',
+          }}
+        >
+          Explore Gilgit-Baltistan
+        </h1>
+        <p style={{ marginTop: '8px', fontSize: '1rem', color: '#6b7280' }}>
+          Discover hotels, tours, transport and activities across GB
+        </p>
+      </div>
+
       <div
         style={{
-          maxWidth: '1000px',
-          marginBottom: '24px',
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          padding: '20px',
+          marginBottom: '32px',
         }}
       >
         <div
           style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '8px',
-            padding: '16px 20px',
-            boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
             display: 'flex',
-            flexDirection: 'column',
+            flexWrap: 'wrap',
             gap: '12px',
-            marginBottom: '8px',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label htmlFor="locationFilter">Location</label>
-              <input
-                id="locationFilter"
-                type="text"
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                placeholder="Search by location"
-                style={{
-                  padding: '8px',
-                  fontSize: '0.95rem',
-                  borderRadius: '6px',
-                  border: '1px solid #d1d5db',
-                  width: '100%',
-                }}
-              />
-            </div>
-            <div
+          <div
+            style={{
+              flex: '1 1 180px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <label
+              htmlFor="locationFilter"
               style={{
-                display: 'flex',
-                gap: '8px',
-                flexWrap: 'wrap',
+                fontSize: '0.85rem',
+                color: '#374151',
+                fontWeight: 500,
+                marginBottom: '4px',
               }}
             >
-              <div style={{ flex: '1 1 120px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label htmlFor="minPrice">Min price</label>
-                <input
-                  id="minPrice"
-                  type="number"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  placeholder="0"
-                  style={{
-                    padding: '8px',
-                    fontSize: '0.95rem',
-                    borderRadius: '6px',
-                    border: '1px solid #d1d5db',
-                    width: '100%',
-                  }}
-                  min="0"
-                />
-              </div>
-              <div style={{ flex: '1 1 120px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label htmlFor="maxPrice">Max price</label>
-                <input
-                  id="maxPrice"
-                  type="number"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  placeholder="Any"
-                  style={{
-                    padding: '8px',
-                    fontSize: '0.95rem',
-                    borderRadius: '6px',
-                    border: '1px solid #d1d5db',
-                    width: '100%',
-                  }}
-                  min="0"
-                />
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label htmlFor="serviceFilter">Service type</label>
-              <select
-                id="serviceFilter"
-                value={serviceFilter}
-                onChange={(e) => setServiceFilter(e.target.value)}
-                style={{
-                  padding: '8px',
-                  fontSize: '0.95rem',
-                  borderRadius: '6px',
-                  border: '1px solid #d1d5db',
-                  width: '100%',
-                }}
-              >
-                <option value="">All</option>
-                <option value="hotel">Hotel</option>
-                <option value="tour">Tour</option>
-                <option value="transport">Transport</option>
-                <option value="activity">Activity</option>
-              </select>
-            </div>
+              Location
+            </label>
+            <input
+              id="locationFilter"
+              type="text"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              placeholder="Search by location"
+              style={{
+                padding: '8px 12px',
+                fontSize: '0.9rem',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                width: '100%',
+              }}
+            />
           </div>
-          {/* Search button included for UX; filtering is live on change */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+
+          <div
+            style={{
+              flex: '1 1 140px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <label
+              htmlFor="minPrice"
+              style={{
+                fontSize: '0.85rem',
+                color: '#374151',
+                fontWeight: 500,
+                marginBottom: '4px',
+              }}
+            >
+              Min price
+            </label>
+            <input
+              id="minPrice"
+              type="number"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              placeholder="0"
+              style={{
+                padding: '8px 12px',
+                fontSize: '0.9rem',
+                borderRadius: '8px',
+                border: '1px solid '#d1d5db',
+                width: '100%',
+              }}
+              min="0"
+            />
+          </div>
+
+          <div
+            style={{
+              flex: '1 1 140px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <label
+              htmlFor="maxPrice"
+              style={{
+                fontSize: '0.85rem',
+                color: '#374151',
+                fontWeight: 500,
+                marginBottom: '4px',
+              }}
+            >
+              Max price
+            </label>
+            <input
+              id="maxPrice"
+              type="number"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              placeholder="Any"
+              style={{
+                padding: '8px 12px',
+                fontSize: '0.9rem',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                width: '100%',
+              }}
+              min="0"
+            />
+          </div>
+
+          <div
+            style={{
+              flex: '1 1 160px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <label
+              htmlFor="serviceFilter"
+              style={{
+                fontSize: '0.85rem',
+                color: '#374151',
+                fontWeight: 500,
+                marginBottom: '4px',
+              }}
+            >
+              Service type
+            </label>
+            <select
+              id="serviceFilter"
+              value={serviceFilter}
+              onChange={(e) => setServiceFilter(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                fontSize: '0.9rem',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                width: '100%',
+              }}
+            >
+              <option value="">All</option>
+              <option value="hotel">Hotel</option>
+              <option value="tour">Tour</option>
+              <option value="transport">Transport</option>
+              <option value="activity">Activity</option>
+            </select>
+          </div>
+
+          <div
+            style={{
+              flex: '0 0 auto',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'flex-end',
+              marginLeft: 'auto',
+            }}
+          >
             <button
               type="button"
               onClick={() => {
-                // No-op: filters already applied via state.
+                // Filters are already applied via state; button kept for UX.
               }}
               style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
+                padding: '10px 24px',
+                borderRadius: '8px',
                 border: 'none',
                 backgroundColor: '#2563eb',
                 color: '#ffffff',
                 cursor: 'pointer',
-                fontSize: '0.95rem',
+                fontSize: '0.9rem',
               }}
             >
               Search
@@ -223,107 +339,189 @@ function Listings() {
           </div>
         </div>
       </div>
-      <div>
-        {filteredListings.length === 0 ? (
-          <p>No listings match your filters.</p>
-        ) : (
-          filteredListings.map((listing) => {
+
+      {filteredListings.length === 0 ? (
+        <div style={{ textAlign: 'center', marginTop: '40px' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🏔️</div>
+          <h2 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 600 }}>
+            No listings found
+          </h2>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>
+            Try adjusting your search filters.
+          </p>
+        </div>
+      ) : (
+        <div style={gridStyle}>
+          {filteredListings.map((listing) => {
             console.log('Listing:', listing)
             const isOwner = userId != null && userId === listing.owner_id
             const canEdit = isProviderUser && isOwner
             const canBook = !isProviderUser || !isOwner
+
+            const priceText = formatPrice(listing.price_per_night)
+
             return (
-            <div key={listing.id} style={cardStyle}>
               <div
-                style={{
-                  width: '100%',
-                  height: '200px',
-                  overflow: 'hidden',
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
+                key={listing.id}
+                style={cardStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'
                 }}
               >
-                <img
-                  src={getImageUrl(listing.image_url)}
-                  alt={listing.title || 'Listing image'}
+                <div
                   style={{
+                    position: 'relative',
                     width: '100%',
                     height: '200px',
-                    objectFit: 'cover',
-                    borderRadius: '6px',
-                    display: 'block',
+                    overflow: 'hidden',
                   }}
-                  onError={(e) => {
-                    e.target.src = 'https://placehold.co/400x250?text=No+Image'
-                  }}
-                />
-              </div>
-              <div
-                style={{
-                  padding: '16px 20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px',
-                }}
-              >
-                <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{listing.title}</h2>
-                <p style={{ margin: 0 }}>
-                  <strong>Location:</strong> {listing.location}
-                </p>
-                <p style={{ margin: 0 }}>
-                  <strong>Price:</strong> ${listing.price_per_night} / night
-                </p>
-                <p style={{ margin: 0 }}>
-                  <strong>Service:</strong> {listing.service_type}
-                </p>
-              </div>
-              <div
-                style={{
-                  marginTop: '12px',
-                  display: 'flex',
-                  gap: '8px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                {canBook && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/booking/${listing.id}`)}
+                >
+                  <img
+                    src={getImageUrl(listing.image_url)}
+                    alt={listing.title || 'Listing image'}
                     style={{
-                      padding: '8px 16px',
-                      borderRadius: '4px',
-                      border: 'none',
-                      backgroundColor: '#2563eb',
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                    onError={(e) => {
+                      e.target.src = 'https://placehold.co/400x250?text=No+Image'
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      backgroundColor: getServiceBadgeColor(listing.service_type),
                       color: '#ffffff',
-                      cursor: 'pointer',
-                      fontSize: '0.95rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: '20px',
+                      textTransform: 'capitalize',
                     }}
                   >
-                    Book Now
-                  </button>
-                )}
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/edit-listing/${listing.id}`)}
+                    {listing.service_type}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <h2
                     style={{
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      border: '1px solid #2563eb',
-                      backgroundColor: '#ffffff',
-                      color: '#2563eb',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
+                      margin: '0 0 6px 0',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      color: '#111827',
                     }}
                   >
-                    Edit
-                  </button>
-                )}
+                    {listing.title}
+                  </h2>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '0.85rem',
+                      color: '#6b7280',
+                    }}
+                  >
+                    <span style={{ marginRight: '4px' }}>📍</span>
+                    <span>{listing.location}</span>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      color: '#111827',
+                    }}
+                  >
+                    PKR {priceText} / night
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      display: 'flex',
+                      gap: '8px',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {canBook && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/booking/${listing.id}`)}
+                        style={{
+                          flex: 1,
+                          padding: '9px 0',
+                          borderRadius: '8px',
+                          border: 'none',
+                          backgroundColor: '#2563eb',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Book Now
+                      </button>
+                    )}
+                    {!canBook && isProviderUser && isOwner && (
+                      <button
+                        type="button"
+                        disabled
+                        title="You cannot book your own listing"
+                        style={{
+                          flex: 1,
+                          padding: '9px 0',
+                          borderRadius: '8px',
+                          border: '1px dashed #9ca3af',
+                          backgroundColor: '#f9fafb',
+                          color: '#9ca3af',
+                          fontSize: '0.9rem',
+                          cursor: 'not-allowed',
+                        }}
+                      >
+                        Your listing
+                      </button>
+                    )}
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/edit-listing/${listing.id}`)}
+                        style={{
+                          padding: '9px 16px',
+                          borderRadius: '8px',
+                          border: '1px solid #2563eb',
+                          backgroundColor: '#ffffff',
+                          color: '#2563eb',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          )})
-        )}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

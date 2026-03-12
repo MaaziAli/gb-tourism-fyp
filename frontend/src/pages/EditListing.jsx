@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../api/axios'
+import { getImageUrl } from '../utils/image'
 
 function EditListing() {
   const { listingId } = useParams()
@@ -14,6 +15,7 @@ function EditListing() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [currentImageUrl, setCurrentImageUrl] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -32,6 +34,7 @@ function EditListing() {
             : '',
         )
         setServiceType(data.service_type || 'hotel')
+        setCurrentImageUrl(data.image_url || '')
       })
       .catch((err) => {
         if (!isMounted) return
@@ -195,6 +198,35 @@ function EditListing() {
               <option value="transport">transport</option>
               <option value="activity">activity</option>
             </select>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={{ fontWeight: 500 }}>Current image</label>
+            {currentImageUrl ? (
+              <div style={{ marginBottom: '8px' }}>
+                <img
+                  src={getImageUrl(currentImageUrl)}
+                  alt={title || 'Listing image'}
+                  style={{
+                    width: '200px',
+                    height: '130px',
+                    objectFit: 'cover',
+                    borderRadius: '6px',
+                    display: 'block',
+                  }}
+                  onError={(e) => {
+                    e.target.src = 'https://placehold.co/400x250?text=No+Image'
+                  }}
+                />
+                <p style={{ marginTop: '6px', fontSize: '0.85rem', color: '#6b7280' }}>
+                  Upload a new image to replace it (optional).
+                </p>
+              </div>
+            ) : (
+              <p style={{ marginBottom: '6px', fontSize: '0.85rem', color: '#6b7280' }}>
+                No image uploaded yet.
+              </p>
+            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
