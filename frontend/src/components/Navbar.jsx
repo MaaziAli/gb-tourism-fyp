@@ -1,9 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { logout } from '../utils/auth'
+import { getRole, isLoggedIn } from '../utils/role'
 
 function Navbar() {
   const navigate = useNavigate()
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  const loggedIn = isLoggedIn()
+  const role = getRole()
 
   const handleLogout = async () => {
     await logout(navigate)
@@ -43,7 +45,7 @@ function Navbar() {
           >
             Listings
           </Link>
-          {token && (
+          {loggedIn && role === 'provider' && (
             <>
               <Link
                 to="/add-listing"
@@ -65,6 +67,10 @@ function Navbar() {
               >
                 My Listings
               </Link>
+            </>
+          )}
+          {loggedIn && (
+            <>
               <Link
                 to="/my-bookings"
                 style={{
@@ -87,7 +93,7 @@ function Navbar() {
               </Link>
             </>
           )}
-          {!token && (
+          {!loggedIn && (
             <>
               <Link
                 to="/login"
@@ -111,7 +117,7 @@ function Navbar() {
               </Link>
             </>
           )}
-          {token && (
+          {loggedIn && (
             <button
               type="button"
               onClick={handleLogout}

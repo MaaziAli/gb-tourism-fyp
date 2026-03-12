@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
+import { getUser, getRole } from '../utils/role'
 
 function Listings() {
   const navigate = useNavigate()
@@ -11,10 +12,10 @@ function Listings() {
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [serviceFilter, setServiceFilter] = useState('')
-  const userId =
-    typeof window !== 'undefined'
-      ? JSON.parse(localStorage.getItem('user') || 'null')?.id
-      : null
+  const currentUser = getUser()
+  const role = getRole()
+  const userId = currentUser?.id ?? null
+  const isProviderUser = role === 'provider'
 
   useEffect(() => {
     api.get('/listings')
@@ -224,6 +225,9 @@ function Listings() {
         ) : (
           filteredListings.map((listing) => {
             console.log('Listing:', listing)
+            const isOwner = userId != null && userId === listing.owner_id
+            const canEdit = isProviderUser && isOwner
+            const canBook = !isProviderUser || !isOwner
             return (
             <div key={listing.id} style={cardStyle}>
               <div
@@ -277,22 +281,24 @@ function Listings() {
                   flexWrap: 'wrap',
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() => navigate(`/booking/${listing.id}`)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '4px',
-                    border: 'none',
-                    backgroundColor: '#2563eb',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    fontSize: '0.95rem',
-                  }}
-                >
-                  Book Now
-                </button>
-                {userId === listing.owner_id && (
+                {canBook && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/booking/${listing.id}`)}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      backgroundColor: '#2563eb',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      fontSize: '0.95rem',
+                    }}
+                  >
+                    Book Now
+                  </button>
+                )}
+                {canEdit && (
                   <button
                     type="button"
                     onClick={() => navigate(`/edit-listing/${listing.id}`)}

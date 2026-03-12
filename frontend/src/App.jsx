@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import PrivateRoute from './components/PrivateRoute'
+import ProviderRoute from './components/ProviderRoute'
 import Listings from './pages/Listings'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -30,9 +31,9 @@ function App() {
         <Route
           path="/add-listing"
           element={
-            <PrivateRoute>
+            <ProviderRoute>
               <AddListing />
-            </PrivateRoute>
+            </ProviderRoute>
           }
         />
         <Route
@@ -46,17 +47,17 @@ function App() {
         <Route
           path="/edit-listing/:listingId"
           element={
-            <PrivateRoute>
+            <ProviderRoute>
               <EditListing />
-            </PrivateRoute>
+            </ProviderRoute>
           }
         />
         <Route
           path="/my-listings"
           element={
-            <PrivateRoute>
+            <ProviderRoute>
               <MyListings />
-            </PrivateRoute>
+            </ProviderRoute>
           }
         />
         <Route
