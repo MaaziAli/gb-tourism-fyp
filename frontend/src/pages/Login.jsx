@@ -1,15 +1,12 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 
 function Login() {
   const navigate = useNavigate()
-  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-
-  const successMessage = location.state?.message
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -31,87 +28,29 @@ function Login() {
       navigate('/')
     } catch (err) {
       const msg = err.response?.data?.detail ?? err.message ?? 'Login failed'
-      setError(
-        Array.isArray(msg)
-          ? msg.map((m) => m.msg ?? JSON.stringify(m)).join(', ')
-          : String(msg),
-      )
+      setError(Array.isArray(msg) ? msg.map((m) => m.msg ?? JSON.stringify(m)).join(', ') : String(msg))
     }
   }
 
-  const containerStyle = {
-    maxWidth: '1000px',
-    margin: '0 auto',
-    padding: '20px',
-  }
-
-  const cardStyle = {
-    maxWidth: '400px',
-    margin: '40px auto',
-    backgroundColor: '#ffffff',
-    padding: '32px',
-    borderRadius: '12px',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-  }
-
-  const labelStyle = {
-    fontSize: '0.85rem',
-    fontWeight: 500,
-    color: '#374151',
-    display: 'block',
-    marginBottom: '2px',
-  }
-
-  const inputStyle = {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '0.95rem',
-    boxSizing: 'border-box',
-    marginTop: '4px',
-  }
-
   return (
-    <div style={containerStyle}>
-      <div style={cardStyle}>
-        <h1
-          style={{
-            textAlign: 'center',
-            fontSize: '1.6rem',
-            fontWeight: 700,
-            margin: '0 0 4px 0',
-          }}
-        >
-          Welcome Back
-        </h1>
-        <p
-          style={{
-            textAlign: 'center',
-            fontSize: '0.9rem',
-            color: '#6b7280',
-            margin: '0 0 24px 0',
-          }}
-        >
-          Sign in to your account
-        </p>
-
-        {successMessage && (
-          <div
-            style={{
-              backgroundColor: '#d1fae5',
-              border: '1px solid #6ee7b7',
-              borderRadius: '8px',
-              padding: '12px',
-              fontSize: '0.9rem',
-              color: '#065f46',
-              marginBottom: '16px',
-            }}
-          >
-            {successMessage}
-          </div>
-        )}
-
+    <div
+      style={{
+        maxWidth: '1000px',
+        margin: '0 auto',
+        padding: '20px',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '400px',
+          margin: '40px auto',
+          backgroundColor: '#ffffff',
+          padding: '24px',
+          borderRadius: '8px',
+          boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+        }}
+      >
+        <h1 style={{ marginBottom: '24px' }}>Login</h1>
         <form
           onSubmit={handleSubmit}
           style={{
@@ -121,67 +60,56 @@ function Login() {
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="email" style={labelStyle}>
-              Email
-            </label>
+            <label htmlFor="email">Email</label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={inputStyle}
+              style={{
+                padding: '8px',
+                fontSize: '0.95rem',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                width: '100%',
+              }}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="password" style={labelStyle}>
-              Password
-            </label>
+            <label htmlFor="password">Password</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={inputStyle}
+              style={{
+                padding: '8px',
+                fontSize: '0.95rem',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                width: '100%',
+              }}
             />
           </div>
-          {error && (
-            <p style={{ color: 'red', fontSize: '0.9rem', marginTop: '4px' }}>
-              {error}
-            </p>
-          )}
+          {error && <p style={{ color: 'red', fontSize: '0.9rem' }}>{error}</p>}
           <button
             type="submit"
             style={{
-              marginTop: '8px',
-              padding: '11px',
-              borderRadius: '8px',
+              marginTop: '4px',
+              padding: '10px 16px',
+              borderRadius: '6px',
               border: 'none',
               backgroundColor: '#2563eb',
               color: '#ffffff',
               cursor: 'pointer',
               fontSize: '1rem',
-              fontWeight: 600,
-              width: '100%',
             }}
           >
             Login
           </button>
         </form>
-
-        <p
-          style={{
-            marginTop: '16px',
-            fontSize: '0.9rem',
-            textAlign: 'center',
-          }}
-        >
-          Don&apos;t have an account?{' '}
-          <Link to="/register" style={{ color: '#2563eb' }}>
-            Register
-          </Link>
-        </p>
       </div>
     </div>
   )

@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
+import { getImageUrl } from '../utils/image'
 
 function MyBookings() {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [cancelErrors, setCancelErrors] = useState({})
+  const navigate = useNavigate()
 
   const containerStyle = {
     maxWidth: '1000px',
@@ -12,15 +16,58 @@ function MyBookings() {
     padding: '20px',
   }
 
-  const cardStyle = {
-    backgroundColor: '#ffffff',
-    borderRadius: '8px',
-    padding: '16px 20px',
-    marginBottom: '16px',
-    boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+  const listWrapperStyle = {
+    maxWidth: '750px',
+    margin: '0 auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    gap: '16px',
+  }
+
+  const cardStyle = {
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'row',
+  }
+
+  const imageWrapperStyle = {
+    width: '160px',
+    minHeight: '130px',
+    flexShrink: 0,
+    backgroundColor: '#f3f4f6',
+  }
+
+  const contentWrapperStyle = {
+    padding: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    flex: 1,
+  }
+
+  const statusBadgeStyle = (status) => {
+    if (status === 'cancelled') {
+      return {
+        backgroundColor: '#fee2e2',
+        color: '#991b1b',
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        padding: '3px 10px',
+        borderRadius: '20px',
+        display: 'inline-block',
+      }
+    }
+    return {
+      backgroundColor: '#d1fae5',
+      color: '#065f46',
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      padding: '3px 10px',
+      borderRadius: '20px',
+      display: 'inline-block',
+    }
   }
 
   const loadBookings = () => {
@@ -32,8 +79,7 @@ function MyBookings() {
         console.log('Loaded bookings response', response.data)
         const baseBookings = response.data || []
 
-        // Fetch listing details for each booking and merge into booking.listing
-        const withListings = await Promise.all(
+        const enriched = await Promise.all(
           baseBookings.map(async (booking) => {
             try {
               const listingRes = await api.get(`/listings/${booking.listing_id}`)
@@ -44,12 +90,12 @@ function MyBookings() {
                 status: err.response?.status,
                 data: err.response?.data,
               })
-              return booking
+              return { ...booking, listing: null }
             }
           }),
         )
 
-        setBookings(withListings)
+        setBookings(enriched)
       })
       .catch((err) => {
         setError(err.response?.data?.detail || 'Failed to load bookings.')
@@ -67,6 +113,7 @@ function MyBookings() {
     if (!window.confirm('Are you sure you want to cancel this booking?')) {
       return
     }
+    setCancelErrors((prev) => ({ ...prev, [bookingId]: '' }))
     try {
       await api.patch(`/bookings/${bookingId}/cancel`)
       setBookings((prev) =>
@@ -74,7 +121,6 @@ function MyBookings() {
           b.id === bookingId ? { ...b, status: 'cancelled' } : b,
         ),
       )
-      alert('Booking cancelled successfully')
     } catch (err) {
       console.error('Failed to cancel booking', {
         message: err.message,
@@ -84,14 +130,33 @@ function MyBookings() {
       const msg =
         err.response?.data?.detail ||
         'Failed to cancel booking. Please try again later.'
-      alert(msg)
+      setCancelErrors((prev) => ({ ...prev, [bookingId]: msg }))
+    }
+  }
+
+  const computeNights = (checkIn, checkOut) => {
+    if (!checkIn || !checkOut) return 0
+    const start = new Date(checkIn)
+    const end = new Date(checkOut)
+    const diff = (end - start) / (1000 * 60 * 60 * 24)
+    return diff > 0 ? diff : 0
+  }
+
+  const formatPrice = (price) => {
+    if (typeof price !== 'number') return '0'
+    try {
+      return price.toLocaleString('en-PK')
+    } catch {
+      return String(price)
     }
   }
 
   if (loading) {
     return (
       <div style={containerStyle}>
-        <p>Loading bookings...</p>
+        <p style={{ textAlign: 'center', color: '#6b7280' }}>
+          Loading your bookings...
+        </p>
       </div>
     )
   }
@@ -107,72 +172,221 @@ function MyBookings() {
   if (!bookings.length) {
     return (
       <div style={containerStyle}>
-        <h1 style={{ marginBottom: '16px' }}>My Bookings</h1>
-        <p>No bookings yet.</p>
+        <div
+          style={{
+            maxWidth: '480px',
+            margin: '40px auto',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            padding: '24px',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🗓️</div>
+          <h2
+            style={{
+              margin: '0 0 4px 0',
+              fontSize: '1.2rem',
+              fontWeight: 600,
+              color: '#111827',
+            }}
+          >
+            No bookings yet
+          </h2>
+          <p
+            style={{
+              margin: '4px 0 16px 0',
+              fontSize: '0.9rem',
+              color: '#6b7280',
+            }}
+          >
+            Start exploring Gilgit-Baltistan and book your first trip!
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            style={{
+              padding: '9px 18px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+            }}
+          >
+            Explore Listings
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
     <div style={containerStyle}>
-      <h1 style={{ marginBottom: '24px' }}>My Bookings</h1>
-      <div>
+      <div style={{ marginBottom: '32px' }}>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: '2rem',
+            fontWeight: 700,
+            color: '#111827',
+          }}
+        >
+          My Bookings
+        </h1>
+        <p
+          style={{
+            marginTop: '6px',
+            fontSize: '0.9rem',
+            color: '#6b7280',
+          }}
+        >
+          Manage your upcoming and past trips
+        </p>
+      </div>
+
+      <div style={listWrapperStyle}>
         {bookings.map((booking) => {
           const checkIn = booking.check_in
           const checkOut = booking.check_out
           const pricePerNight =
             booking.listing?.price_per_night ?? booking.price_per_night ?? 0
 
-          const nights =
-            checkIn && checkOut
-              ? (new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)
-              : 0
+          const nights = computeNights(checkIn, checkOut)
           const totalPrice = nights * pricePerNight
 
-          const title = booking.listing?.title ?? booking.title ?? 'Listing'
+          const title =
+            booking.listing?.title ?? booking.title ?? 'Listing unavailable'
           const location =
-            booking.listing?.location ?? booking.location ?? 'Unknown'
+            booking.listing?.location ?? booking.location ?? 'Unknown location'
+
+          const totalText = formatPrice(totalPrice)
 
           return (
             <div key={booking.id} style={cardStyle}>
-              <h2 style={{ margin: 0, fontSize: '1.15rem' }}>{title}</h2>
-              <p style={{ margin: 0 }}>
-                <strong>Location:</strong> {location}
-              </p>
-              <p style={{ margin: 0 }}>
-                <strong>Price per night:</strong> ${pricePerNight}
-              </p>
-              <p style={{ margin: 0 }}>
-                <strong>Check-in:</strong> {checkIn}
-              </p>
-              <p style={{ margin: 0 }}>
-                <strong>Check-out:</strong> {checkOut}
-              </p>
-              <p style={{ margin: 0 }}>
-                <strong>Total nights:</strong> {nights}
-              </p>
-              <p style={{ margin: 0 }}>
-                <strong>Total price:</strong> ${totalPrice}
-              </p>
-              {booking.status === 'active' && (
-                <div style={{ marginTop: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleCancel(booking.id)}
+              <div style={imageWrapperStyle}>
+                {booking.listing?.image_url ? (
+                  <img
+                    src={getImageUrl(booking.listing.image_url)}
+                    alt={title || 'Listing image'}
                     style={{
-                      padding: '8px 14px',
-                      borderRadius: '6px',
-                      border: '1px solid #dc2626',
-                      backgroundColor: '#ffffff',
-                      color: '#dc2626',
-                      cursor: 'pointer',
-                      fontSize: '0.95rem',
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#9ca3af',
+                      fontSize: '2rem',
                     }}
                   >
-                    Cancel Booking
-                  </button>
+                    🏨
+                  </div>
+                )}
+              </div>
+
+              <div style={contentWrapperStyle}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                  }}
+                >
+                  <h2
+                    style={{
+                      margin: 0,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      color: '#111827',
+                    }}
+                  >
+                    {title}
+                  </h2>
+                  <span style={statusBadgeStyle(booking.status)}>
+                    {booking.status === 'cancelled' ? 'Cancelled' : 'Active'}
+                  </span>
                 </div>
-              )}
+
+                <div
+                  style={{
+                    marginTop: '4px',
+                    fontSize: '0.85rem',
+                    color: '#6b7280',
+                  }}
+                >
+                  <span style={{ marginRight: '4px' }}>📍</span>
+                  <span>{location}</span>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '6px',
+                    fontSize: '0.85rem',
+                    color: '#4b5563',
+                  }}
+                >
+                  📅 Check-in: {checkIn} → Check-out: {checkOut}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '4px',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    color: '#111827',
+                  }}
+                >
+                  {nights} nights · PKR {totalText} total
+                </div>
+
+                <div style={{ marginTop: 'auto' }}>
+                  {booking.status === 'active' && (
+                    <button
+                      type="button"
+                      onClick={() => handleCancel(booking.id)}
+                      style={{
+                        marginTop: '10px',
+                        padding: '7px 16px',
+                        borderRadius: '8px',
+                        border: '1px solid #dc2626',
+                        backgroundColor: '#ffffff',
+                        color: '#dc2626',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      Cancel Booking
+                    </button>
+                  )}
+                  {cancelErrors[booking.id] && (
+                    <p
+                      style={{
+                        marginTop: '6px',
+                        fontSize: '0.8rem',
+                        color: '#b91c1c',
+                      }}
+                    >
+                      {cancelErrors[booking.id]}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )
         })}

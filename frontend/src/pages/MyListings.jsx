@@ -10,6 +10,8 @@ function MyListings() {
   const [error, setError] = useState('')
   const [expandedListingId, setExpandedListingId] = useState(null)
   const [bookingsByListing, setBookingsByListing] = useState({})
+  const [loadingBookings, setLoadingBookings] = useState({})
+  const [deleteErrors, setDeleteErrors] = useState({})
 
   const containerStyle = {
     maxWidth: '1000px',
@@ -17,15 +19,20 @@ function MyListings() {
     padding: '20px',
   }
 
+  const gridStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: '24px',
+  }
+
   const cardStyle = {
     backgroundColor: '#ffffff',
-    borderRadius: '8px',
-    padding: '16px 20px',
-    marginBottom: '16px',
-    boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+    overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
   }
 
   const loadListings = () => {
@@ -51,11 +58,12 @@ function MyListings() {
   const handleDelete = async (listingId) => {
     if (
       !window.confirm(
-        'Are you sure you want to delete this listing? This action cannot be undone.',
+        'Delete this listing? This cannot be undone.',
       )
     ) {
       return
     }
+    setDeleteErrors((prev) => ({ ...prev, [listingId]: '' }))
     try {
       await api.delete(`/listings/${listingId}`)
       setListings((prev) => prev.filter((l) => l.id !== listingId))
@@ -67,7 +75,6 @@ function MyListings() {
       if (expandedListingId === listingId) {
         setExpandedListingId(null)
       }
-      alert('Listing deleted successfully')
     } catch (err) {
       console.error('Failed to delete listing', {
         message: err.message,
@@ -77,7 +84,7 @@ function MyListings() {
       const msg =
         err.response?.data?.detail ||
         'Failed to delete listing. Please try again later.'
-      alert(msg)
+      setDeleteErrors((prev) => ({ ...prev, [listingId]: msg }))
     }
   }
 
@@ -90,6 +97,7 @@ function MyListings() {
       setExpandedListingId(listingId)
       return
     }
+    setLoadingBookings((prev) => ({ ...prev, [listingId]: true }))
     try {
       const res = await api.get(`/bookings/listing/${listingId}/bookings`)
       setBookingsByListing((prev) => ({ ...prev, [listingId]: res.data || [] }))
@@ -101,6 +109,55 @@ function MyListings() {
         data: err.response?.data,
       })
       setError('Failed to load bookings for this listing.')
+    } finally {
+      setLoadingBookings((prev) => ({ ...prev, [listingId]: false }))
+    }
+  }
+
+  const getServiceBadgeColor = (serviceType) => {
+    switch (serviceType) {
+      case 'hotel':
+        return '#2563eb'
+      case 'tour':
+        return '#16a34a'
+      case 'transport':
+        return '#d97706'
+      case 'activity':
+        return '#7c3aed'
+      default:
+        return '#6b7280'
+    }
+  }
+
+  const formatPrice = (price) => {
+    if (typeof price !== 'number') return '0'
+    try {
+      return price.toLocaleString('en-PK')
+    } catch {
+      return String(price)
+    }
+  }
+
+  const statusBadgeStyle = (status) => {
+    if (status === 'cancelled') {
+      return {
+        backgroundColor: '#fee2e2',
+        color: '#991b1b',
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        padding: '3px 10px',
+        borderRadius: '20px',
+        display: 'inline-block',
+      }
+    }
+    return {
+      backgroundColor: '#d1fae5',
+      color: '#065f46',
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      padding: '3px 10px',
+      borderRadius: '20px',
+      display: 'inline-block',
     }
   }
 
@@ -123,27 +180,113 @@ function MyListings() {
   if (!listings.length) {
     return (
       <div style={containerStyle}>
-        <h1 style={{ marginBottom: '16px' }}>My Listings</h1>
-        <p>You have not created any listings yet.</p>
+        <div
+          style={{
+            maxWidth: '480px',
+            margin: '40px auto',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            padding: '24px',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🏨</div>
+          <h2
+            style={{
+              margin: '0 0 4px 0',
+              fontSize: '1.2rem',
+              fontWeight: 600,
+              color: '#111827',
+            }}
+          >
+            No listings yet
+          </h2>
+          <p
+            style={{
+              margin: '4px 0 16px 0',
+              fontSize: '0.9rem',
+              color: '#6b7280',
+            }}
+          >
+            Start by adding your first hotel, tour, or service
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/add-listing')}
+            style={{
+              padding: '9px 20px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+            }}
+          >
+            Add Your First Listing
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
     <div style={containerStyle}>
-      <h1 style={{ marginBottom: '24px' }}>My Listings</h1>
-      <div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '32px',
+          gap: '12px',
+        }}
+      >
+        <h1
+          style={{
+            margin: 0,
+            fontSize: '2rem',
+            fontWeight: 700,
+            color: '#111827',
+          }}
+        >
+          My Listings
+        </h1>
+        <button
+          type="button"
+          onClick={() => navigate('/add-listing')}
+          style={{
+            padding: '9px 20px',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: '#2563eb',
+            color: '#ffffff',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+          }}
+        >
+          Add New Listing
+        </button>
+      </div>
+
+      <div style={gridStyle}>
         {listings.map((listing) => {
           const bookings = bookingsByListing[listing.id] || []
+          const bookingsCount =
+            bookingsByListing[listing.id] !== undefined
+              ? bookings.length
+              : null
+
           return (
             <div key={listing.id} style={cardStyle}>
               <div
                 style={{
+                  position: 'relative',
                   width: '100%',
-                  height: '200px',
+                  height: '180px',
                   overflow: 'hidden',
-                  borderRadius: '8px',
-                  marginBottom: '8px',
                 }}
               >
                 <img
@@ -151,121 +294,213 @@ function MyListings() {
                   alt={listing.title || 'Listing image'}
                   style={{
                     width: '100%',
-                    height: '200px',
+                    height: '100%',
                     objectFit: 'cover',
-                    borderRadius: '6px',
                     display: 'block',
                   }}
                   onError={(e) => {
                     e.target.src = 'https://placehold.co/400x250?text=No+Image'
                   }}
                 />
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    backgroundColor: getServiceBadgeColor(listing.service_type),
+                    color: '#ffffff',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    padding: '3px 8px',
+                    borderRadius: '20px',
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {listing.service_type}
+                </span>
               </div>
-              <h2 style={{ margin: 0, fontSize: '1.15rem' }}>{listing.title}</h2>
-              <p style={{ margin: 0 }}>
-                <strong>Location:</strong> {listing.location}
-              </p>
-              <p style={{ margin: 0 }}>
-                <strong>Price per night:</strong> ${listing.price_per_night}
-              </p>
-              <p style={{ margin: 0 }}>
-                <strong>Service:</strong> {listing.service_type}
-              </p>
+
               <div
                 style={{
-                  marginTop: '10px',
+                  padding: '16px',
                   display: 'flex',
-                  gap: '8px',
-                  flexWrap: 'wrap',
+                  flexDirection: 'column',
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() => navigate(`/edit-listing/${listing.id}`)}
+                <h2
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                    border: '1px solid #2563eb',
-                    backgroundColor: '#ffffff',
-                    color: '#2563eb',
-                    cursor: 'pointer',
-                    fontSize: '0.95rem',
+                    margin: '0 0 6px 0',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    color: '#111827',
                   }}
                 >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(listing.id)}
+                  {listing.title}
+                </h2>
+
+                <div
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                  border: '1px solid #dc2626',
-                    backgroundColor: '#ffffff',
-                    color: '#dc2626',
-                    cursor: 'pointer',
-                    fontSize: '0.95rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: '0.85rem',
+                    color: '#6b7280',
                   }}
                 >
-                  Delete
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleBookings(listing.id)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                    border: '1px solid #9ca3af',
-                    backgroundColor: '#ffffff',
-                    color: '#374151',
-                    cursor: 'pointer',
-                    fontSize: '0.95rem',
-                  }}
-                >
-                  {expandedListingId === listing.id
-                    ? 'Hide bookings'
-                    : 'View bookings'}
-                </button>
-              </div>
-              {expandedListingId === listing.id && (
-                <div style={{ marginTop: '12px' }}>
-                  <h3 style={{ fontSize: '1rem', marginBottom: '8px' }}>Bookings</h3>
-                  {bookings.length === 0 ? (
-                    <p>No bookings yet.</p>
-                  ) : (
-                    <table
-                      style={{
-                        width: '100%',
-                        borderCollapse: 'collapse',
-                        fontSize: '0.9rem',
-                      }}
-                    >
-                      <thead>
-                        <tr>
-                          <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: '4px' }}>
-                            Check-in
-                          </th>
-                          <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: '4px' }}>
-                            Check-out
-                          </th>
-                          <th style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb', padding: '4px' }}>
-                            Status
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bookings.map((b) => (
-                          <tr key={b.id}>
-                            <td style={{ padding: '4px' }}>{b.check_in}</td>
-                            <td style={{ padding: '4px' }}>{b.check_out}</td>
-                            <td style={{ padding: '4px' }}>{b.status}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
+                  <span style={{ marginRight: '4px' }}>📍</span>
+                  <span>{listing.location}</span>
                 </div>
-              )}
+
+                <div
+                  style={{
+                    marginTop: '6px',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    color: '#111827',
+                  }}
+                >
+                  PKR {formatPrice(listing.price_per_night)} / night
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '4px',
+                    fontSize: '0.8rem',
+                    color: '#6b7280',
+                  }}
+                >
+                  {bookingsCount === null ? '— bookings' : `${bookingsCount} bookings`}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '12px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/edit-listing/${listing.id}`)}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #2563eb',
+                      backgroundColor: '#ffffff',
+                      color: '#2563eb',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(listing.id)}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #dc2626',
+                      backgroundColor: '#ffffff',
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleBookings(listing.id)}
+                    style={{
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {expandedListingId === listing.id
+                      ? 'Hide Bookings'
+                      : 'View Bookings'}
+                  </button>
+                </div>
+
+                {deleteErrors[listing.id] && (
+                  <p
+                    style={{
+                      marginTop: '6px',
+                      fontSize: '0.8rem',
+                      color: '#b91c1c',
+                    }}
+                  >
+                    {deleteErrors[listing.id]}
+                  </p>
+                )}
+
+                {expandedListingId === listing.id && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      paddingTop: '12px',
+                      borderTop: '1px solid #e5e7eb',
+                    }}
+                  >
+                    {loadingBookings[listing.id] ? (
+                      <p
+                        style={{
+                          fontSize: '0.85rem',
+                          color: '#6b7280',
+                        }}
+                      >
+                        Loading bookings...
+                      </p>
+                    ) : bookings.length === 0 ? (
+                      <p
+                        style={{
+                          fontSize: '0.85rem',
+                          color: '#6b7280',
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        No bookings for this listing yet.
+                      </p>
+                    ) : (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          fontSize: '0.85rem',
+                        }}
+                      >
+                        {bookings.map((b) => (
+                          <div
+                            key={b.id}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <span>
+                              {b.check_in} → {b.check_out}
+                            </span>
+                            <span style={statusBadgeStyle(b.status)}>
+                              {b.status === 'cancelled' ? 'Cancelled' : 'Active'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )
         })}

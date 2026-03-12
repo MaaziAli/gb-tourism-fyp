@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 
 function AddListing() {
@@ -7,13 +8,17 @@ function AddListing() {
   const [pricePerNight, setPricePerNight] = useState('')
   const [serviceType, setServiceType] = useState('hotel')
   const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const navigate = useNavigate()
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setMessage('')
     setError('')
+    setSubmitting(true)
 
     try {
       const formData = new FormData()
@@ -28,12 +33,13 @@ function AddListing() {
       await api.post('/listings/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      setMessage('Listing created successfully')
+      setMessage('Listing created successfully!')
       setTitle('')
       setLocation('')
       setPricePerNight('')
       setServiceType('hotel')
       setImageFile(null)
+      setImagePreview(null)
     } catch (err) {
       console.error('Failed to create listing', {
         message: err.message,
@@ -41,7 +47,25 @@ function AddListing() {
         data: err.response?.data,
       })
       setError('Failed to create listing')
+    } finally {
+      setSubmitting(false)
     }
+  }
+
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0] ?? null
+    setImageFile(file)
+    if (file) {
+      const previewUrl = URL.createObjectURL(file)
+      setImagePreview(previewUrl)
+    } else {
+      setImagePreview(null)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
   }
 
   return (
@@ -54,141 +78,331 @@ function AddListing() {
     >
       <div
         style={{
-          maxWidth: '480px',
+          maxWidth: '600px',
           margin: '40px auto',
           backgroundColor: '#ffffff',
-          padding: '24px',
-          borderRadius: '8px',
+          padding: '32px',
+          borderRadius: '12px',
           boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
         }}
       >
-        <h1 style={{ marginBottom: '24px' }}>Add Listing</h1>
-        <form
-          onSubmit={handleSubmit}
+        <h1
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
+            margin: 0,
+            fontSize: '1.6rem',
+            fontWeight: 700,
+            color: '#111827',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="title">Title</label>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            style={{
-              padding: '8px',
-              fontSize: '0.95rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              width: '100%',
-            }}
-            required
-          />
-        </div>
+          Add New Listing
+        </h1>
+        <p
+          style={{
+            marginTop: '4px',
+            marginBottom: '24px',
+            fontSize: '0.9rem',
+            color: '#6b7280',
+          }}
+        >
+          List your service for travelers across Gilgit-Baltistan
+        </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="location">Location</label>
-          <input
-            id="location"
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
+        {message && (
+          <div
             style={{
-              padding: '8px',
-              fontSize: '0.95rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              width: '100%',
-            }}
-            required
-          />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="pricePerNight">Price per night</label>
-          <input
-            id="pricePerNight"
-            type="number"
-            value={pricePerNight}
-            onChange={(e) => setPricePerNight(e.target.value)}
-            style={{
-              padding: '8px',
-              fontSize: '0.95rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              width: '100%',
-            }}
-            required
-            min="0"
-            step="0.01"
-          />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="serviceType">Service type</label>
-          <select
-            id="serviceType"
-            value={serviceType}
-            onChange={(e) => setServiceType(e.target.value)}
-            style={{
-              padding: '8px',
-              fontSize: '0.95rem',
-              borderRadius: '6px',
-              border: '1px solid #d1d5db',
-              width: '100%',
+              marginBottom: '16px',
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: '#d1fae5',
+              border: '1px solid #6ee7b7',
+              color: '#065f46',
+              fontSize: '0.9rem',
             }}
           >
-            <option value="hotel">hotel</option>
-            <option value="tour">tour</option>
-            <option value="transport">transport</option>
-            <option value="activity">activity</option>
-          </select>
-        </div>
+            <span style={{ marginRight: '6px' }}>✅</span>
+            {message}{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/my-listings')}
+              style={{
+                marginLeft: '6px',
+                padding: 0,
+                border: 'none',
+                background: 'none',
+                color: '#065f46',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+              }}
+            >
+              View My Listings
+            </button>
+          </div>
+        )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="imageFile">Image (optional)</label>
-          <input
-            id="imageFile"
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+        {error && (
+          <div
             style={{
-              padding: '4px 0',
-              fontSize: '0.95rem',
+              marginBottom: '16px',
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: '#fee2e2',
+              border: '1px solid #fecaca',
+              color: '#991b1b',
+              fontSize: '0.9rem',
             }}
-          />
-        </div>
+          >
+            {error}
+          </div>
+        )}
 
-        <button
-          type="submit"
-          style={{
-            marginTop: '8px',
-            padding: '10px 16px',
-            borderRadius: '6px',
-            border: 'none',
-            backgroundColor: '#2563eb',
-            color: '#ffffff',
-            cursor: 'pointer',
-            fontSize: '1rem',
-          }}
-        >
-          Create Listing
-        </button>
-      </form>
+        <form onSubmit={handleSubmit}>
+          {imagePreview && (
+            <div style={{ marginBottom: '20px' }}>
+              <img
+                src={imagePreview}
+                alt="Listing preview"
+                style={{
+                  width: '100%',
+                  height: '160px',
+                  objectFit: 'cover',
+                  borderRadius: '8px',
+                  display: 'block',
+                  marginBottom: '8px',
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                style={{
+                  padding: 0,
+                  border: 'none',
+                  background: 'none',
+                  color: '#2563eb',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                Remove image
+              </button>
+            </div>
+          )}
 
-      {message && (
-        <p style={{ marginTop: '12px', color: 'green', fontSize: '0.95rem' }}>
-          {message}
-        </p>
-      )}
-      {error && (
-        <p style={{ marginTop: '12px', color: 'red', fontSize: '0.95rem' }}>
-          {error}
-        </p>
-      )}
+          <div style={{ marginBottom: '20px' }}>
+            <label
+              htmlFor="title"
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '4px',
+              }}
+            >
+              Title
+            </label>
+            <input
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Hunza View Hotel"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '0.95rem',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                boxSizing: 'border-box',
+              }}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label
+              htmlFor="location"
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '4px',
+              }}
+            >
+              Location
+            </label>
+            <input
+              id="location"
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g. Hunza Valley, Gilgit-Baltistan"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '0.95rem',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                boxSizing: 'border-box',
+              }}
+              required
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label
+              htmlFor="pricePerNight"
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '4px',
+              }}
+            >
+              Price per night
+            </label>
+            <input
+              id="pricePerNight"
+              type="number"
+              value={pricePerNight}
+              onChange={(e) => setPricePerNight(e.target.value)}
+              placeholder="e.g. 2500"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '0.95rem',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                boxSizing: 'border-box',
+              }}
+              required
+              min="1"
+              step="1"
+            />
+            <p
+              style={{
+                marginTop: '4px',
+                fontSize: '0.8rem',
+                color: '#6b7280',
+              }}
+            >
+              Enter price in PKR (Pakistani Rupees)
+            </p>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label
+              htmlFor="serviceType"
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '4px',
+              }}
+            >
+              Service type
+            </label>
+            <select
+              id="serviceType"
+              value={serviceType}
+              onChange={(e) => setServiceType(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '0.95rem',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                boxSizing: 'border-box',
+              }}
+            >
+              <option value="hotel">🏨 Hotel</option>
+              <option value="tour">🗺️ Tour Package</option>
+              <option value="transport">🚗 Transport Service</option>
+              <option value="activity">🧗 Activity</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '4px',
+              }}
+            >
+              Listing Image (optional)
+            </label>
+            <label
+              htmlFor="imageFile"
+              style={{
+                border: '2px dashed #d1d5db',
+                borderRadius: '8px',
+                padding: '20px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                backgroundColor: '#f9fafb',
+                display: 'block',
+              }}
+            >
+              <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>📷</div>
+              <div style={{ fontSize: '0.9rem', color: '#374151' }}>
+                Click to upload an image
+              </div>
+              <div
+                style={{
+                  marginTop: '4px',
+                  fontSize: '0.8rem',
+                  color: '#6b7280',
+                }}
+              >
+                JPG, PNG up to 5MB
+              </div>
+            </label>
+            <input
+              id="imageFile"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              style={{ display: 'none' }}
+            />
+            {imageFile && (
+              <div
+                style={{
+                  marginTop: '6px',
+                  fontSize: '0.85rem',
+                  color: '#374151',
+                }}
+              >
+                Selected file: <strong>{imageFile.name}</strong>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              width: '100%',
+              padding: '11px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              cursor: submitting ? 'default' : 'pointer',
+              fontSize: '1rem',
+              fontWeight: 600,
+              opacity: submitting ? 0.85 : 1,
+            }}
+          >
+            {submitting ? 'Creating...' : 'Create Listing'}
+          </button>
+        </form>
       </div>
     </div>
   )
