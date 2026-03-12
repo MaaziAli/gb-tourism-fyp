@@ -617,6 +617,22 @@ function Listings() {
                     <span>{listing.location}</span>
                   </div>
 
+                  {listing.description && (
+                    <p
+                      style={{
+                        fontSize: '0.8rem',
+                        color: '#6b7280',
+                        margin: '4px 0',
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}
+                    >
+                      {listing.description}
+                    </p>
+                  )}
+
                   <div
                     style={{
                       marginTop: '8px',

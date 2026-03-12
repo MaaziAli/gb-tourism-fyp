@@ -5,6 +5,7 @@ import api from '../api/axios'
 function AddListing() {
   const [title, setTitle] = useState('')
   const [location, setLocation] = useState('')
+  const [description, setDescription] = useState('')
   const [pricePerNight, setPricePerNight] = useState('')
   const [serviceType, setServiceType] = useState('hotel')
   const [imageFile, setImageFile] = useState(null)
@@ -24,6 +25,7 @@ function AddListing() {
       const formData = new FormData()
       formData.append('title', title)
       formData.append('location', location)
+      formData.append('description', description)
       formData.append('price_per_night', pricePerNight)
       formData.append('service_type', serviceType)
       if (imageFile) {
@@ -36,6 +38,7 @@ function AddListing() {
       setMessage('Listing created successfully!')
       setTitle('')
       setLocation('')
+      setDescription('')
       setPricePerNight('')
       setServiceType('hotel')
       setImageFile(null)
@@ -248,6 +251,37 @@ function AddListing() {
                 boxSizing: 'border-box',
               }}
               required
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label
+              htmlFor="description"
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: '#374151',
+                marginBottom: '4px',
+              }}
+            >
+              Description (optional)
+            </label>
+            <textarea
+              id="description"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe your listing, amenities, highlights..."
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '0.95rem',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                boxSizing: 'border-box',
+                resize: 'vertical',
+              }}
             />
           </div>
 

@@ -111,6 +111,17 @@ function BookingForm() {
             <p style={{ margin: '4px 0' }}>
               <strong>Price:</strong> ${listing.price_per_night} / night
             </p>
+            {listing.description && (
+              <p
+                style={{
+                  margin: '4px 0 0 0',
+                  fontSize: '0.9rem',
+                  color: '#4b5563',
+                }}
+              >
+                {listing.description}
+              </p>
+            )}
           </div>
         )}
         <form

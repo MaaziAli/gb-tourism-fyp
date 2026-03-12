@@ -11,6 +11,7 @@ function EditListing() {
   const [location, setLocation] = useState('')
   const [pricePerNight, setPricePerNight] = useState('')
   const [serviceType, setServiceType] = useState('hotel')
+  const [description, setDescription] = useState('')
   const [imageFile, setImageFile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -28,6 +29,7 @@ function EditListing() {
         const data = response.data
         setTitle(data.title || '')
         setLocation(data.location || '')
+        setDescription(data.description || '')
         setPricePerNight(
           typeof data.price_per_night === 'number'
             ? String(data.price_per_night)
@@ -58,6 +60,7 @@ function EditListing() {
       const formData = new FormData()
       formData.append('title', title)
       formData.append('location', location)
+      formData.append('description', description)
       formData.append('price_per_night', pricePerNight)
       formData.append('service_type', serviceType)
       if (imageFile) {
@@ -155,6 +158,24 @@ function EditListing() {
                 borderRadius: '6px',
                 border: '1px solid #d1d5db',
                 width: '100%',
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label htmlFor="description">Description (optional)</label>
+            <textarea
+              id="description"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={{
+                padding: '8px',
+                fontSize: '0.95rem',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                width: '100%',
+                resize: 'vertical',
               }}
             />
           </div>

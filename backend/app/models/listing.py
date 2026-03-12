@@ -14,6 +14,7 @@ class Listing(Base):
     price = Column(Float)
     service_type = Column(String, nullable=False)
     image_url = Column(String, nullable=True)
+    description = Column(String, nullable=True)
 
     owner = relationship("User", back_populates="owned_listings")
     bookings = relationship("Booking", back_populates="listing")

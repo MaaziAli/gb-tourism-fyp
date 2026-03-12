@@ -43,6 +43,7 @@ def create_listing(
     location: str = Form(...),
     price_per_night: float = Form(...),
     service_type: str = Form(...),
+    description: str | None = Form(None),
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -61,6 +62,7 @@ def create_listing(
         price=price_per_night,
         service_type=service_type,
         image_url=image_filename,
+        description=description,
     )
     db.add(listing)
     db.commit()
@@ -99,6 +101,7 @@ def update_listing(
     location: str = Form(...),
     price_per_night: float = Form(...),
     service_type: str = Form(...),
+    description: str | None = Form(None),
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -116,6 +119,8 @@ def update_listing(
     listing.location = location
     listing.price = price_per_night
     listing.service_type = service_type
+    if description is not None:
+        listing.description = description
 
     # When a new image is uploaded, replace the old file on disk and update image_url.
     if image is not None:
