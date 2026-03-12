@@ -1,12 +1,12 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { logout } from '../utils/auth'
 
 function Navbar() {
+  const navigate = useNavigate()
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    window.location.href = '/login'
+  const handleLogout = async () => {
+    await logout(navigate)
   }
 
   return (

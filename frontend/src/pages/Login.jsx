@@ -18,6 +18,13 @@ function Login() {
 
       const { data } = await api.post('/auth/login', formData)
       localStorage.setItem('token', data.access_token)
+      // Fetch current user profile for client-side authorization
+      try {
+        const meRes = await api.get('/users/me')
+        localStorage.setItem('user', JSON.stringify(meRes.data))
+      } catch {
+        // If /users/me fails, continue with token-only auth
+      }
       navigate('/')
     } catch (err) {
       const msg = err.response?.data?.detail ?? err.message ?? 'Login failed'

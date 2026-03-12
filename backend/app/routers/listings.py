@@ -69,6 +69,15 @@ def get_listings(db: Session = Depends(get_db)):
     return db.query(Listing).all()
 
 
+@router.get("/me", response_model=list[ListingResponse])
+def get_my_listings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all listings owned by the current user."""
+    return db.query(Listing).filter(Listing.owner_id == current_user.id).all()
+
+
 @router.get("/{listing_id}", response_model=ListingResponse)
 def get_listing(listing_id: int, db: Session = Depends(get_db)):
     """Get a single listing by ID."""
@@ -94,7 +103,10 @@ def update_listing(
     if listing is None:
         raise HTTPException(status_code=404, detail="Listing not found")
     if listing.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to modify this listing")
+        raise HTTPException(
+            status_code=403,
+            detail="You are not allowed to edit this listing",
+        )
     listing.title = title
     listing.location = location
     listing.price = price_per_night
@@ -119,7 +131,10 @@ def delete_listing(
     if listing is None:
         raise HTTPException(status_code=404, detail="Listing not found")
     if listing.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to modify this listing")
+        raise HTTPException(
+            status_code=403,
+            detail="You are not allowed to delete this listing",
+        )
     db.delete(listing)
     db.commit()
     return None

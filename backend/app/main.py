@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import auth, bookings, listings
+from app.routers import auth, bookings, listings, users
 
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
@@ -42,6 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(bookings.router)
     app.include_router(listings.router)
+    app.include_router(users.router)
 
     # Static files for uploaded images
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

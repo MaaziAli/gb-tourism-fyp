@@ -29,6 +29,11 @@ def create_booking(
     listing = db.get(Listing, data.listing_id)
     if listing is None:
         raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.owner_id == current_user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Providers cannot book their own listings",
+        )
 
     overlapping = (
         db.query(Booking)
