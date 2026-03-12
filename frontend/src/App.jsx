@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import PrivateRoute from './components/PrivateRoute'
 import ProviderRoute from './components/ProviderRoute'
+import AdminRoute from './components/AdminRoute'
 import Listings from './pages/Listings'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -12,6 +13,7 @@ import EditListing from './pages/EditListing'
 import MyListings from './pages/MyListings'
 import Profile from './pages/Profile'
 import Recommendations from './pages/Recommendations'
+import AdminDashboard from './pages/admin/AdminDashboard'
 
 function App() {
   return (
@@ -75,6 +77,14 @@ function App() {
             <PrivateRoute>
               <Profile />
             </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
           }
         />
       </Routes>

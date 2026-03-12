@@ -45,7 +45,7 @@ function Navbar() {
           >
             Listings
           </Link>
-          {loggedIn && (
+          {loggedIn && role !== 'admin' && (
             <Link
               to="/recommendations"
               style={{
@@ -55,6 +55,18 @@ function Navbar() {
               }}
             >
               ✨ For You
+            </Link>
+          )}
+          {loggedIn && role === 'admin' && (
+            <Link
+              to="/admin"
+              style={{
+                color: '#e5e7eb',
+                textDecoration: 'none',
+                fontSize: '0.95rem',
+              }}
+            >
+              ⚙️ Admin
             </Link>
           )}
           {loggedIn && role === 'provider' && (
@@ -81,7 +93,7 @@ function Navbar() {
               </Link>
             </>
           )}
-          {loggedIn && (
+          {loggedIn && role !== 'admin' && (
             <>
               <Link
                 to="/my-bookings"
@@ -104,6 +116,18 @@ function Navbar() {
                 Profile
               </Link>
             </>
+          )}
+          {loggedIn && role === 'admin' && (
+            <Link
+              to="/profile"
+              style={{
+                color: '#e5e7eb',
+                textDecoration: 'none',
+                fontSize: '0.95rem',
+              }}
+            >
+              Profile
+            </Link>
           )}
           {!loggedIn && (
             <>
