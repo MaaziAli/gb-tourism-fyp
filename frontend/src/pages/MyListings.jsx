@@ -48,16 +48,35 @@ function MyListings() {
   }, [])
 
   const handleDelete = async (listingId) => {
+    if (
+      !window.confirm(
+        'Are you sure you want to delete this listing? This action cannot be undone.',
+      )
+    ) {
+      return
+    }
     try {
       await api.delete(`/listings/${listingId}`)
-      loadListings()
+      setListings((prev) => prev.filter((l) => l.id !== listingId))
+      setBookingsByListing((prev) => {
+        const next = { ...prev }
+        delete next[listingId]
+        return next
+      })
+      if (expandedListingId === listingId) {
+        setExpandedListingId(null)
+      }
+      alert('Listing deleted successfully')
     } catch (err) {
       console.error('Failed to delete listing', {
         message: err.message,
         status: err.response?.status,
         data: err.response?.data,
       })
-      setError('Failed to delete listing.')
+      const msg =
+        err.response?.data?.detail ||
+        'Failed to delete listing. Please try again later.'
+      alert(msg)
     }
   }
 

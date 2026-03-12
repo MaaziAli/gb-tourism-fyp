@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.dependencies.auth import get_current_user
 from app.database import get_db
+from app.models.booking import Booking
 from app.models.listing import Listing
 from app.models.user import User
 from app.schemas.listing import ListingResponse, ListingUpdate
@@ -135,6 +136,17 @@ def delete_listing(
         raise HTTPException(
             status_code=403,
             detail="You are not allowed to delete this listing",
+        )
+    # Prevent deleting listings that still have bookings
+    has_booking = (
+        db.query(Booking)
+        .filter(Booking.listing_id == listing_id, Booking.status == "active")
+        .first()
+    )
+    if has_booking:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete listing with existing bookings. Please cancel bookings first.",
         )
     db.delete(listing)
     db.commit()
