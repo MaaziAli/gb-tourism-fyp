@@ -125,3 +125,16 @@ def cancel_booking(
     db.commit()
     db.refresh(booking)
     return booking
+
+
+@router.patch("/{booking_id}/cancel", response_model=BookingResponse)
+def cancel_booking_patch(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Alias endpoint to cancel a booking via PATCH.
+    Reuses the same logic as DELETE /bookings/{booking_id}.
+    """
+    return cancel_booking(booking_id=booking_id, db=db, current_user=current_user)

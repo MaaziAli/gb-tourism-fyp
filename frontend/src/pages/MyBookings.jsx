@@ -64,16 +64,27 @@ function MyBookings() {
   }, [])
 
   const handleCancel = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) {
+      return
+    }
     try {
-      await api.delete(`/bookings/${bookingId}`)
-      loadBookings()
+      await api.patch(`/bookings/${bookingId}/cancel`)
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingId ? { ...b, status: 'cancelled' } : b,
+        ),
+      )
+      alert('Booking cancelled successfully')
     } catch (err) {
       console.error('Failed to cancel booking', {
         message: err.message,
         status: err.response?.status,
         data: err.response?.data,
       })
-      setError('Failed to cancel booking.')
+      const msg =
+        err.response?.data?.detail ||
+        'Failed to cancel booking. Please try again later.'
+      alert(msg)
     }
   }
 
@@ -143,23 +154,25 @@ function MyBookings() {
               <p style={{ margin: 0 }}>
                 <strong>Total price:</strong> ${totalPrice}
               </p>
-              <div style={{ marginTop: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleCancel(booking.id)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                    border: '1px solid #dc2626',
-                    backgroundColor: '#ffffff',
-                    color: '#dc2626',
-                    cursor: 'pointer',
-                    fontSize: '0.95rem',
-                  }}
-                >
-                  Cancel Booking
-                </button>
-              </div>
+              {booking.status === 'active' && (
+                <div style={{ marginTop: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleCancel(booking.id)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '6px',
+                      border: '1px solid #dc2626',
+                      backgroundColor: '#ffffff',
+                      color: '#dc2626',
+                      cursor: 'pointer',
+                      fontSize: '0.95rem',
+                    }}
+                  >
+                    Cancel Booking
+                  </button>
+                </div>
+              )}
             </div>
           )
         })}
