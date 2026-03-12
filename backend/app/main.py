@@ -7,7 +7,6 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy.engine.url import make_url
 
 from app.config import settings
 from app.database import Base, engine
@@ -15,24 +14,6 @@ from app.routers import auth, bookings, listings
 
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
-
-
-def _reset_sqlite_db_if_needed() -> None:
-  """Delete existing SQLite DB file in development to sync schema."""
-  url = settings.DATABASE_URL
-  # Only apply to SQLite URLs
-  if not url.startswith("sqlite"):
-      return
-  try:
-      db_url = make_url(url)
-      if not db_url.database:
-          return
-      db_path = Path(db_url.database)
-      if db_path.is_file():
-          db_path.unlink()
-  except Exception:
-      # Fail silently; better to run with old DB than crash on startup
-      return
 
 
 def create_app() -> FastAPI:
@@ -54,8 +35,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Reset SQLite DB in development and create database tables
-    _reset_sqlite_db_if_needed()
+    # Create database tables (no destructive reset; tables created if missing)
     Base.metadata.create_all(bind=engine)
 
     # Include routers
