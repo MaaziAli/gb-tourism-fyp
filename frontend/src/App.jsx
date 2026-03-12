@@ -11,6 +11,7 @@ import BookingForm from './pages/BookingForm'
 import EditListing from './pages/EditListing'
 import MyListings from './pages/MyListings'
 import Profile from './pages/Profile'
+import Recommendations from './pages/Recommendations'
 
 function App() {
   return (
@@ -25,6 +26,14 @@ function App() {
           element={
             <PrivateRoute>
               <MyBookings />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/recommendations"
+          element={
+            <PrivateRoute>
+              <Recommendations />
             </PrivateRoute>
           }
         />

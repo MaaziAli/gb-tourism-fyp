@@ -45,6 +45,18 @@ function Navbar() {
           >
             Listings
           </Link>
+          {loggedIn && (
+            <Link
+              to="/recommendations"
+              style={{
+                color: '#e5e7eb',
+                textDecoration: 'none',
+                fontSize: '0.95rem',
+              }}
+            >
+              ✨ For You
+            </Link>
+          )}
           {loggedIn && role === 'provider' && (
             <>
               <Link

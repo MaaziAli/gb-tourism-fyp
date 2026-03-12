@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
-import { getUser, getRole } from '../utils/role'
+import { getUser, getRole, isLoggedIn } from '../utils/role'
 import { getImageUrl } from '../utils/image'
 
 function Listings() {
@@ -13,6 +13,7 @@ function Listings() {
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [serviceFilter, setServiceFilter] = useState('')
+  const [teaserRecs, setTeaserRecs] = useState([])
   const currentUser = getUser()
   const role = getRole()
   const userId = currentUser?.id ?? null
@@ -32,6 +33,25 @@ function Listings() {
       })
       .finally(() => {
         setLoading(false)
+      })
+  }, [])
+
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      return
+    }
+    api
+      .get('/recommendations', { params: { limit: 3 } })
+      .then((res) => {
+        setTeaserRecs(res.data || [])
+      })
+      .catch((err) => {
+        console.error('Failed to load teaser recommendations', {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+        })
+        setTeaserRecs([])
       })
   }, [])
 
@@ -151,6 +171,160 @@ function Listings() {
           Discover hotels, tours, transport and activities across GB
         </p>
       </div>
+
+      {isLoggedIn() && teaserRecs.length > 0 && (
+        <div
+          style={{
+            marginBottom: '24px',
+            padding: '16px 20px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+          }}
+        >
+          <div
+            style={{
+              marginBottom: '8px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  color: '#111827',
+                }}
+              >
+                ✨ Recommended for You
+              </div>
+              <div
+                style={{
+                  marginTop: '2px',
+                  fontSize: '0.8rem',
+                  color: '#6b7280',
+                }}
+              >
+                Based on your preferences
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/recommendations')}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '999px',
+                border: '1px solid #2563eb',
+                backgroundColor: '#eff6ff',
+                color: '#2563eb',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              View all →
+            </button>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              overflowX: 'auto',
+              gap: '16px',
+              paddingBottom: '4px',
+            }}
+          >
+            {teaserRecs.map((item) => {
+              const priceText = formatPrice(item.price_per_night)
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    flex: '0 0 220px',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '10px',
+                    border: '1px solid #e5e7eb',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '120px',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src={getImageUrl(item.image_url)}
+                      alt={item.title || 'Listing image'}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                      onError={(e) => {
+                        e.target.src =
+                          'https://placehold.co/400x250?text=No+Image'
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      padding: '10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        color: '#111827',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {item.title}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.8rem',
+                        color: '#2563eb',
+                        fontWeight: 600,
+                      }}
+                    >
+                      PKR {priceText} / night
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/booking/${item.id}`)}
+                      style={{
+                        marginTop: '6px',
+                        padding: '7px 0',
+                        borderRadius: '8px',
+                        border: 'none',
+                        backgroundColor: '#2563eb',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        fontWeight: 500,
+                      }}
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div
         style={{
