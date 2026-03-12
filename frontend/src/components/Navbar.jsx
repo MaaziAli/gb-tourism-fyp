@@ -43,18 +43,50 @@ function Navbar() {
           >
             Listings
           </Link>
-          <Link
-            to="/add-listing"
-            style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '0.95rem' }}
-          >
-            Add Listing
-          </Link>
-          <Link
-            to="/my-bookings"
-            style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '0.95rem' }}
-          >
-            My Bookings
-          </Link>
+          {token && (
+            <>
+              <Link
+                to="/add-listing"
+                style={{
+                  color: '#e5e7eb',
+                  textDecoration: 'none',
+                  fontSize: '0.95rem',
+                }}
+              >
+                Add Listing
+              </Link>
+              <Link
+                to="/my-listings"
+                style={{
+                  color: '#e5e7eb',
+                  textDecoration: 'none',
+                  fontSize: '0.95rem',
+                }}
+              >
+                My Listings
+              </Link>
+              <Link
+                to="/my-bookings"
+                style={{
+                  color: '#e5e7eb',
+                  textDecoration: 'none',
+                  fontSize: '0.95rem',
+                }}
+              >
+                My Bookings
+              </Link>
+              <Link
+                to="/profile"
+                style={{
+                  color: '#e5e7eb',
+                  textDecoration: 'none',
+                  fontSize: '0.95rem',
+                }}
+              >
+                Profile
+              </Link>
+            </>
+          )}
           {!token && (
             <>
               <Link

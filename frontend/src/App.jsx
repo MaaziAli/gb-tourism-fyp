@@ -9,6 +9,7 @@ import AddListing from './pages/AddListing'
 import BookingForm from './pages/BookingForm'
 import EditListing from './pages/EditListing'
 import MyListings from './pages/MyListings'
+import Profile from './pages/Profile'
 
 function App() {
   return (
@@ -55,6 +56,14 @@ function App() {
           element={
             <PrivateRoute>
               <MyListings />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <Profile />
             </PrivateRoute>
           }
         />
