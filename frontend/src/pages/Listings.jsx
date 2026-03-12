@@ -21,7 +21,10 @@ function Listings() {
   useEffect(() => {
     api.get('/listings')
       .then((response) => {
-        setListings(response.data)
+        const data = response.data
+        console.log('Listings data from API:', data)
+        console.log('First listing image_url:', data?.[0]?.image_url)
+        setListings(data)
       })
       .catch((err) => {
         setError(err.response?.data?.detail || 'Failed to load listings.')

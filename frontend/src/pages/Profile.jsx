@@ -1,19 +1,70 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { logout } from '../utils/auth'
+import { getUser } from '../utils/role'
 
 function Profile() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [listingsCount, setListingsCount] = useState(0)
+  const [totalBookings, setTotalBookings] = useState(0)
 
-  const user =
-    typeof window !== 'undefined'
-      ? JSON.parse(localStorage.getItem('user') || 'null')
-      : null
-
+  const user = getUser()
+  const fullName = user?.full_name || ''
   const email = user?.email || ''
+  const role = user?.role || 'user'
+  const createdAt = user?.created_at || null
+
+  // Compute initials for avatar
+  const initials = fullName ? fullName.trim().charAt(0).toUpperCase() : 'U'
+
+  // Format "Member since ..."
+  let memberSince = ''
+  if (createdAt) {
+    const date = new Date(createdAt)
+    if (!Number.isNaN(date.getTime())) {
+      memberSince = `Member since ${date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+      })}`
+    }
+  }
+
+  const isProvider = role === 'provider'
+
+  // Provider stats
+  useEffect(() => {
+    if (!isProvider) {
+      return
+    }
+    let cancelled = false
+
+    const loadStats = async () => {
+      try {
+        const [listingsRes, revenueRes] = await Promise.all([
+          api.get('/listings/me'),
+          api.get('/bookings/provider/revenue'),
+        ])
+        if (cancelled) return
+        setListingsCount(Array.isArray(listingsRes.data) ? listingsRes.data.length : 0)
+        setTotalBookings(revenueRes.data?.total_bookings ?? 0)
+      } catch (err) {
+        console.error('Failed to load provider stats', {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+        })
+      }
+    }
+
+    loadStats()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isProvider])
 
   const handleDeleteAccount = async () => {
     if (
@@ -46,10 +97,40 @@ function Profile() {
     }
   }
 
+  const getRoleBadge = () => {
+    if (role === 'provider') {
+      return {
+        label: 'Service Provider',
+        style: {
+          backgroundColor: '#dbeafe',
+          color: '#1e40af',
+        },
+      }
+    }
+    if (role === 'admin') {
+      return {
+        label: 'Admin',
+        style: {
+          backgroundColor: '#fee2e2',
+          color: '#991b1b',
+        },
+      }
+    }
+    return {
+      label: 'Traveler',
+      style: {
+        backgroundColor: '#d1fae5',
+        color: '#065f46',
+      },
+    }
+  }
+
+  const roleBadge = getRoleBadge()
+
   return (
     <div
       style={{
-        maxWidth: '500px',
+        maxWidth: '600px',
         margin: '40px auto',
         padding: '20px',
         backgroundColor: '#ffffff',
@@ -57,12 +138,142 @@ function Profile() {
         boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
       }}
     >
-      <h1 style={{ marginBottom: '16px' }}>Profile</h1>
-      <p style={{ marginBottom: '8px' }}>
-        <strong>Email:</strong> {email || '(unknown)'}
-      </p>
+      {/* Section 1 - User info */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div
+          style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            backgroundColor: '#2563eb',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '28px',
+            fontWeight: 600,
+          }}
+        >
+          {initials}
+        </div>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: '1.4rem',
+                color: '#111827',
+              }}
+            >
+              {fullName || '(Unknown User)'}
+            </h1>
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                ...roleBadge.style,
+              }}
+            >
+              {roleBadge.label}
+            </span>
+          </div>
+          <p
+            style={{
+              margin: '4px 0',
+              fontSize: '0.9rem',
+              color: '#4b5563',
+            }}
+          >
+            {email || '(unknown email)'}
+          </p>
+          {memberSince && (
+            <p
+              style={{
+                margin: 0,
+                fontSize: '0.8rem',
+                color: '#6b7280',
+              }}
+            >
+              {memberSince}
+            </p>
+          )}
+        </div>
+      </div>
 
-      <hr style={{ margin: '16px 0', borderColor: '#e5e7eb' }} />
+      {/* Section 2 - Provider stats */}
+      {isProvider && (
+        <div
+          style={{
+            marginTop: '24px',
+            display: 'flex',
+            gap: '16px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div
+            style={{
+              flex: '1 1 120px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: '#111827',
+              }}
+            >
+              {listingsCount}
+            </div>
+            <div
+              style={{
+                marginTop: '4px',
+                fontSize: '0.8rem',
+                color: '#6b7280',
+              }}
+            >
+              My Listings
+            </div>
+          </div>
+          <div
+            style={{
+              flex: '1 1 120px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: '#111827',
+              }}
+            >
+              {totalBookings}
+            </div>
+            <div
+              style={{
+                marginTop: '4px',
+                fontSize: '0.8rem',
+                color: '#6b7280',
+              }}
+            >
+              Total Bookings
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section 3 - Danger zone */}
+      <hr style={{ margin: '24px 0', borderColor: '#e5e7eb' }} />
 
       <h2 style={{ marginBottom: '8px', color: '#dc2626', fontSize: '1rem' }}>
         Danger Zone
@@ -98,4 +309,5 @@ function Profile() {
 }
 
 export default Profile
+
 
