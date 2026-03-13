@@ -97,18 +97,18 @@ function Listings() {
     return matchesLocation && matchesMinPrice && matchesMaxPrice && matchesService
   })
 
-  const getServiceBadgeColor = (serviceType) => {
+  const getServiceBadge = (serviceType) => {
     switch (serviceType) {
       case 'hotel':
-        return '#2563eb'
+        return { bg: '#2563eb', label: '🏨 Hotel' }
       case 'tour':
-        return '#16a34a'
+        return { bg: '#16a34a', label: '🏔️ Tour' }
       case 'transport':
-        return '#d97706'
+        return { bg: '#d97706', label: '🚐 Transport' }
       case 'activity':
-        return '#7c3aed'
+        return { bg: '#7c3aed', label: '🎯 Activity' }
       default:
-        return '#6b7280'
+        return { bg: '#6b7280', label: serviceType }
     }
   }
 
@@ -124,7 +124,7 @@ function Listings() {
   if (loading) {
     return (
       <div className="page-container" style={containerStyle}>
-        <p style={{ textAlign: 'center', color: '#6b7280' }}>Loading listings...</p>
+        <p style={{ textAlign: 'center', color: '#6b7280' }}>Loading stays & experiences...</p>
       </div>
     )
   }
@@ -143,7 +143,7 @@ function Listings() {
         <div style={{ textAlign: 'center', marginTop: '40px' }}>
           <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🏔️</div>
           <h2 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 600 }}>
-            No listings found
+            No stays found
           </h2>
           <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>
             Try adjusting your search filters.
@@ -476,11 +476,11 @@ function Listings() {
                 width: '100%',
               }}
             >
-              <option value="">All</option>
-              <option value="hotel">Hotel</option>
-              <option value="tour">Tour</option>
-              <option value="transport">Transport</option>
-              <option value="activity">Activity</option>
+              <option value="">All Types</option>
+              <option value="hotel">🏨 Hotel</option>
+              <option value="tour">🏔️ Tour</option>
+              <option value="transport">🚐 Transport</option>
+              <option value="activity">🎯 Activity</option>
             </select>
           </div>
 
@@ -518,7 +518,7 @@ function Listings() {
         <div style={{ textAlign: 'center', marginTop: '40px' }}>
           <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🏔️</div>
           <h2 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 600 }}>
-            No listings found
+            No stays found
           </h2>
           <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
             Try adjusting your search filters.
@@ -533,6 +533,7 @@ function Listings() {
             const canBook = !isProviderUser || !isOwner
 
             const priceText = formatPrice(listing.price_per_night)
+            const { bg, label } = getServiceBadge(listing.service_type)
 
             return (
               <div
@@ -573,7 +574,7 @@ function Listings() {
                       position: 'absolute',
                       top: '10px',
                       right: '10px',
-                      backgroundColor: getServiceBadgeColor(listing.service_type),
+                      backgroundColor: bg,
                       color: '#ffffff',
                       fontSize: '0.7rem',
                       fontWeight: 600,
@@ -582,7 +583,7 @@ function Listings() {
                       textTransform: 'capitalize',
                     }}
                   >
-                    {listing.service_type}
+                    {label}
                   </span>
                 </div>
 

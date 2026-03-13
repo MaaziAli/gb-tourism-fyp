@@ -221,7 +221,7 @@ function AdminDashboard() {
               color: '#e5e7eb',
             }}
           >
-            Listings
+            Stays & Experiences
           </button>
           <button
             type="button"
@@ -278,7 +278,7 @@ function AdminDashboard() {
                   icon: '👥',
                 },
                 {
-                  label: 'Total Listings',
+                  label: 'Total Stays & Experiences',
                   value: stats.total_listings,
                   icon: '🏨',
                 },
@@ -387,7 +387,7 @@ function AdminDashboard() {
                     color: 'var(--text-primary)',
                   }}
                 >
-                  Listings by Type
+                  Stays & Experiences by Type
                 </h2>
                 {Object.entries(stats.listings_by_type || {}).map(
                   ([type, count]) => (
@@ -634,7 +634,7 @@ function AdminDashboard() {
                 marginBottom: '16px',
               }}
             >
-              Listings
+              Stays & Experiences
             </h1>
             <div
               style={{

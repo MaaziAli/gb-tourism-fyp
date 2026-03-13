@@ -171,7 +171,7 @@ function EditListing() {
             color: 'var(--text-primary)',
           }}
         >
-          Edit Listing
+          Edit Stay
         </h1>
         <form
           onSubmit={handleSubmit}

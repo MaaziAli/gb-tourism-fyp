@@ -84,7 +84,7 @@ export default function ProviderAnalytics() {
   const statCards = [
     {
       icon: '🏨',
-      label: 'Total Listings',
+      label: 'Total Stays & Experiences',
       value: data.total_listings,
       color: '#6366f1',
     },
@@ -158,14 +158,14 @@ export default function ProviderAnalytics() {
                 color: 'var(--text-secondary)',
               }}
             >
-              Your listings performance overview
+              Your stays & experiences performance overview
             </p>
           </div>
           <button
             className="btn-primary"
             onClick={() => navigate('/add-listing')}
           >
-            + Add Listing
+            + Add Stay
           </button>
         </div>
 
@@ -253,7 +253,7 @@ export default function ProviderAnalytics() {
               alignItems: 'center',
             }}
           >
-            <h2
+                <h2
               style={{
                 margin: 0,
                 fontSize: '1.1rem',
@@ -261,7 +261,7 @@ export default function ProviderAnalytics() {
                 color: 'var(--text-primary)',
               }}
             >
-              🏆 Listings Performance
+                  🏆 Stays & Experiences Performance
             </h2>
             <span
               style={{
@@ -282,12 +282,12 @@ export default function ProviderAnalytics() {
               }}
             >
               <div style={{ fontSize: '3rem' }}>🏨</div>
-              <p>No listings yet. Add your first listing!</p>
+              <p>No stays or experiences yet. Add your first stay!</p>
               <button
                 className="btn-primary"
                 onClick={() => navigate('/add-listing')}
               >
-                Add Listing
+                Add Stay
               </button>
             </div>
           ) : (

@@ -32,44 +32,48 @@ export default function ListingDetail() {
   async function fetchAll() {
     setLoading(true)
     try {
-      const [lRes, rRes, sRes, imgRes] = await Promise.all([
+      const [lRes, rRes, sRes] = await Promise.all([
         api.get(`/listings/${id}`),
         api.get(`/reviews/listing/${id}`),
-        api.get(`/reviews/listing/${id}/summary`),
-        api.get(`/listing-images/${id}`).catch(() => ({ data: [] })),
+        api.get(`/reviews/listing/${id}/summary`)
       ])
       setListing(lRes.data)
       setReviews(rRes.data)
       setSummary(sRes.data)
-      setExtraImages(imgRes.data || [])
 
-      // Check booking history and review status for the current user
+      // Fetch extra images separately
+      try {
+        const imgRes = await api.get(`/listing-images/${id}`)
+        setExtraImages(imgRes.data || [])
+      } catch (e) {
+        setExtraImages([])
+      }
+
+      // Booking/review eligibility check
       if (isLoggedIn() && currentUser) {
         try {
           const bookingsRes = await api.get('/bookings/me')
-
           const today = new Date()
           today.setHours(0, 0, 0, 0)
 
           const eligibleBooking = bookingsRes.data.find(b => {
-            if (b.listing_id !== parseInt(id, 10)) return false
+            if (b.listing_id !== parseInt(id)) return false
             if (b.status === 'cancelled') return false
             if (!b.check_out) return false
             const checkOut = new Date(b.check_out)
             checkOut.setHours(0, 0, 0, 0)
             return checkOut < today
           })
+          setHasBooked(!!eligibleBooking)
 
           const upcomingBooking = bookingsRes.data.find(b => {
-            if (b.listing_id !== parseInt(id, 10)) return false
+            if (b.listing_id !== parseInt(id)) return false
             if (b.status === 'cancelled') return false
             if (!b.check_out) return false
             const checkOut = new Date(b.check_out)
             checkOut.setHours(0, 0, 0, 0)
             return checkOut >= today
           })
-
-          setHasBooked(!!eligibleBooking)
           setHasUpcomingBooking(!!upcomingBooking)
 
           const reviewed = rRes.data.some(
@@ -77,18 +81,14 @@ export default function ListingDetail() {
           )
           setAlreadyReviewed(reviewed)
         } catch (e) {
-          console.error('Failed to load bookings for review eligibility', e)
           setHasBooked(false)
-          setHasUpcomingBooking(false)
-          setAlreadyReviewed(false)
         }
-      } else {
-        setHasBooked(false)
-        setHasUpcomingBooking(false)
-        setAlreadyReviewed(false)
       }
-    } catch(e) { console.error(e) }
-    finally { setLoading(false) }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function submitReview(e) {
@@ -152,12 +152,15 @@ export default function ListingDetail() {
     </div>
   )
 
-  const badgeColors = {
-    hotel:'#dbeafe,#1d4ed8', tour:'#dcfce7,#15803d',
-    transport:'#fef3c7,#b45309', activity:'#f3e8ff,#7e22ce'
+  const badgeStyles = {
+    hotel: { bg: '#dbeafe', color: '#1d4ed8', label: '🏨 Hotel' },
+    tour: { bg: '#dcfce7', color: '#15803d', label: '🏔️ Tour' },
+    transport: { bg: '#fef3c7', color: '#b45309', label: '🚐 Transport' },
+    activity: { bg: '#f3e8ff', color: '#7e22ce', label: '🎯 Activity' },
   }
-  const [bgc, tc] = (badgeColors[listing.service_type]||
-                     '#f3f4f6,#374151').split(',')
+  const { bg: bgc, color: tc, label: serviceLabel } =
+    badgeStyles[listing.service_type] ||
+    { bg: '#f3f4f6', color: '#374151', label: listing.service_type }
 
   return (
     <div className="page-container">
@@ -167,7 +170,7 @@ export default function ListingDetail() {
         color:'var(--text-secondary)', cursor:'pointer',
         fontSize:'0.9rem', marginBottom:'20px', padding:0,
         display:'flex', alignItems:'center', gap:'6px'
-      }}>← Back to listings</button>
+      }}>← Back to stays</button>
 
       <div style={{display:'grid',
                    gridTemplateColumns:'1fr 380px',
@@ -211,13 +214,12 @@ export default function ListingDetail() {
                 {extraImages.map((img) => (
                   <div
                     key={img.id}
+                    onClick={() => setActiveImage(img)}
                     style={{
                       borderRadius: 'var(--radius-sm)',
                       overflow: 'hidden',
                       cursor: 'pointer',
-                      transition: 'transform 0.2s',
                     }}
-                    onClick={() => setActiveImage(img)}
                   >
                     <img
                       src={`http://127.0.0.1:8000/uploads/${img.filename}`}
@@ -232,13 +234,6 @@ export default function ListingDetail() {
                         height: '120px',
                         objectFit: 'cover',
                         display: 'block',
-                        transition: 'transform 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'scale(1.03)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'scale(1)'
                       }}
                     />
                   </div>
@@ -254,8 +249,7 @@ export default function ListingDetail() {
               <span style={{background:bgc,color:tc,
                             padding:'3px 12px',borderRadius:'999px',
                             fontSize:'0.8rem',fontWeight:600}}>
-                {listing.service_type.charAt(0).toUpperCase()+
-                 listing.service_type.slice(1)}
+                {serviceLabel}
               </span>
               {summary?.total_reviews > 0 && (
                 <span style={{color:'var(--text-secondary)',
@@ -373,7 +367,7 @@ export default function ListingDetail() {
               textAlign: 'center',
               marginTop: '16px'
             }}>
-              🔒 Book this listing to leave a review
+              🔒 Book this stay to leave a review
             </div>
           )}
 
@@ -403,7 +397,7 @@ export default function ListingDetail() {
               textAlign: 'center',
               marginTop: '16px'
             }}>
-              ✅ You have already reviewed this listing
+              ✅ You have already reviewed this stay
             </div>
           )}
         </div>
@@ -437,7 +431,7 @@ export default function ListingDetail() {
                 style={{width:'100%',justifyContent:'center',
                         background:'var(--text-secondary)'}}
                 onClick={()=>navigate(`/edit-listing/${id}`)}>
-                ✏️ Edit Listing
+                ✏️ Edit Stay
               </button>
             )}
           </div>
@@ -561,7 +555,7 @@ export default function ListingDetail() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.85)',
+            background: 'rgba(0,0,0,0.88)',
             zIndex: 2000,
             display: 'flex',
             alignItems: 'center',
@@ -569,44 +563,31 @@ export default function ListingDetail() {
             padding: '20px',
           }}
         >
-          <div onClick={(e) => e.stopPropagation()}>
-            <img
-              src={`http://127.0.0.1:8000/uploads/${activeImage.filename}`}
-              alt={activeImage.caption || 'Room photo'}
-              style={{
-                maxWidth: '90vw',
-                maxHeight: '80vh',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
-              }}
-            />
-            {activeImage.caption && (
-              <p
-                style={{
-                  textAlign: 'center',
-                  color: 'white',
-                  marginTop: '12px',
-                  fontSize: '0.9rem',
-                }}
-              >
-                {activeImage.caption}
-              </p>
-            )}
-          </div>
+          <img
+            src={`http://127.0.0.1:8000/uploads/${activeImage.filename}`}
+            alt={activeImage.caption || 'Room photo'}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '90vw',
+              maxHeight: '80vh',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+            }}
+          />
           <button
             onClick={() => setActiveImage(null)}
             style={{
               position: 'absolute',
-              top: '20px',
-              right: '20px',
-              background: 'rgba(255,255,255,0.2)',
+              top: '24px',
+              right: '24px',
+              background: 'rgba(255,255,255,0.15)',
               color: 'white',
               border: 'none',
               borderRadius: '50%',
-              width: '40px',
-              height: '40px',
+              width: '44px',
+              height: '44px',
               cursor: 'pointer',
-              fontSize: '1.3rem',
+              fontSize: '1.4rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

@@ -28,7 +28,7 @@ function Navbar() {
             to="/"
             className={`nav-link${isActive('/') ? ' active' : ''}`}
           >
-            Listings
+            Stays & Experiences
           </Link>
           {loggedIn && role !== 'admin' && (
             <Link
@@ -56,7 +56,7 @@ function Navbar() {
                   isActive('/add-listing') ? ' active' : ''
                 }`}
               >
-                Add Listing
+                Add Stay
               </Link>
               <Link
                 to="/my-listings"
@@ -64,7 +64,7 @@ function Navbar() {
                   isActive('/my-listings') ? ' active' : ''
                 }`}
               >
-                My Listings
+                My Stays
               </Link>
               <Link
                 to="/my-analytics"

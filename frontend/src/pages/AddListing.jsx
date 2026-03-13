@@ -97,7 +97,7 @@ function AddListing() {
             color: 'var(--text-primary)',
           }}
         >
-          Add New Listing
+          Add New Stay
         </h1>
         <p
           style={{
@@ -138,7 +138,7 @@ function AddListing() {
                 fontSize: '0.9rem',
               }}
             >
-              View My Listings
+              View My Stays
             </button>
           </div>
         )}
@@ -380,7 +380,7 @@ function AddListing() {
                 marginBottom: '4px',
               }}
             >
-              Listing Image (optional)
+            Stay Image (optional)
             </label>
             <label
               htmlFor="imageFile"
@@ -444,7 +444,7 @@ function AddListing() {
               opacity: submitting ? 0.85 : 1,
             }}
           >
-            {submitting ? 'Creating...' : 'Create Listing'}
+            {submitting ? 'Creating...' : 'Create Stay'}
           </button>
         </form>
         </div>

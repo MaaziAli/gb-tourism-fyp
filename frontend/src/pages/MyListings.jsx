@@ -143,7 +143,7 @@ export default function MyListings() {
                 color: 'var(--text-primary)',
               }}
             >
-              My Listings
+              My Stays
             </h1>
             <p
               style={{
@@ -152,7 +152,7 @@ export default function MyListings() {
                 fontSize: '0.9rem',
               }}
             >
-              {listings.length} listing
+              {listings.length} stay
               {listings.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -176,13 +176,13 @@ export default function MyListings() {
               className="btn-primary"
               onClick={() => navigate('/add-listing')}
             >
-              + Add New Listing
+              + Add New Stay
             </button>
           </div>
         </div>
 
         {listings.length === 0 ? (
-          <div
+            <div
             style={{
               textAlign: 'center',
               padding: '60px 20px',
@@ -205,7 +205,7 @@ export default function MyListings() {
                 color: 'var(--text-primary)',
               }}
             >
-              No listings yet
+              No stays yet
             </h2>
             <p
               style={{
@@ -213,13 +213,13 @@ export default function MyListings() {
                 color: 'var(--text-secondary)',
               }}
             >
-              Create your first listing to start receiving bookings
+              Create your first stay to start receiving bookings
             </p>
             <button
               className="btn-primary"
               onClick={() => navigate('/add-listing')}
             >
-              Add First Listing
+              Add First Stay
             </button>
           </div>
         ) : (
@@ -302,7 +302,13 @@ export default function MyListings() {
                               fontWeight: 700,
                             }}
                           >
-                            {listing.service_type?.toUpperCase()}
+                            {listing.service_type === 'hotel' && '🏨 Hotel'}
+                            {listing.service_type === 'tour' && '🏔️ Tour'}
+                            {listing.service_type === 'transport' && '🚐 Transport'}
+                            {listing.service_type === 'activity' && '🎯 Activity'}
+                            {!['hotel', 'tour', 'transport', 'activity'].includes(
+                              listing.service_type,
+                            ) && listing.service_type?.toUpperCase()}
                           </span>
                         </div>
                         <h3

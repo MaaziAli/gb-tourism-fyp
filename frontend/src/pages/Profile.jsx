@@ -243,7 +243,7 @@ function Profile() {
                 color: 'var(--text-secondary)',
               }}
             >
-              My Listings
+              My Stays
             </div>
           </div>
           <div
@@ -284,7 +284,7 @@ function Profile() {
         Danger Zone
       </h2>
       <p style={{ marginBottom: '12px', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
-        Deleting your account is permanent. You must remove your listings and
+        Deleting your account is permanent. You must remove your stays and
         cancel active bookings before you can delete your account.
       </p>
       <button
