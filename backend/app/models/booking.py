@@ -17,6 +17,8 @@ class Booking(Base):
     status = Column(String, default="active", nullable=False)
     total_price = Column(Float, nullable=False, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
+    room_type_id = Column(Integer, ForeignKey("room_types.id"), nullable=True)
+    room_type_name = Column(String, nullable=True)
 
     user = relationship("User", back_populates="bookings")
     listing = relationship("Listing", back_populates="bookings")

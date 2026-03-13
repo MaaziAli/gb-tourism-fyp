@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 
 export default function BookingForm() {
   const { listingId } = useParams()
+  const [searchParams] = useSearchParams()
+  const roomTypeId = searchParams.get('room_type_id')
+  const roomTypeName = searchParams.get('room_name')
   const navigate = useNavigate()
   const [listing, setListing] = useState(null)
   const [checkIn, setCheckIn] = useState('')
@@ -66,6 +69,7 @@ export default function BookingForm() {
         listing_id: parseInt(listingId, 10),
         check_in: checkIn,
         check_out: checkOut,
+        room_type_id: roomTypeId ? parseInt(roomTypeId, 10) : null,
       })
       navigate('/my-bookings')
     } catch (e) {
@@ -385,6 +389,22 @@ export default function BookingForm() {
               >
                 {listing.title}
               </h3>
+              {roomTypeName && (
+                <div
+                  style={{
+                    display: 'inline-block',
+                    background: 'var(--accent-light)',
+                    color: 'var(--accent)',
+                    padding: '3px 10px',
+                    borderRadius: '999px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    marginBottom: '8px',
+                  }}
+                >
+                  🛏️ {roomTypeName}
+                </div>
+              )}
               <p
                 style={{
                   margin: '0 0 12px',

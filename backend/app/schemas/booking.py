@@ -7,6 +7,7 @@ class BookingCreate(BaseModel):
     listing_id: int
     check_in: date
     check_out: date
+    room_type_id: int | None = None
 
 
 class BookingResponse(BaseModel):
@@ -18,5 +19,7 @@ class BookingResponse(BaseModel):
     check_in: date | None = None
     check_out: date | None = None
     created_at: datetime
+    room_type_id: int | None = None
+    room_type_name: str | None = None
 
     model_config = {"from_attributes": True}

@@ -12,6 +12,7 @@ from app.config import settings
 from app.database import Base, engine
 from app.models import review as _review_model  # noqa
 from app.models import listing_image as _li_model  # noqa
+from app.models import room_type as _rt_model  # noqa
 from app.routers import (
     auth,
     bookings,
@@ -21,6 +22,7 @@ from app.routers import (
     admin,
     reviews as reviews_router,
     listing_images as li_router,
+    room_types as rt_router,
 )
 
 
@@ -59,6 +61,7 @@ def create_app() -> FastAPI:
     app.include_router(admin.router)
     app.include_router(reviews_router.router)
     app.include_router(li_router.router)
+    app.include_router(rt_router.router)
 
     # Static files for uploaded images
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

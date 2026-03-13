@@ -65,8 +65,27 @@ def create_booking(
             detail="Booking conflict: dates overlap with existing booking",
         )
 
+    # Optional room type
+    room_type = None
+    if body.room_type_id:
+        from app.models.room_type import RoomType
+
+        room_type = (
+            db.query(RoomType)
+            .filter(
+                RoomType.id == body.room_type_id,
+                RoomType.listing_id == body.listing_id,
+            )
+            .first()
+        )
+        if not room_type:
+            raise HTTPException(status_code=404, detail="Room type not found")
+
+    price_per_night = (
+        room_type.price_per_night if room_type else listing.price_per_night
+    )
     nights = (body.check_out - body.check_in).days
-    total_price = nights * listing.price_per_night
+    total_price = nights * price_per_night
 
     booking = Booking(
         listing_id=body.listing_id,
@@ -75,6 +94,8 @@ def create_booking(
         check_out=body.check_out,
         total_price=total_price,
         status="active",
+        room_type_id=body.room_type_id if body.room_type_id else None,
+        room_type_name=room_type.name if room_type else None,
     )
     db.add(booking)
     db.commit()

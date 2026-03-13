@@ -29,6 +29,11 @@ class Listing(Base):
         cascade="all, delete-orphan",
         order_by="ListingImage.sort_order",
     )
+    room_types = relationship(
+        "RoomType",
+        back_populates="listing",
+        cascade="all, delete-orphan",
+    )
 
     @property
     def price_per_night(self) -> float:

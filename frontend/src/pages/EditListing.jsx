@@ -20,6 +20,16 @@ function EditListing() {
   const [extraImages, setExtraImages] = useState([])
   const [uploadingImage, setUploadingImage] = useState(false)
   const [imageMsg, setImageMsg] = useState('')
+  const [roomTypes, setRoomTypes] = useState([])
+  const [newRoom, setNewRoom] = useState({
+    name: '',
+    description: '',
+    price_per_night: '',
+    capacity: 2,
+    total_rooms: 1,
+  })
+  const [roomMsg, setRoomMsg] = useState('')
+  const [addingRoom, setAddingRoom] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -65,6 +75,16 @@ function EditListing() {
       })
   }, [listingId])
 
+  useEffect(() => {
+    if (!listingId) return
+    api
+      .get(`/room-types/${listingId}`)
+      .then((r) => setRoomTypes(r.data))
+      .catch((e) => {
+        console.error('Failed to load room types', e)
+      })
+  }, [listingId])
+
   async function uploadExtraImage(file) {
     if (!file || !listingId) return
     setUploadingImage(true)
@@ -95,6 +115,47 @@ function EditListing() {
       setExtraImages((prev) => prev.filter((i) => i.id !== imageId))
     } catch (e) {
       console.error('Failed to delete image', e)
+    }
+  }
+
+  async function addRoomType() {
+    if (!newRoom.name || !newRoom.price_per_night) {
+      setRoomMsg('Name and price are required')
+      return
+    }
+    if (!listingId) return
+    setAddingRoom(true)
+    try {
+      const res = await api.post(`/room-types/${listingId}`, {
+        ...newRoom,
+        price_per_night: parseFloat(newRoom.price_per_night),
+        capacity: parseInt(newRoom.capacity),
+        total_rooms: parseInt(newRoom.total_rooms),
+      })
+      setRoomTypes((prev) => [...prev, res.data])
+      setNewRoom({
+        name: '',
+        description: '',
+        price_per_night: '',
+        capacity: 2,
+        total_rooms: 1,
+      })
+      setRoomMsg('✅ Room type added!')
+    } catch (e) {
+      console.error('Failed to add room type', e)
+      setRoomMsg('❌ Failed to add room type')
+    } finally {
+      setAddingRoom(false)
+    }
+  }
+
+  async function deleteRoomType(roomId) {
+    if (!window.confirm('Delete this room type?')) return
+    try {
+      await api.delete(`/room-types/${roomId}`)
+      setRoomTypes((prev) => prev.filter((r) => r.id !== roomId))
+    } catch (e) {
+      console.error('Failed to delete room type', e)
     }
   }
 
@@ -204,6 +265,338 @@ function EditListing() {
                 color: 'var(--text-primary)',
               }}
             />
+          </div>
+
+          {/* Room Types Section */}
+          <div style={{ marginBottom: '28px' }}>
+            <label
+              style={{
+                display: 'block',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                marginBottom: '14px',
+                color: 'var(--text-primary)',
+              }}
+            >
+              🛏️ Room Types
+            </label>
+            <p
+              style={{
+                margin: '0 0 14px',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              Add specific room types with individual pricing. If no room types
+              are added, the base listing price is used.
+            </p>
+
+            {/* Existing room types */}
+            {roomTypes.length > 0 && (
+              <div
+                style={{
+                  marginBottom: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                {roomTypes.map((room) => (
+                  <div
+                    key={room.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '12px 14px',
+                      background: 'var(--bg-secondary)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          color: 'var(--text-primary)',
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        {room.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.8rem',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        PKR{' '}
+                        {room.price_per_night?.toLocaleString('en-PK')}
+                        /night · {room.capacity} guests · {room.total_rooms}{' '}
+                        room{room.total_rooms > 1 ? 's' : ''}
+                      </div>
+                      {room.description && (
+                        <div
+                          style={{
+                            fontSize: '0.78rem',
+                            color: 'var(--text-muted)',
+                            marginTop: '2px',
+                          }}
+                        >
+                          {room.description}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => deleteRoomType(room.id)}
+                      style={{
+                        background: 'var(--danger-bg)',
+                        color: 'var(--danger)',
+                        border: '1px solid var(--danger)',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add new room type form */}
+            <div
+              style={{
+                padding: '16px',
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '12px',
+                }}
+              >
+                + Add Room Type
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '10px',
+                  marginBottom: '10px',
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-secondary)',
+                      marginBottom: '4px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Room Name *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Deluxe Room"
+                    value={newRoom.name}
+                    onChange={(e) =>
+                      setNewRoom((p) => ({ ...p, name: e.target.value }))
+                    }
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-secondary)',
+                      marginBottom: '4px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Price / night (PKR) *
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 3500"
+                    value={newRoom.price_per_night}
+                    onChange={(e) =>
+                      setNewRoom((p) => ({
+                        ...p,
+                        price_per_night: e.target.value,
+                      }))
+                    }
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-secondary)',
+                      marginBottom: '4px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Max Guests
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={newRoom.capacity}
+                    onChange={(e) =>
+                      setNewRoom((p) => ({
+                        ...p,
+                        capacity: e.target.value,
+                      }))
+                    }
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-secondary)',
+                      marginBottom: '4px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Number of Rooms
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newRoom.total_rooms}
+                    onChange={(e) =>
+                      setNewRoom((p) => ({
+                        ...p,
+                        total_rooms: e.target.value,
+                      }))
+                    }
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ marginBottom: '10px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '4px',
+                    fontWeight: 600,
+                  }}
+                >
+                  Description (optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Mountain view, king bed, WiFi"
+                  value={newRoom.description}
+                  onChange={(e) =>
+                    setNewRoom((p) => ({
+                      ...p,
+                      description: e.target.value,
+                    }))
+                  }
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.875rem',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              {roomMsg && (
+                <p
+                  style={{
+                    margin: '0 0 10px',
+                    fontSize: '0.85rem',
+                    color: roomMsg.startsWith('✅')
+                      ? 'var(--success)'
+                      : 'var(--danger)',
+                  }}
+                >
+                  {roomMsg}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={addRoomType}
+                disabled={addingRoom}
+                style={{
+                  background: 'var(--accent)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 18px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  opacity: addingRoom ? 0.7 : 1,
+                }}
+              >
+                {addingRoom ? 'Adding...' : '+ Add Room Type'}
+              </button>
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
