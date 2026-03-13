@@ -41,7 +41,6 @@ export default function Listings() {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
-  // Filter state
   const [search, setSearch] = useState('')
   const [serviceType, setServiceType] = useState('')
   const [location, setLocation] = useState('All Locations')
@@ -61,7 +60,6 @@ export default function Listings() {
     finally { setLoading(false) }
   }
 
-  // Compute active filter count for badge
   const activeFilters = [
     serviceType !== '',
     location !== 'All Locations',
@@ -79,11 +77,8 @@ export default function Listings() {
     setSortBy('recommended')
   }
 
-  // Filter + sort logic
   const filtered = useMemo(() => {
     let result = [...listings]
-
-    // Search by title, location, description
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(l =>
@@ -92,24 +87,14 @@ export default function Listings() {
         l.description?.toLowerCase().includes(q)
       )
     }
-
-    // Service type
     if (serviceType) {
-      result = result.filter(
-        l => l.service_type === serviceType
-      )
+      result = result.filter(l => l.service_type === serviceType)
     }
-
-    // Location
     if (location !== 'All Locations') {
       result = result.filter(l =>
-        l.location?.toLowerCase().includes(
-          location.toLowerCase()
-        )
+        l.location?.toLowerCase().includes(location.toLowerCase())
       )
     }
-
-    // Price range
     if (minPrice !== '') {
       result = result.filter(
         l => l.price_per_night >= parseFloat(minPrice)
@@ -120,44 +105,33 @@ export default function Listings() {
         l => l.price_per_night <= parseFloat(maxPrice)
       )
     }
-
-    // Sort
     switch(sortBy) {
       case 'price_asc':
-        result.sort(
-          (a, b) => a.price_per_night - b.price_per_night
-        )
+        result.sort((a,b) => a.price_per_night - b.price_per_night)
         break
       case 'price_desc':
-        result.sort(
-          (a, b) => b.price_per_night - a.price_per_night
-        )
+        result.sort((a,b) => b.price_per_night - a.price_per_night)
         break
       case 'rating':
         result.sort(
-          (a, b) => (b.average_rating || 0) - (a.average_rating || 0)
+          (a,b) => (b.average_rating||0) - (a.average_rating||0)
         )
         break
       case 'newest':
-        result.sort(
-          (a, b) => b.id - a.id
-        )
+        result.sort((a,b) => b.id - a.id)
         break
-      default:
-        break
+      default: break
     }
-
     return result
   }, [listings, search, serviceType, location,
       minPrice, maxPrice, sortBy])
 
   return (
     <div style={{
-      background: 'var(--bg-primary)',
-      minHeight: '100vh', padding: '0'
+      background: 'var(--bg-primary)', minHeight: '100vh'
     }}>
 
-      {/* Hero search bar */}
+      {/* Hero */}
       <div style={{
         background: 'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
         padding: '36px 16px 28px'
@@ -171,22 +145,17 @@ export default function Listings() {
             Explore Gilgit-Baltistan
           </h1>
           <p style={{
-            color: 'rgba(255,255,255,0.8)',
-            textAlign: 'center', margin: '0 0 20px',
-            fontSize: '0.95rem'
+            color: 'rgba(255,255,255,0.8)', textAlign: 'center',
+            margin: '0 0 20px', fontSize: '0.95rem'
           }}>
             Discover hotels, tours, transport & activities
           </p>
 
-          {/* Main search input */}
-          <div style={{
-            display: 'flex', gap: '10px', marginBottom: '12px'
-          }}>
-            <div style={{flex: 1, position: 'relative'}}>
+          <div style={{display:'flex', gap:'10px', marginBottom:'12px'}}>
+            <div style={{flex:1, position:'relative'}}>
               <span style={{
-                position: 'absolute', left: '14px',
-                top: '50%', transform: 'translateY(-50%)',
-                fontSize: '1rem', pointerEvents: 'none'
+                position:'absolute', left:'14px', top:'50%',
+                transform:'translateY(-50%)', pointerEvents:'none'
               }}>🔍</span>
               <input
                 type="text"
@@ -194,12 +163,12 @@ export default function Listings() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 style={{
-                  width: '100%', padding: '13px 14px 13px 42px',
-                  borderRadius: '12px', border: 'none',
-                  fontSize: '0.95rem', outline: 'none',
-                  background: 'white', color: '#111827',
-                  boxSizing: 'border-box',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+                  width:'100%', padding:'13px 14px 13px 42px',
+                  borderRadius:'12px', border:'none',
+                  fontSize:'0.95rem', outline:'none',
+                  background:'white', color:'#111827',
+                  boxSizing:'border-box',
+                  boxShadow:'0 4px 20px rgba(0,0,0,0.15)'
                 }}
               />
             </div>
@@ -209,21 +178,19 @@ export default function Listings() {
                 background: filtersOpen
                   ? 'white' : 'rgba(255,255,255,0.2)',
                 color: filtersOpen ? '#1e3a5f' : 'white',
-                border: '2px solid rgba(255,255,255,0.4)',
-                borderRadius: '12px',
-                padding: '13px 18px',
-                cursor: 'pointer', fontWeight: 700,
-                fontSize: '0.9rem', whiteSpace: 'nowrap',
-                display: 'flex', alignItems: 'center',
-                gap: '6px'
+                border:'2px solid rgba(255,255,255,0.4)',
+                borderRadius:'12px', padding:'13px 18px',
+                cursor:'pointer', fontWeight:700,
+                fontSize:'0.9rem', whiteSpace:'nowrap',
+                display:'flex', alignItems:'center', gap:'6px'
               }}
             >
               🎛️ Filters
               {activeFilters > 0 && (
                 <span style={{
-                  background: '#ef4444', color: 'white',
-                  borderRadius: '999px', padding: '1px 7px',
-                  fontSize: '0.75rem', fontWeight: 700
+                  background:'#ef4444', color:'white',
+                  borderRadius:'999px', padding:'1px 7px',
+                  fontSize:'0.75rem', fontWeight:700
                 }}>
                   {activeFilters}
                 </span>
@@ -231,10 +198,9 @@ export default function Listings() {
             </button>
           </div>
 
-          {/* Quick type filters */}
           <div style={{
-            display: 'flex', gap: '8px',
-            flexWrap: 'wrap', justifyContent: 'center'
+            display:'flex', gap:'8px',
+            flexWrap:'wrap', justifyContent:'center'
           }}>
             {SERVICE_TYPES.map(t => (
               <button key={t.value}
@@ -244,12 +210,10 @@ export default function Listings() {
                     ? 'white' : 'rgba(255,255,255,0.15)',
                   color: serviceType === t.value
                     ? '#1e3a5f' : 'white',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  borderRadius: '999px',
-                  padding: '6px 16px',
-                  cursor: 'pointer', fontWeight: 600,
-                  fontSize: '0.83rem',
-                  transition: 'all 0.15s'
+                  border:'1px solid rgba(255,255,255,0.3)',
+                  borderRadius:'999px', padding:'6px 16px',
+                  cursor:'pointer', fontWeight:600,
+                  fontSize:'0.83rem', transition:'all 0.15s'
                 }}
               >
                 {t.label}
@@ -259,121 +223,92 @@ export default function Listings() {
         </div>
       </div>
 
-      {/* Expanded filters panel */}
+      {/* Filters panel */}
       {filtersOpen && (
         <div style={{
-          background: 'var(--bg-card)',
-          borderBottom: '1px solid var(--border-color)',
-          padding: '20px 16px'
+          background:'var(--bg-card)',
+          borderBottom:'1px solid var(--border-color)',
+          padding:'20px 16px'
         }}>
           <div style={{
-            maxWidth: '800px', margin: '0 auto',
-            display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '16px', alignItems: 'end'
+            maxWidth:'800px', margin:'0 auto',
+            display:'grid',
+            gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))',
+            gap:'16px', alignItems:'end'
           }}>
-
-            {/* Location */}
             <div>
               <label style={{
-                display: 'block', fontSize: '0.8rem',
-                fontWeight: 600, color: 'var(--text-secondary)',
-                marginBottom: '6px'
-              }}>
-                📍 Location
-              </label>
-              <select
-                value={location}
+                display:'block', fontSize:'0.8rem',
+                fontWeight:600, color:'var(--text-secondary)',
+                marginBottom:'6px'
+              }}>📍 Location</label>
+              <select value={location}
                 onChange={e => setLocation(e.target.value)}
                 style={{
-                  width: '100%', padding: '9px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.875rem'
-                }}
-              >
+                  width:'100%', padding:'9px 12px',
+                  borderRadius:'8px',
+                  border:'1px solid var(--border-color)',
+                  background:'var(--bg-secondary)',
+                  color:'var(--text-primary)', fontSize:'0.875rem'
+                }}>
                 {LOCATIONS.map(l => (
                   <option key={l} value={l}>{l}</option>
                 ))}
               </select>
             </div>
-
-            {/* Min price */}
             <div>
               <label style={{
-                display: 'block', fontSize: '0.8rem',
-                fontWeight: 600, color: 'var(--text-secondary)',
-                marginBottom: '6px'
-              }}>
-                💰 Min Price (PKR)
-              </label>
-              <input
-                type="number"
-                placeholder="e.g. 1000"
+                display:'block', fontSize:'0.8rem',
+                fontWeight:600, color:'var(--text-secondary)',
+                marginBottom:'6px'
+              }}>💰 Min Price (PKR)</label>
+              <input type="number" placeholder="e.g. 1000"
                 value={minPrice}
                 onChange={e => setMinPrice(e.target.value)}
                 style={{
-                  width: '100%', padding: '9px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.875rem',
-                  boxSizing: 'border-box'
+                  width:'100%', padding:'9px 12px',
+                  borderRadius:'8px',
+                  border:'1px solid var(--border-color)',
+                  background:'var(--bg-secondary)',
+                  color:'var(--text-primary)',
+                  fontSize:'0.875rem', boxSizing:'border-box'
                 }}
               />
             </div>
-
-            {/* Max price */}
             <div>
               <label style={{
-                display: 'block', fontSize: '0.8rem',
-                fontWeight: 600, color: 'var(--text-secondary)',
-                marginBottom: '6px'
-              }}>
-                💰 Max Price (PKR)
-              </label>
-              <input
-                type="number"
-                placeholder="e.g. 10000"
+                display:'block', fontSize:'0.8rem',
+                fontWeight:600, color:'var(--text-secondary)',
+                marginBottom:'6px'
+              }}>💰 Max Price (PKR)</label>
+              <input type="number" placeholder="e.g. 10000"
                 value={maxPrice}
                 onChange={e => setMaxPrice(e.target.value)}
                 style={{
-                  width: '100%', padding: '9px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.875rem',
-                  boxSizing: 'border-box'
+                  width:'100%', padding:'9px 12px',
+                  borderRadius:'8px',
+                  border:'1px solid var(--border-color)',
+                  background:'var(--bg-secondary)',
+                  color:'var(--text-primary)',
+                  fontSize:'0.875rem', boxSizing:'border-box'
                 }}
               />
             </div>
-
-            {/* Sort */}
             <div>
               <label style={{
-                display: 'block', fontSize: '0.8rem',
-                fontWeight: 600, color: 'var(--text-secondary)',
-                marginBottom: '6px'
-              }}>
-                🔃 Sort By
-              </label>
-              <select
-                value={sortBy}
+                display:'block', fontSize:'0.8rem',
+                fontWeight:600, color:'var(--text-secondary)',
+                marginBottom:'6px'
+              }}>🔃 Sort By</label>
+              <select value={sortBy}
                 onChange={e => setSortBy(e.target.value)}
                 style={{
-                  width: '100%', padding: '9px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.875rem'
-                }}
-              >
+                  width:'100%', padding:'9px 12px',
+                  borderRadius:'8px',
+                  border:'1px solid var(--border-color)',
+                  background:'var(--bg-secondary)',
+                  color:'var(--text-primary)', fontSize:'0.875rem'
+                }}>
                 {SORT_OPTIONS.map(o => (
                   <option key={o.value} value={o.value}>
                     {o.label}
@@ -381,21 +316,15 @@ export default function Listings() {
                 ))}
               </select>
             </div>
-
-            {/* Reset */}
             <div>
-              <button
-                onClick={resetFilters}
-                style={{
-                  width: '100%', padding: '9px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--danger-bg)',
-                  color: 'var(--danger)',
-                  fontWeight: 600, fontSize: '0.875rem',
-                  cursor: 'pointer'
-                }}
-              >
+              <button onClick={resetFilters} style={{
+                width:'100%', padding:'9px 12px',
+                borderRadius:'8px',
+                border:'1px solid var(--border-color)',
+                background:'var(--danger-bg)',
+                color:'var(--danger)', fontWeight:600,
+                fontSize:'0.875rem', cursor:'pointer'
+              }}>
                 ✖ Reset Filters
               </button>
             </div>
@@ -403,45 +332,38 @@ export default function Listings() {
         </div>
       )}
 
-      {/* Results area */}
+      {/* Results */}
       <div style={{
-        maxWidth: '1100px', margin: '0 auto',
-        padding: '24px 16px'
+        maxWidth:'1100px', margin:'0 auto', padding:'24px 16px'
       }}>
-
-        {/* Results count + sort info */}
         {!loading && (
           <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center', marginBottom: '20px'
+            display:'flex', justifyContent:'space-between',
+            alignItems:'center', marginBottom:'20px'
           }}>
             <p style={{
-              margin: 0, color: 'var(--text-secondary)',
-              fontSize: '0.9rem'
+              margin:0, color:'var(--text-secondary)',
+              fontSize:'0.9rem'
             }}>
               {filtered.length === listings.length
                 ? `${listings.length} stays & experiences`
                 : `${filtered.length} of ${listings.length} results`
               }
               {search && (
-                <span style={{color: 'var(--accent)'}}>
+                <span style={{color:'var(--accent)'}}>
                   {' '}for "{search}"
                 </span>
               )}
             </p>
-            {/* Inline sort for desktop */}
-            <select
-              value={sortBy}
+            <select value={sortBy}
               onChange={e => setSortBy(e.target.value)}
               style={{
-                padding: '7px 12px', borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                fontSize: '0.85rem', cursor: 'pointer'
-              }}
-            >
+                padding:'7px 12px', borderRadius:'8px',
+                border:'1px solid var(--border-color)',
+                background:'var(--bg-card)',
+                color:'var(--text-primary)',
+                fontSize:'0.85rem', cursor:'pointer'
+              }}>
               {SORT_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>
                   {o.label}
@@ -451,91 +373,81 @@ export default function Listings() {
           </div>
         )}
 
-        {/* Loading */}
         {loading && (
           <div style={{
-            textAlign: 'center', padding: '60px',
-            color: 'var(--text-secondary)'
+            textAlign:'center', padding:'60px',
+            color:'var(--text-secondary)'
           }}>
-            <div style={{fontSize: '2rem', marginBottom: '12px'}}>
+            <div style={{fontSize:'2rem', marginBottom:'12px'}}>
               ⏳
             </div>
             Loading stays & experiences...
           </div>
         )}
 
-        {/* No results */}
         {!loading && filtered.length === 0 && (
           <div style={{
-            textAlign: 'center', padding: '60px 20px',
-            background: 'var(--bg-card)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-color)'
+            textAlign:'center', padding:'60px 20px',
+            background:'var(--bg-card)',
+            borderRadius:'var(--radius-md)',
+            border:'1px solid var(--border-color)'
           }}>
-            <div style={{fontSize: '3rem', marginBottom: '12px'}}>
+            <div style={{fontSize:'3rem', marginBottom:'12px'}}>
               🔍
             </div>
-            <h2 style={{
-              margin: '0 0 8px',
-              color: 'var(--text-primary)'
-            }}>
+            <h2 style={{margin:'0 0 8px',
+                         color:'var(--text-primary)'}}>
               No results found
             </h2>
-            <p style={{
-              margin: '0 0 20px',
-              color: 'var(--text-secondary)'
-            }}>
+            <p style={{margin:'0 0 20px',
+                        color:'var(--text-secondary)'}}>
               Try adjusting your search or filters
             </p>
-            <button
-              onClick={resetFilters}
-              style={{
-                background: 'var(--accent)', color: 'white',
-                border: 'none', borderRadius: '10px',
-                padding: '10px 24px', cursor: 'pointer',
-                fontWeight: 600, fontSize: '0.9rem'
-              }}
-            >
+            <button onClick={resetFilters} style={{
+              background:'var(--accent)', color:'white',
+              border:'none', borderRadius:'10px',
+              padding:'10px 24px', cursor:'pointer',
+              fontWeight:600, fontSize:'0.9rem'
+            }}>
               Clear All Filters
             </button>
           </div>
         )}
 
-        {/* Listings grid */}
         {!loading && filtered.length > 0 && (
           <div style={{
-            display: 'grid',
+            display:'grid',
             gridTemplateColumns:
               'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '20px'
+            gap:'20px'
           }}>
             {filtered.map(listing => {
               const badge = getServiceBadge(listing.service_type)
               return (
-                <div
-                  key={listing.id}
+                <div key={listing.id}
                   onClick={() => navigate(`/listing/${listing.id}`)}
                   style={{
-                    background: 'var(--bg-card)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-color)',
-                    overflow: 'hidden', cursor: 'pointer',
-                    boxShadow: 'var(--shadow-sm)',
-                    transition: 'transform 0.18s, box-shadow 0.18s'
+                    background:'var(--bg-card)',
+                    borderRadius:'var(--radius-md)',
+                    border:'1px solid var(--border-color)',
+                    overflow:'hidden', cursor:'pointer',
+                    boxShadow:'var(--shadow-sm)',
+                    transition:'transform 0.18s, box-shadow 0.18s'
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-4px)'
+                    e.currentTarget.style.transform =
+                      'translateY(-4px)'
                     e.currentTarget.style.boxShadow =
                       '0 8px 30px rgba(0,0,0,0.12)'
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.transform =
+                      'translateY(0)'
                     e.currentTarget.style.boxShadow =
                       'var(--shadow-sm)'
                   }}
                 >
-                  {/* Image */}
-                  <div style={{position: 'relative'}}>
+                  <div style={{position:'relative'}}>
                     <img
                       src={getImageUrl(listing.image_url)}
                       alt={listing.title}
@@ -544,90 +456,81 @@ export default function Listings() {
                         e.target.src = 'https://placehold.co/400x250/e5e7eb/9ca3af?text=GB+Tourism'
                       }}
                       style={{
-                        width: '100%', height: '200px',
-                        objectFit: 'cover', display: 'block'
+                        width:'100%', height:'200px',
+                        objectFit:'cover', display:'block'
                       }}
                     />
-                    {/* Service type badge */}
                     <span style={{
-                      position: 'absolute', top: '12px', left: '12px',
-                      background: badge.bg, color: 'white',
-                      padding: '4px 10px', borderRadius: '999px',
-                      fontSize: '0.75rem', fontWeight: 700
+                      position:'absolute', top:'12px', left:'12px',
+                      background:badge.bg, color:'white',
+                      padding:'4px 10px', borderRadius:'999px',
+                      fontSize:'0.75rem', fontWeight:700
                     }}>
                       {badge.label}
                     </span>
-                    {/* Rating badge */}
                     {listing.average_rating > 0 && (
                       <span style={{
-                        position: 'absolute',
-                        top: '12px', right: '12px',
-                        background: 'rgba(0,0,0,0.65)',
-                        color: 'white',
-                        padding: '4px 10px',
-                        borderRadius: '999px',
-                        fontSize: '0.75rem', fontWeight: 700
+                        position:'absolute',
+                        top:'12px', right:'12px',
+                        background:'rgba(0,0,0,0.65)',
+                        color:'white', padding:'4px 10px',
+                        borderRadius:'999px',
+                        fontSize:'0.75rem', fontWeight:700
                       }}>
                         ⭐ {listing.average_rating?.toFixed(1)}
                       </span>
                     )}
                   </div>
-
-                  {/* Info */}
-                  <div style={{padding: '16px'}}>
+                  <div style={{padding:'16px'}}>
                     <h3 style={{
-                      margin: '0 0 6px', fontWeight: 700,
-                      fontSize: '1rem',
-                      color: 'var(--text-primary)',
-                      whiteSpace: 'nowrap', overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      margin:'0 0 6px', fontWeight:700,
+                      fontSize:'1rem', color:'var(--text-primary)',
+                      whiteSpace:'nowrap', overflow:'hidden',
+                      textOverflow:'ellipsis'
                     }}>
                       {listing.title}
                     </h3>
                     <p style={{
-                      margin: '0 0 12px', fontSize: '0.85rem',
-                      color: 'var(--text-secondary)',
-                      display: 'flex', alignItems: 'center',
-                      gap: '4px'
+                      margin:'0 0 12px', fontSize:'0.85rem',
+                      color:'var(--text-secondary)'
                     }}>
                       📍 {listing.location}
                     </p>
                     {listing.description && (
                       <p style={{
-                        margin: '0 0 12px',
-                        fontSize: '0.825rem',
-                        color: 'var(--text-muted)',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        margin:'0 0 12px', fontSize:'0.825rem',
+                        color:'var(--text-muted)',
+                        display:'-webkit-box',
+                        WebkitLineClamp:2,
+                        WebkitBoxOrient:'vertical',
+                        overflow:'hidden'
                       }}>
                         {listing.description}
                       </p>
                     )}
                     <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                      display:'flex',
+                      justifyContent:'space-between',
+                      alignItems:'center'
                     }}>
                       <div>
                         <span style={{
-                          fontSize: '1.15rem', fontWeight: 800,
-                          color: 'var(--accent)'
+                          fontSize:'1.15rem', fontWeight:800,
+                          color:'var(--accent)'
                         }}>
                           PKR {listing.price_per_night
                             ?.toLocaleString('en-PK')}
                         </span>
                         <span style={{
-                          fontSize: '0.8rem',
-                          color: 'var(--text-muted)'
+                          fontSize:'0.8rem',
+                          color:'var(--text-muted)'
                         }}>
                           {' '}/night
                         </span>
                       </div>
                       <span style={{
-                        fontSize: '0.75rem',
-                        color: 'var(--text-muted)'
+                        fontSize:'0.75rem',
+                        color:'var(--text-muted)'
                       }}>
                         {listing.review_count > 0
                           ? `${listing.review_count} review${listing.review_count > 1 ? 's' : ''}`
