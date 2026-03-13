@@ -72,21 +72,15 @@ function AddListing() {
   }
 
   return (
-    <div
-      style={{
-        maxWidth: '1000px',
-        margin: '0 auto',
-        padding: '20px',
-      }}
-    >
+    <div className="page-container">
       <div
         style={{
           maxWidth: '600px',
           margin: '40px auto',
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-card)',
           padding: '32px',
           borderRadius: '12px',
-          boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         <h1
@@ -94,7 +88,7 @@ function AddListing() {
             margin: 0,
             fontSize: '1.6rem',
             fontWeight: 700,
-            color: '#111827',
+            color: 'var(--text-primary)',
           }}
         >
           Add New Listing
@@ -104,7 +98,7 @@ function AddListing() {
             marginTop: '4px',
             marginBottom: '24px',
             fontSize: '0.9rem',
-            color: '#6b7280',
+            color: 'var(--text-secondary)',
           }}
         >
           List your service for travelers across Gilgit-Baltistan
@@ -116,9 +110,9 @@ function AddListing() {
               marginBottom: '16px',
               padding: '12px',
               borderRadius: '8px',
-              backgroundColor: '#d1fae5',
-              border: '1px solid #6ee7b7',
-              color: '#065f46',
+              backgroundColor: 'var(--success-bg)',
+              border: '1px solid var(--success)',
+              color: 'var(--success)',
               fontSize: '0.9rem',
             }}
           >
@@ -132,7 +126,7 @@ function AddListing() {
                 padding: 0,
                 border: 'none',
                 background: 'none',
-                color: '#065f46',
+                color: 'var(--success)',
                 textDecoration: 'underline',
                 cursor: 'pointer',
                 fontSize: '0.9rem',
@@ -149,9 +143,9 @@ function AddListing() {
               marginBottom: '16px',
               padding: '12px',
               borderRadius: '8px',
-              backgroundColor: '#fee2e2',
-              border: '1px solid #fecaca',
-              color: '#991b1b',
+              backgroundColor: 'var(--danger-bg)',
+              border: '1px solid var(--danger)',
+              color: 'var(--danger)',
               fontSize: '0.9rem',
             }}
           >
@@ -199,7 +193,7 @@ function AddListing() {
                 display: 'block',
                 fontSize: '0.85rem',
                 fontWeight: 500,
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 marginBottom: '4px',
               }}
             >
