@@ -66,6 +66,14 @@ function Navbar() {
               >
                 My Listings
               </Link>
+              <Link
+                to="/my-analytics"
+                className={`nav-link${
+                  isActive('/my-analytics') ? ' active' : ''
+                }`}
+              >
+                📊 Analytics
+              </Link>
             </>
           )}
           {loggedIn && role !== 'admin' && (

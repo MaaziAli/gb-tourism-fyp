@@ -15,6 +15,7 @@ import Profile from './pages/Profile'
 import Recommendations from './pages/Recommendations'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ListingDetail from './pages/ListingDetail'
+import ProviderAnalytics from './pages/ProviderAnalytics'
 
 function App() {
   return (
@@ -71,6 +72,14 @@ function App() {
             element={
               <ProviderRoute>
                 <MyListings />
+              </ProviderRoute>
+            }
+          />
+          <Route
+            path="/my-analytics"
+            element={
+              <ProviderRoute>
+                <ProviderAnalytics />
               </ProviderRoute>
             }
           />
