@@ -19,7 +19,8 @@ from app.schemas.listing import ListingResponse, ListingUpdate
 router = APIRouter(prefix="/listings", tags=["Listings"])
 
 # Save listing images under backend/uploads/
-UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _save_image(image: UploadFile | None) -> str | None:
@@ -28,7 +29,6 @@ def _save_image(image: UploadFile | None) -> str | None:
     """
     if image is None:
         return None
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     suffix = Path(image.filename).suffix
     filename = f"{uuid4().hex}{suffix}"
     dest = UPLOAD_DIR / filename
@@ -85,56 +85,21 @@ def get_my_listings(
     return db.query(Listing).filter(Listing.owner_id == current_user.id).all()
 
 
-@router.get("/{listing_id}", response_model=ListingResponse)
-def get_listing(listing_id: int, db: Session = Depends(get_db)):
-    """Get a single listing by ID."""
-    listing = db.get(Listing, listing_id)
-    if listing is None:
-        raise HTTPException(status_code=404, detail="Listing not found")
-    return listing
+@router.get("/debug-upload-dir")
+def debug_upload_dir():
+    import os
 
-
-@router.put("/{listing_id}", response_model=ListingResponse)
-def update_listing(
-    listing_id: int,
-    title: str = Form(...),
-    location: str = Form(...),
-    price_per_night: float = Form(...),
-    service_type: str = Form(...),
-    description: str | None = Form(None),
-    image: UploadFile | None = File(None),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Update an existing listing."""
-    listing = db.get(Listing, listing_id)
-    if listing is None:
-        raise HTTPException(status_code=404, detail="Listing not found")
-    if listing.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="You are not allowed to edit this listing",
-        )
-    listing.title = title
-    listing.location = location
-    listing.price = price_per_night
-    listing.service_type = service_type
-    if description is not None:
-        listing.description = description
-
-    # When a new image is uploaded, replace the old file on disk and update image_url.
-    if image is not None:
-        old_image = listing.image_url
-        image_filename = _save_image(image)
-        if image_filename is not None:
-            listing.image_url = image_filename
-            if old_image:
-                old_file = UPLOAD_DIR / old_image
-                if old_file.exists():
-                    old_file.unlink()
-    db.commit()
-    db.refresh(listing)
-    return listing
+    files: list[str] = []
+    exists = UPLOAD_DIR.exists()
+    if exists:
+        files = os.listdir(UPLOAD_DIR)
+    return {
+        "upload_dir": str(UPLOAD_DIR),
+        "upload_dir_absolute": str(UPLOAD_DIR.resolve()),
+        "exists": exists,
+        "files_count": len(files),
+        "files": files[:10],
+    }
 
 
 @router.get("/check-images")
@@ -204,6 +169,58 @@ def clear_missing_listing_images(db: Session = Depends(get_db)):
         db.commit()
 
     return {"cleared": len(cleared_ids), "listing_ids_cleared": cleared_ids}
+
+
+@router.get("/{listing_id}", response_model=ListingResponse)
+def get_listing(listing_id: int, db: Session = Depends(get_db)):
+    """Get a single listing by ID."""
+    listing = db.get(Listing, listing_id)
+    if listing is None:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    return listing
+
+
+@router.put("/{listing_id}", response_model=ListingResponse)
+def update_listing(
+    listing_id: int,
+    title: str = Form(...),
+    location: str = Form(...),
+    price_per_night: float = Form(...),
+    service_type: str = Form(...),
+    description: str | None = Form(None),
+    image: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update an existing listing."""
+    listing = db.get(Listing, listing_id)
+    if listing is None:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not allowed to edit this listing",
+        )
+    listing.title = title
+    listing.location = location
+    listing.price = price_per_night
+    listing.service_type = service_type
+    if description is not None:
+        listing.description = description
+
+    # When a new image is uploaded, replace the old file on disk and update image_url.
+    if image is not None:
+        old_image = listing.image_url
+        image_filename = _save_image(image)
+        if image_filename is not None:
+            listing.image_url = image_filename
+            if old_image:
+                old_file = UPLOAD_DIR / old_image
+                if old_file.exists():
+                    old_file.unlink()
+    db.commit()
+    db.refresh(listing)
+    return listing
 
 
 @router.delete("/{listing_id}", status_code=204)
