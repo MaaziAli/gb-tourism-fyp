@@ -143,7 +143,7 @@ export default function MyListings() {
                 color: 'var(--text-primary)',
               }}
             >
-              My Stays
+              My Services
             </h1>
             <p
               style={{
@@ -176,7 +176,7 @@ export default function MyListings() {
               className="btn-primary"
               onClick={() => navigate('/add-listing')}
             >
-              + Add New Stay
+              + List Your Service
             </button>
           </div>
         </div>
@@ -205,7 +205,7 @@ export default function MyListings() {
                 color: 'var(--text-primary)',
               }}
             >
-              No stays yet
+              No services listed yet
             </h2>
             <p
               style={{
@@ -213,13 +213,13 @@ export default function MyListings() {
                 color: 'var(--text-secondary)',
               }}
             >
-              Create your first stay to start receiving bookings
+              List your first service to start receiving bookings
             </p>
             <button
               className="btn-primary"
               onClick={() => navigate('/add-listing')}
             >
-              Add First Stay
+              List Your First Service
             </button>
           </div>
         ) : (

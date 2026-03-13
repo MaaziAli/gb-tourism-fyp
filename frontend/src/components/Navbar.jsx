@@ -56,7 +56,7 @@ function Navbar() {
                   isActive('/add-listing') ? ' active' : ''
                 }`}
               >
-                Add Stay
+                List Your Service
               </Link>
               <Link
                 to="/my-listings"
@@ -64,7 +64,7 @@ function Navbar() {
                   isActive('/my-listings') ? ' active' : ''
                 }`}
               >
-                My Stays
+                My Services
               </Link>
               <Link
                 to="/my-analytics"

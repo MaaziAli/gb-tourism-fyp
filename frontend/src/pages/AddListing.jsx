@@ -97,7 +97,7 @@ function AddListing() {
             color: 'var(--text-primary)',
           }}
         >
-          Add New Stay
+          List Your Service
         </h1>
         <p
           style={{
@@ -138,7 +138,7 @@ function AddListing() {
                 fontSize: '0.9rem',
               }}
             >
-              View My Stays
+              View My Services
             </button>
           </div>
         )}
@@ -444,7 +444,7 @@ function AddListing() {
               opacity: submitting ? 0.85 : 1,
             }}
           >
-            {submitting ? 'Creating...' : 'Create Stay'}
+            {submitting ? 'Creating...' : 'Create Listing'}
           </button>
         </form>
         </div>

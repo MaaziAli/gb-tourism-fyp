@@ -221,7 +221,7 @@ function AdminDashboard() {
               color: '#e5e7eb',
             }}
           >
-            Stays & Experiences
+            Services
           </button>
           <button
             type="button"
@@ -278,7 +278,7 @@ function AdminDashboard() {
                   icon: '👥',
                 },
                 {
-                  label: 'Total Stays & Experiences',
+                  label: 'Total Services',
                   value: stats.total_listings,
                   icon: '🏨',
                 },
