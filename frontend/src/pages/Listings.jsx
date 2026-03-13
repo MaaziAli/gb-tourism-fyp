@@ -55,11 +55,7 @@ function Listings() {
       })
   }, [])
 
-  const containerStyle = {
-    maxWidth: '1000px',
-    margin: '0 auto',
-    padding: '20px',
-  }
+  const containerStyle = {}
 
   const gridStyle = {
     display: 'grid',
@@ -124,7 +120,7 @@ function Listings() {
 
   if (loading) {
     return (
-      <div style={containerStyle}>
+      <div className="page-container" style={containerStyle}>
         <p style={{ textAlign: 'center', color: '#6b7280' }}>Loading listings...</p>
       </div>
     )
@@ -132,7 +128,7 @@ function Listings() {
 
   if (error) {
     return (
-      <div style={containerStyle}>
+      <div className="page-container" style={containerStyle}>
         <p style={{ color: 'red' }}>{error}</p>
       </div>
     )
@@ -140,7 +136,7 @@ function Listings() {
 
   if (listings.length === 0) {
     return (
-      <div style={containerStyle}>
+      <div className="page-container" style={containerStyle}>
         <div style={{ textAlign: 'center', marginTop: '40px' }}>
           <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🏔️</div>
           <h2 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 600 }}>
@@ -155,19 +151,19 @@ function Listings() {
   }
 
   return (
-    <div style={containerStyle}>
+    <div className="page-container" style={containerStyle}>
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-        <h1
+          <h1
           style={{
             margin: 0,
             fontSize: '2rem',
             fontWeight: 700,
-            color: '#111827',
+            color: 'var(--text-primary)',
           }}
         >
           Explore Gilgit-Baltistan
         </h1>
-        <p style={{ marginTop: '8px', fontSize: '1rem', color: '#6b7280' }}>
+        <p style={{ marginTop: '8px', fontSize: '1rem', color: 'var(--text-secondary)' }}>
           Discover hotels, tours, transport and activities across GB
         </p>
       </div>
@@ -177,9 +173,9 @@ function Listings() {
           style={{
             marginBottom: '24px',
             padding: '16px 20px',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-card)',
             borderRadius: '12px',
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--border-color)',
           }}
         >
           <div
@@ -196,7 +192,7 @@ function Listings() {
                 style={{
                   fontSize: '1.1rem',
                   fontWeight: 600,
-                  color: '#111827',
+                  color: 'var(--text-primary)',
                 }}
               >
                 ✨ Recommended for You
@@ -205,7 +201,7 @@ function Listings() {
                 style={{
                   marginTop: '2px',
                   fontSize: '0.8rem',
-                  color: '#6b7280',
+                  color: 'var(--text-secondary)',
                 }}
               >
                 Based on your preferences
@@ -217,9 +213,9 @@ function Listings() {
               style={{
                 padding: '6px 10px',
                 borderRadius: '999px',
-                border: '1px solid #2563eb',
-                backgroundColor: '#eff6ff',
-                color: '#2563eb',
+                border: '1px solid var(--accent)',
+                backgroundColor: 'var(--accent-light)',
+                color: 'var(--accent)',
                 cursor: 'pointer',
                 fontSize: '0.8rem',
                 whiteSpace: 'nowrap',
@@ -243,10 +239,10 @@ function Listings() {
                   key={item.id}
                   style={{
                     flex: '0 0 220px',
-                    backgroundColor: '#ffffff',
+                    backgroundColor: 'var(--bg-card)',
                     borderRadius: '10px',
-                    border: '1px solid #e5e7eb',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                    border: '1px solid var(--border-color)',
+                    boxShadow: 'var(--shadow-sm)',
                     overflow: 'hidden',
                   }}
                 >
@@ -285,7 +281,7 @@ function Listings() {
                       style={{
                         fontSize: '0.85rem',
                         fontWeight: 600,
-                        color: '#111827',
+                        color: 'var(--text-primary)',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -296,7 +292,7 @@ function Listings() {
                     <div
                       style={{
                         fontSize: '0.8rem',
-                        color: '#2563eb',
+                        color: 'var(--accent)',
                         fontWeight: 600,
                       }}
                     >
@@ -329,9 +325,9 @@ function Listings() {
 
       <div
         style={{
-          backgroundColor: '#ffffff',
+                backgroundColor: 'var(--bg-card)',
           borderRadius: '12px',
-          border: '1px solid #e5e7eb',
+                border: '1px solid var(--border-color)',
           padding: '20px',
           marginBottom: '32px',
         }}
@@ -354,7 +350,7 @@ function Listings() {
               htmlFor="locationFilter"
               style={{
                 fontSize: '0.85rem',
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 fontWeight: 500,
                 marginBottom: '4px',
               }}
@@ -371,7 +367,7 @@ function Listings() {
                 padding: '8px 12px',
                 fontSize: '0.9rem',
                 borderRadius: '8px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
               }}
             />
@@ -388,7 +384,7 @@ function Listings() {
               htmlFor="minPrice"
               style={{
                 fontSize: '0.85rem',
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 fontWeight: 500,
                 marginBottom: '4px',
               }}
@@ -405,7 +401,7 @@ function Listings() {
                 padding: '8px 12px',
                 fontSize: '0.9rem',
                 borderRadius: '8px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
               }}
               min="0"
@@ -423,7 +419,7 @@ function Listings() {
               htmlFor="maxPrice"
               style={{
                 fontSize: '0.85rem',
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 fontWeight: 500,
                 marginBottom: '4px',
               }}
@@ -440,7 +436,7 @@ function Listings() {
                 padding: '8px 12px',
                 fontSize: '0.9rem',
                 borderRadius: '8px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
               }}
               min="0"
@@ -503,7 +499,7 @@ function Listings() {
                 padding: '10px 24px',
                 borderRadius: '8px',
                 border: 'none',
-                backgroundColor: '#2563eb',
+                backgroundColor: 'var(--accent)',
                 color: '#ffffff',
                 cursor: 'pointer',
                 fontSize: '0.9rem',
@@ -521,7 +517,7 @@ function Listings() {
           <h2 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 600 }}>
             No listings found
           </h2>
-          <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
             Try adjusting your search filters.
           </p>
         </div>
@@ -540,10 +536,10 @@ function Listings() {
                 key={listing.id}
                 style={cardStyle}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+                  e.currentTarget.style.boxShadow = 'var(--shadow-md)'
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'
+                  e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
                 }}
               >
                 <div
@@ -597,9 +593,9 @@ function Listings() {
                   <h2
                     style={{
                       margin: '0 0 6px 0',
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      color: '#111827',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
                     }}
                   >
                     {listing.title}
@@ -610,7 +606,7 @@ function Listings() {
                       display: 'flex',
                       alignItems: 'center',
                       fontSize: '0.85rem',
-                      color: '#6b7280',
+                      color: 'var(--text-secondary)',
                     }}
                   >
                     <span style={{ marginRight: '4px' }}>📍</span>
@@ -621,7 +617,7 @@ function Listings() {
                     <p
                       style={{
                         fontSize: '0.8rem',
-                        color: '#6b7280',
+                        color: 'var(--text-secondary)',
                         margin: '4px 0',
                         overflow: 'hidden',
                         display: '-webkit-box',
@@ -638,7 +634,7 @@ function Listings() {
                       marginTop: '8px',
                       fontSize: '1.1rem',
                       fontWeight: 700,
-                      color: '#111827',
+                      color: 'var(--text-primary)',
                     }}
                   >
                     PKR {priceText} / night
@@ -661,7 +657,7 @@ function Listings() {
                           padding: '9px 0',
                           borderRadius: '8px',
                           border: 'none',
-                          backgroundColor: '#2563eb',
+                          backgroundColor: 'var(--accent)',
                           color: '#ffffff',
                           cursor: 'pointer',
                           fontSize: '0.9rem',
@@ -680,9 +676,9 @@ function Listings() {
                           flex: 1,
                           padding: '9px 0',
                           borderRadius: '8px',
-                          border: '1px dashed #9ca3af',
-                          backgroundColor: '#f9fafb',
-                          color: '#9ca3af',
+                          border: '1px dashed var(--border-color)',
+                          backgroundColor: 'var(--bg-secondary)',
+                          color: 'var(--text-muted)',
                           fontSize: '0.9rem',
                           cursor: 'not-allowed',
                         }}
@@ -697,9 +693,9 @@ function Listings() {
                         style={{
                           padding: '9px 16px',
                           borderRadius: '8px',
-                          border: '1px solid #2563eb',
-                          backgroundColor: '#ffffff',
-                          color: '#2563eb',
+                          border: '1px solid var(--accent)',
+                          backgroundColor: 'var(--bg-card)',
+                          color: 'var(--accent)',
                           cursor: 'pointer',
                           fontSize: '0.9rem',
                           fontWeight: 500,

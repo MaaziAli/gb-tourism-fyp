@@ -13,11 +13,7 @@ function MyListings() {
   const [loadingBookings, setLoadingBookings] = useState({})
   const [deleteErrors, setDeleteErrors] = useState({})
 
-  const containerStyle = {
-    maxWidth: '1000px',
-    margin: '0 auto',
-    padding: '20px',
-  }
+  const containerStyle = {}
 
   const gridStyle = {
     display: 'grid',
@@ -163,7 +159,7 @@ function MyListings() {
 
   if (loading) {
     return (
-      <div style={containerStyle}>
+      <div className="page-container" style={containerStyle}>
         <p>Loading listings...</p>
       </div>
     )
@@ -171,7 +167,7 @@ function MyListings() {
 
   if (error) {
     return (
-      <div style={containerStyle}>
+      <div className="page-container" style={containerStyle}>
         <p style={{ color: 'red' }}>{error}</p>
       </div>
     )
@@ -179,7 +175,7 @@ function MyListings() {
 
   if (!listings.length) {
     return (
-      <div style={containerStyle}>
+      <div className="page-container" style={containerStyle}>
         <div
           style={{
             maxWidth: '480px',
@@ -233,7 +229,7 @@ function MyListings() {
   }
 
   return (
-    <div style={containerStyle}>
+    <div className="page-container" style={containerStyle}>
       <div
         style={{
           display: 'flex',

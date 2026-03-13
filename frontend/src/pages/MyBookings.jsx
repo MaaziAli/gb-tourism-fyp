@@ -10,11 +10,7 @@ function MyBookings() {
   const [cancelErrors, setCancelErrors] = useState({})
   const navigate = useNavigate()
 
-  const containerStyle = {
-    maxWidth: '1000px',
-    margin: '0 auto',
-    padding: '20px',
-  }
+  const containerStyle = {}
 
   const listWrapperStyle = {
     maxWidth: '750px',
@@ -153,7 +149,7 @@ function MyBookings() {
 
   if (loading) {
     return (
-      <div style={containerStyle}>
+      <div className="page-container" style={containerStyle}>
         <p style={{ textAlign: 'center', color: '#6b7280' }}>
           Loading your bookings...
         </p>
@@ -163,7 +159,7 @@ function MyBookings() {
 
   if (error) {
     return (
-      <div style={containerStyle}>
+      <div className="page-container" style={containerStyle}>
         <p style={{ color: 'red' }}>{error}</p>
       </div>
     )
@@ -171,7 +167,7 @@ function MyBookings() {
 
   if (!bookings.length) {
     return (
-      <div style={containerStyle}>
+      <div className="page-container" style={containerStyle}>
         <div
           style={{
             maxWidth: '480px',
@@ -225,7 +221,7 @@ function MyBookings() {
   }
 
   return (
-    <div style={containerStyle}>
+    <div className="page-container" style={containerStyle}>
       <div style={{ marginBottom: '32px' }}>
         <h1
           style={{

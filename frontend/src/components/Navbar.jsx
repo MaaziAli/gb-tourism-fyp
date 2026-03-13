@@ -19,10 +19,10 @@ function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-inner">
-        <div className="navbar-logo">
-          <span>🏔️</span>
-          <span>GB Tourism</span>
-        </div>
+        <Link to="/" className="navbar-logo">
+          🏔️ GB Tourism
+          <span className="logo-badge">GB</span>
+        </Link>
         <div className="nav-links">
           <Link
             to="/"
@@ -130,11 +130,7 @@ function Navbar() {
             <button
               type="button"
               onClick={handleLogout}
-              className="nav-link"
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(148,163,184,0.8)',
-              }}
+              className="nav-logout"
             >
               Logout
             </button>
