@@ -1,7 +1,7 @@
 """
 Bookings router - create, list, and cancel bookings.
 """
-from datetime import datetime, time, timedelta
+from datetime import date as date_type
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
@@ -19,41 +19,61 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 @router.post("/", response_model=BookingResponse)
 def create_booking(
-    data: BookingCreate,
+    body: BookingCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Create a new booking."""
-    if data.check_in >= data.check_out:
-        raise HTTPException(status_code=400, detail="Invalid dates: check_in must be before check_out")
-
-    listing = db.get(Listing, data.listing_id)
-    if listing is None:
+    listing = db.query(Listing).filter(Listing.id == body.listing_id).first()
+    if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
+
+    # Providers cannot book their own listings
     if listing.owner_id == current_user.id:
         raise HTTPException(
             status_code=400,
             detail="Providers cannot book their own listings",
         )
 
+    today = date_type.today()
+    if body.check_in < today:
+        raise HTTPException(
+            status_code=400,
+            detail="Check-in date cannot be in the past",
+        )
+    if body.check_out <= body.check_in:
+        raise HTTPException(
+            status_code=400,
+            detail="Check-out must be after check-in",
+        )
+
+    # Prevent overlapping active bookings for the same listing
     overlapping = (
         db.query(Booking)
         .filter(
-            Booking.listing_id == data.listing_id,
+            Booking.listing_id == body.listing_id,
             Booking.status == "active",
-            Booking.check_in < data.check_out,
-            Booking.check_out > data.check_in,
+            Booking.check_in < body.check_out,
+            Booking.check_out > body.check_in,
         )
         .first()
     )
     if overlapping:
-        raise HTTPException(status_code=400, detail="Booking conflict: dates overlap with existing booking")
+        raise HTTPException(
+            status_code=400,
+            detail="Booking conflict: dates overlap with existing booking",
+        )
+
+    nights = (body.check_out - body.check_in).days
+    total_price = nights * listing.price_per_night
 
     booking = Booking(
+        listing_id=body.listing_id,
         user_id=current_user.id,
-        listing_id=data.listing_id,
-        check_in=data.check_in,
-        check_out=data.check_out,
+        check_in=body.check_in,
+        check_out=body.check_out,
+        total_price=total_price,
+        status="active",
     )
     db.add(booking)
     db.commit()
@@ -103,38 +123,29 @@ def get_my_bookings(
     return db.query(Booking).filter(Booking.user_id == current_user.id).all()
 
 
-@router.delete("/{booking_id}", response_model=BookingResponse)
+@router.patch("/{booking_id}/cancel", response_model=BookingResponse)
 def cancel_booking(
     booking_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Cancel a booking (sets status to cancelled)."""
-    booking = db.get(Booking, booking_id)
-    if booking is None:
+    """
+    Cancel an active booking for the current user.
+    Any active booking can be cancelled; no date restrictions.
+    """
+    booking = (
+        db.query(Booking)
+        .filter(Booking.id == booking_id, Booking.user_id == current_user.id)
+        .first()
+    )
+    if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-    if booking.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to cancel this booking")
-    now = datetime.utcnow()
-    if now.date() >= booking.check_in:
-        raise HTTPException(status_code=400, detail="Cannot cancel past bookings")
-    check_in_start = datetime.combine(booking.check_in, time.min)
-    if (check_in_start - now) < timedelta(hours=24):
-        raise HTTPException(status_code=400, detail="Cancellation period has expired")
+    if booking.status == "cancelled":
+        raise HTTPException(
+            status_code=400,
+            detail="Booking is already cancelled",
+        )
     booking.status = "cancelled"
     db.commit()
     db.refresh(booking)
     return booking
-
-
-@router.patch("/{booking_id}/cancel", response_model=BookingResponse)
-def cancel_booking_patch(
-    booking_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Alias endpoint to cancel a booking via PATCH.
-    Reuses the same logic as DELETE /bookings/{booking_id}.
-    """
-    return cancel_booking(booking_id=booking_id, db=db, current_user=current_user)

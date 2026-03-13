@@ -12,9 +12,11 @@ class BookingCreate(BaseModel):
 class BookingResponse(BaseModel):
     id: int
     listing_id: int
-    check_in: date
-    check_out: date
+    user_id: int
+    total_price: float
     status: str
+    check_in: date | None = None
+    check_out: date | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
