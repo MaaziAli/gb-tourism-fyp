@@ -21,9 +21,9 @@ function MyBookings() {
   }
 
   const cardStyle = {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--bg-card)',
     borderRadius: '12px',
-    border: '1px solid #e5e7eb',
+    border: '1px solid var(--border-color)',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'row',
@@ -33,7 +33,7 @@ function MyBookings() {
     width: '160px',
     minHeight: '130px',
     flexShrink: 0,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: 'var(--bg-secondary)',
   }
 
   const contentWrapperStyle = {
@@ -150,7 +150,7 @@ function MyBookings() {
   if (loading) {
     return (
       <div className="page-container" style={containerStyle}>
-        <p style={{ textAlign: 'center', color: '#6b7280' }}>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
           Loading your bookings...
         </p>
       </div>
@@ -160,7 +160,7 @@ function MyBookings() {
   if (error) {
     return (
       <div className="page-container" style={containerStyle}>
-        <p style={{ color: 'red' }}>{error}</p>
+        <p style={{ color: 'var(--danger)' }}>{error}</p>
       </div>
     )
   }
@@ -172,9 +172,9 @@ function MyBookings() {
           style={{
             maxWidth: '480px',
             margin: '40px auto',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-card)',
             borderRadius: '12px',
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--border-color)',
             padding: '24px',
             textAlign: 'center',
           }}
@@ -185,7 +185,7 @@ function MyBookings() {
               margin: '0 0 4px 0',
               fontSize: '1.2rem',
               fontWeight: 600,
-              color: '#111827',
+              color: 'var(--text-primary)',
             }}
           >
             No bookings yet
@@ -194,7 +194,7 @@ function MyBookings() {
             style={{
               margin: '4px 0 16px 0',
               fontSize: '0.9rem',
-              color: '#6b7280',
+              color: 'var(--text-secondary)',
             }}
           >
             Start exploring Gilgit-Baltistan and book your first trip!
@@ -206,7 +206,7 @@ function MyBookings() {
               padding: '9px 18px',
               borderRadius: '8px',
               border: 'none',
-              backgroundColor: '#2563eb',
+              backgroundColor: 'var(--accent)',
               color: '#ffffff',
               cursor: 'pointer',
               fontSize: '0.9rem',
@@ -228,7 +228,7 @@ function MyBookings() {
             margin: 0,
             fontSize: '2rem',
             fontWeight: 700,
-            color: '#111827',
+            color: 'var(--text-primary)',
           }}
         >
           My Bookings
@@ -237,7 +237,7 @@ function MyBookings() {
           style={{
             marginTop: '6px',
             fontSize: '0.9rem',
-            color: '#6b7280',
+            color: 'var(--text-secondary)',
           }}
         >
           Manage your upcoming and past trips
@@ -281,14 +281,14 @@ function MyBookings() {
                     }}
                   />
                 ) : (
-                  <div
-                    style={{
+                    <div
+                  style={{
                       width: '100%',
                       height: '100%',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#9ca3af',
+                    color: 'var(--text-muted)',
                       fontSize: '2rem',
                     }}
                   >
@@ -311,7 +311,7 @@ function MyBookings() {
                       margin: 0,
                       fontSize: '1rem',
                       fontWeight: 600,
-                      color: '#111827',
+                      color: 'var(--text-primary)',
                     }}
                   >
                     {title}
@@ -321,33 +321,33 @@ function MyBookings() {
                   </span>
                 </div>
 
-                <div
+                    <div
                   style={{
                     marginTop: '4px',
                     fontSize: '0.85rem',
-                    color: '#6b7280',
+                    color: 'var(--text-secondary)',
                   }}
                 >
                   <span style={{ marginRight: '4px' }}>📍</span>
                   <span>{location}</span>
                 </div>
 
-                <div
+                    <div
                   style={{
                     marginTop: '6px',
                     fontSize: '0.85rem',
-                    color: '#4b5563',
+                    color: 'var(--text-secondary)',
                   }}
                 >
                   📅 Check-in: {checkIn} → Check-out: {checkOut}
                 </div>
 
-                <div
+                    <div
                   style={{
                     marginTop: '4px',
                     fontSize: '0.9rem',
                     fontWeight: 600,
-                    color: '#111827',
+                    color: 'var(--text-primary)',
                   }}
                 >
                   {nights} nights · PKR {totalText} total
@@ -362,9 +362,9 @@ function MyBookings() {
                         marginTop: '10px',
                         padding: '7px 16px',
                         borderRadius: '8px',
-                        border: '1px solid #dc2626',
-                        backgroundColor: '#ffffff',
-                        color: '#dc2626',
+                        border: '1px solid var(--danger)',
+                        backgroundColor: 'var(--bg-card)',
+                        color: 'var(--danger)',
                         cursor: 'pointer',
                         fontSize: '0.85rem',
                       }}
@@ -377,7 +377,7 @@ function MyBookings() {
                       style={{
                         marginTop: '6px',
                         fontSize: '0.8rem',
-                        color: '#b91c1c',
+                        color: 'var(--danger)',
                       }}
                     >
                       {cancelErrors[booking.id]}

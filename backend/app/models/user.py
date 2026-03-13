@@ -20,3 +20,4 @@ class User(Base):
 
     bookings = relationship("Booking", back_populates="user")
     owned_listings = relationship("Listing", back_populates="owner")
+    reviews = relationship("Review", back_populates="reviewer")

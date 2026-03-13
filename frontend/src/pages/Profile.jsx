@@ -133,9 +133,9 @@ function Profile() {
         maxWidth: '600px',
         margin: '40px auto',
         padding: '20px',
-        backgroundColor: '#ffffff',
+        backgroundColor: 'var(--bg-card)',
         borderRadius: '8px',
-        boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+        boxShadow: 'var(--shadow-sm)',
       }}
     >
       {/* Section 1 - User info */}
@@ -145,7 +145,7 @@ function Profile() {
             width: '64px',
             height: '64px',
             borderRadius: '50%',
-            backgroundColor: '#2563eb',
+            backgroundColor: 'var(--accent)',
             color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
@@ -162,7 +162,7 @@ function Profile() {
               style={{
                 margin: 0,
                 fontSize: '1.4rem',
-                color: '#111827',
+                color: 'var(--text-primary)',
               }}
             >
               {fullName || '(Unknown User)'}
@@ -184,7 +184,7 @@ function Profile() {
             style={{
               margin: '4px 0',
               fontSize: '0.9rem',
-              color: '#4b5563',
+              color: 'var(--text-secondary)',
             }}
           >
             {email || '(unknown email)'}
@@ -194,7 +194,7 @@ function Profile() {
               style={{
                 margin: 0,
                 fontSize: '0.8rem',
-                color: '#6b7280',
+                color: 'var(--text-secondary)',
               }}
             >
               {memberSince}
@@ -214,19 +214,19 @@ function Profile() {
           }}
         >
           <div
-            style={{
-              flex: '1 1 120px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '16px',
-              textAlign: 'center',
-            }}
+              style={{
+                flex: '1 1 120px',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '16px',
+                textAlign: 'center',
+              }}
           >
             <div
               style={{
                 fontSize: '1.5rem',
                 fontWeight: 700,
-                color: '#111827',
+                color: 'var(--text-primary)',
               }}
             >
               {listingsCount}
@@ -235,26 +235,26 @@ function Profile() {
               style={{
                 marginTop: '4px',
                 fontSize: '0.8rem',
-                color: '#6b7280',
+                color: 'var(--text-secondary)',
               }}
             >
               My Listings
             </div>
           </div>
           <div
-            style={{
-              flex: '1 1 120px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '16px',
-              textAlign: 'center',
-            }}
+              style={{
+                flex: '1 1 120px',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '16px',
+                textAlign: 'center',
+              }}
           >
             <div
               style={{
                 fontSize: '1.5rem',
                 fontWeight: 700,
-                color: '#111827',
+                color: 'var(--text-primary)',
               }}
             >
               {totalBookings}
@@ -263,7 +263,7 @@ function Profile() {
               style={{
                 marginTop: '4px',
                 fontSize: '0.8rem',
-                color: '#6b7280',
+                color: 'var(--text-secondary)',
               }}
             >
               Total Bookings
@@ -273,12 +273,12 @@ function Profile() {
       )}
 
       {/* Section 3 - Danger zone */}
-      <hr style={{ margin: '24px 0', borderColor: '#e5e7eb' }} />
+      <hr style={{ margin: '24px 0', borderColor: 'var(--border-color)' }} />
 
-      <h2 style={{ marginBottom: '8px', color: '#dc2626', fontSize: '1rem' }}>
+      <h2 style={{ marginBottom: '8px', color: 'var(--danger)', fontSize: '1rem' }}>
         Danger Zone
       </h2>
-      <p style={{ marginBottom: '12px', fontSize: '0.95rem' }}>
+      <p style={{ marginBottom: '12px', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
         Deleting your account is permanent. You must remove your listings and
         cancel active bookings before you can delete your account.
       </p>
@@ -290,7 +290,7 @@ function Profile() {
           padding: '10px 16px',
           borderRadius: '6px',
           border: 'none',
-          backgroundColor: '#dc2626',
+          backgroundColor: 'var(--danger)',
           color: '#ffffff',
           cursor: loading ? 'default' : 'pointer',
           opacity: loading ? 0.7 : 1,
@@ -300,7 +300,7 @@ function Profile() {
         {loading ? 'Deleting account...' : 'Delete Account'}
       </button>
       {error && (
-        <p style={{ marginTop: '12px', color: 'red', fontSize: '0.9rem' }}>
+        <p style={{ marginTop: '12px', color: 'var(--danger)', fontSize: '0.9rem' }}>
           {error}
         </p>
       )}

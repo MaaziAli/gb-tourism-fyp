@@ -64,10 +64,10 @@ function Listings() {
   }
 
   const cardStyle = {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--bg-card)',
     borderRadius: '12px',
-    border: '1px solid #e5e7eb',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+    border: '1px solid var(--border-color)',
+    boxShadow: 'var(--shadow-sm)',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
@@ -306,7 +306,7 @@ function Listings() {
                         padding: '7px 0',
                         borderRadius: '8px',
                         border: 'none',
-                        backgroundColor: '#2563eb',
+                        backgroundColor: 'var(--accent)',
                         color: '#ffffff',
                         cursor: 'pointer',
                         fontSize: '0.8rem',
@@ -454,7 +454,7 @@ function Listings() {
               htmlFor="serviceFilter"
               style={{
                 fontSize: '0.85rem',
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 fontWeight: 500,
                 marginBottom: '4px',
               }}
@@ -469,7 +469,7 @@ function Listings() {
                 padding: '8px 12px',
                 fontSize: '0.9rem',
                 borderRadius: '8px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
               }}
             >

@@ -43,10 +43,10 @@ function Recommendations() {
   }
 
   const cardStyle = {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--bg-card)',
     borderRadius: '12px',
-    border: '1px solid #e5e7eb',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+    border: '1px solid var(--border-color)',
+    boxShadow: 'var(--shadow-sm)',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
@@ -83,8 +83,8 @@ function Recommendations() {
 
   if (loading) {
     return (
-      <div style={containerStyle}>
-        <p style={{ textAlign: 'center', color: '#6b7280' }}>
+      <div className="page-container" style={containerStyle}>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
           Finding the best listings for you...
         </p>
       </div>
@@ -93,21 +93,21 @@ function Recommendations() {
 
   if (error) {
     return (
-      <div style={containerStyle}>
-        <p style={{ color: 'red' }}>{error}</p>
+      <div className="page-container" style={containerStyle}>
+        <p style={{ color: 'var(--danger)' }}>{error}</p>
       </div>
     )
   }
 
   if (!items.length) {
     return (
-      <div style={containerStyle}>
+      <div className="page-container" style={containerStyle}>
         <h1
           style={{
             margin: 0,
             fontSize: '2rem',
             fontWeight: 700,
-            color: '#111827',
+            color: 'var(--text-primary)',
             marginBottom: '4px',
           }}
         >
@@ -117,7 +117,7 @@ function Recommendations() {
           style={{
             marginTop: '4px',
             fontSize: '0.9rem',
-            color: '#6b7280',
+            color: 'var(--text-secondary)',
             marginBottom: '24px',
           }}
         >
@@ -127,7 +127,7 @@ function Recommendations() {
           style={{
             marginTop: '16px',
             fontSize: '0.9rem',
-            color: '#6b7280',
+            color: 'var(--text-secondary)',
           }}
         >
           No recommendations available right now. Try booking a listing to get
@@ -138,13 +138,13 @@ function Recommendations() {
   }
 
   return (
-    <div style={containerStyle}>
+    <div className="page-container" style={containerStyle}>
       <h1
         style={{
           margin: 0,
           fontSize: '2rem',
           fontWeight: 700,
-          color: '#111827',
+          color: 'var(--text-primary)',
           marginBottom: '4px',
         }}
       >
@@ -154,7 +154,7 @@ function Recommendations() {
         style={{
           marginTop: '4px',
           fontSize: '0.9rem',
-          color: '#6b7280',
+          color: 'var(--text-secondary)',
           marginBottom: '24px',
         }}
       >
@@ -171,19 +171,19 @@ function Recommendations() {
               key={item.id}
               style={cardStyle}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+                e.currentTarget.style.boxShadow = 'var(--shadow-md)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)'
+                e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
               }}
             >
               <div
                 style={{
-                  background: '#eff6ff',
-                  borderBottom: '1px solid #bfdbfe',
+                  background: 'var(--accent-light)',
+                  borderBottom: '1px solid var(--accent)',
                   padding: '8px 12px',
                   fontSize: '0.8rem',
-                  color: '#1e40af',
+                  color: 'var(--accent)',
                   fontWeight: 500,
                 }}
               >
@@ -241,7 +241,7 @@ function Recommendations() {
                     margin: '0 0 6px 0',
                     fontSize: '1rem',
                     fontWeight: 600,
-                    color: '#111827',
+                    color: 'var(--text-primary)',
                   }}
                 >
                   {item.title}
@@ -251,7 +251,7 @@ function Recommendations() {
                     display: 'flex',
                     alignItems: 'center',
                     fontSize: '0.85rem',
-                    color: '#6b7280',
+                    color: 'var(--text-secondary)',
                   }}
                 >
                   <span style={{ marginRight: '4px' }}>📍</span>
@@ -262,7 +262,7 @@ function Recommendations() {
                     marginTop: '8px',
                     fontSize: '1.1rem',
                     fontWeight: 700,
-                    color: '#111827',
+                    color: 'var(--text-primary)',
                   }}
                 >
                   PKR {priceText} / night
@@ -281,7 +281,7 @@ function Recommendations() {
                       padding: '9px 0',
                       borderRadius: '8px',
                       border: 'none',
-                      backgroundColor: '#2563eb',
+                      backgroundColor: 'var(--accent)',
                       color: '#ffffff',
                       cursor: 'pointer',
                       fontSize: '0.9rem',

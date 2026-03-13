@@ -18,6 +18,11 @@ class Listing(Base):
 
     owner = relationship("User", back_populates="owned_listings")
     bookings = relationship("Booking", back_populates="listing")
+    reviews = relationship(
+        "Review",
+        back_populates="listing",
+        cascade="all, delete-orphan",
+    )
 
     @property
     def price_per_night(self) -> float:

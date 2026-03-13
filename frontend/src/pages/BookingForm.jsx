@@ -76,39 +76,39 @@ function BookingForm() {
   const cardStyle = {
     maxWidth: '480px',
     margin: '40px auto',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--bg-card)',
     padding: '24px',
     borderRadius: '8px',
-    boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+    boxShadow: 'var(--shadow-sm)',
   }
 
   if (loading) {
     return (
-      <div style={containerStyle}>
-        <p>Loading booking details...</p>
+      <div className="page-container" style={containerStyle}>
+        <p style={{ color: 'var(--text-secondary)' }}>Loading booking details...</p>
       </div>
     )
   }
 
   if (error && !listing) {
     return (
-      <div style={containerStyle}>
-        <p style={{ color: 'red' }}>{error}</p>
+      <div className="page-container" style={containerStyle}>
+        <p style={{ color: 'var(--danger)' }}>{error}</p>
       </div>
     )
   }
 
   return (
-    <div style={containerStyle}>
+    <div className="page-container" style={containerStyle}>
       <div style={cardStyle}>
-        <h1 style={{ marginBottom: '16px' }}>Book Listing</h1>
+        <h1 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>Book Listing</h1>
         {listing && (
           <div style={{ marginBottom: '16px' }}>
-            <h2 style={{ margin: 0, fontSize: '1.15rem' }}>{listing.title}</h2>
-            <p style={{ margin: '4px 0' }}>
+            <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)' }}>{listing.title}</h2>
+            <p style={{ margin: '4px 0', color: 'var(--text-secondary)' }}>
               <strong>Location:</strong> {listing.location}
             </p>
-            <p style={{ margin: '4px 0' }}>
+            <p style={{ margin: '4px 0', color: 'var(--text-secondary)' }}>
               <strong>Price:</strong> ${listing.price_per_night} / night
             </p>
             {listing.description && (
@@ -116,7 +116,7 @@ function BookingForm() {
                 style={{
                   margin: '4px 0 0 0',
                   fontSize: '0.9rem',
-                  color: '#4b5563',
+                  color: 'var(--text-secondary)',
                 }}
               >
                 {listing.description}
@@ -129,7 +129,7 @@ function BookingForm() {
           style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="checkIn">Check-in date</label>
+            <label htmlFor="checkIn" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Check-in date</label>
             <input
               id="checkIn"
               type="date"
@@ -140,13 +140,15 @@ function BookingForm() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
               }}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="checkOut">Check-out date</label>
+            <label htmlFor="checkOut" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Check-out date</label>
             <input
               id="checkOut"
               type="date"
@@ -157,13 +159,15 @@ function BookingForm() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
               }}
             />
           </div>
           {error && (
-            <p style={{ color: 'red', fontSize: '0.9rem', margin: 0 }}>{error}</p>
+            <p style={{ color: 'var(--danger)', fontSize: '0.9rem', margin: 0 }}>{error}</p>
           )}
           <button
             type="submit"
@@ -173,7 +177,7 @@ function BookingForm() {
               padding: '10px 16px',
               borderRadius: '6px',
               border: 'none',
-              backgroundColor: '#2563eb',
+              backgroundColor: 'var(--accent)',
               color: '#ffffff',
               cursor: submitting ? 'default' : 'pointer',
               opacity: submitting ? 0.8 : 1,

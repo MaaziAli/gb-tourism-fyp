@@ -22,10 +22,10 @@ function MyListings() {
   }
 
   const cardStyle = {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--bg-card)',
     borderRadius: '12px',
-    border: '1px solid #e5e7eb',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+    border: '1px solid var(--border-color)',
+    boxShadow: 'var(--shadow-sm)',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
@@ -180,9 +180,9 @@ function MyListings() {
           style={{
             maxWidth: '480px',
             margin: '40px auto',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-card)',
             borderRadius: '12px',
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--border-color)',
             padding: '24px',
             textAlign: 'center',
           }}
@@ -193,7 +193,7 @@ function MyListings() {
               margin: '0 0 4px 0',
               fontSize: '1.2rem',
               fontWeight: 600,
-              color: '#111827',
+              color: 'var(--text-primary)',
             }}
           >
             No listings yet
@@ -202,7 +202,7 @@ function MyListings() {
             style={{
               margin: '4px 0 16px 0',
               fontSize: '0.9rem',
-              color: '#6b7280',
+              color: 'var(--text-secondary)',
             }}
           >
             Start by adding your first hotel, tour, or service
@@ -214,7 +214,7 @@ function MyListings() {
               padding: '9px 20px',
               borderRadius: '8px',
               border: 'none',
-              backgroundColor: '#2563eb',
+              backgroundColor: 'var(--accent)',
               color: '#ffffff',
               cursor: 'pointer',
               fontSize: '0.9rem',
@@ -244,7 +244,7 @@ function MyListings() {
             margin: 0,
             fontSize: '2rem',
             fontWeight: 700,
-            color: '#111827',
+            color: 'var(--text-primary)',
           }}
         >
           My Listings
@@ -256,7 +256,7 @@ function MyListings() {
             padding: '9px 20px',
             borderRadius: '8px',
             border: 'none',
-            backgroundColor: '#2563eb',
+            backgroundColor: 'var(--accent)',
             color: '#ffffff',
             cursor: 'pointer',
             fontSize: '0.9rem',
@@ -330,7 +330,7 @@ function MyListings() {
                     margin: '0 0 6px 0',
                     fontSize: '1rem',
                     fontWeight: 600,
-                    color: '#111827',
+                    color: 'var(--text-primary)',
                   }}
                 >
                   {listing.title}
@@ -341,7 +341,7 @@ function MyListings() {
                     display: 'flex',
                     alignItems: 'center',
                     fontSize: '0.85rem',
-                    color: '#6b7280',
+                    color: 'var(--text-secondary)',
                   }}
                 >
                   <span style={{ marginRight: '4px' }}>📍</span>
@@ -353,7 +353,7 @@ function MyListings() {
                     marginTop: '6px',
                     fontSize: '1rem',
                     fontWeight: 600,
-                    color: '#111827',
+                    color: 'var(--text-primary)',
                   }}
                 >
                   PKR {formatPrice(listing.price_per_night)} / night
@@ -363,7 +363,7 @@ function MyListings() {
                   style={{
                     marginTop: '4px',
                     fontSize: '0.8rem',
-                    color: '#6b7280',
+                    color: 'var(--text-secondary)',
                   }}
                 >
                   {bookingsCount === null ? '— bookings' : `${bookingsCount} bookings`}
@@ -383,9 +383,9 @@ function MyListings() {
                     style={{
                       padding: '7px 14px',
                       borderRadius: '8px',
-                      border: '1px solid #2563eb',
-                      backgroundColor: '#ffffff',
-                      color: '#2563eb',
+                      border: '1px solid var(--accent)',
+                      backgroundColor: 'var(--bg-card)',
+                      color: 'var(--accent)',
                       cursor: 'pointer',
                       fontSize: '0.85rem',
                       fontWeight: 500,
@@ -399,9 +399,9 @@ function MyListings() {
                     style={{
                       padding: '7px 14px',
                       borderRadius: '8px',
-                      border: '1px solid #dc2626',
-                      backgroundColor: '#ffffff',
-                      color: '#dc2626',
+                      border: '1px solid var(--danger)',
+                      backgroundColor: 'var(--bg-card)',
+                      color: 'var(--danger)',
                       cursor: 'pointer',
                       fontSize: '0.85rem',
                       fontWeight: 500,
@@ -415,9 +415,9 @@ function MyListings() {
                     style={{
                       padding: '7px 14px',
                       borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: '#f3f4f6',
-                      color: '#374151',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-secondary)',
                       cursor: 'pointer',
                       fontSize: '0.85rem',
                       fontWeight: 500,
@@ -434,7 +434,7 @@ function MyListings() {
                     style={{
                       marginTop: '6px',
                       fontSize: '0.8rem',
-                      color: '#b91c1c',
+                      color: 'var(--danger)',
                     }}
                   >
                     {deleteErrors[listing.id]}
@@ -446,14 +446,14 @@ function MyListings() {
                     style={{
                       marginTop: '12px',
                       paddingTop: '12px',
-                      borderTop: '1px solid #e5e7eb',
+                      borderTop: '1px solid var(--border-color)',
                     }}
                   >
                     {loadingBookings[listing.id] ? (
                       <p
                         style={{
                           fontSize: '0.85rem',
-                          color: '#6b7280',
+                          color: 'var(--text-secondary)',
                         }}
                       >
                         Loading bookings...
@@ -462,7 +462,7 @@ function MyListings() {
                       <p
                         style={{
                           fontSize: '0.85rem',
-                          color: '#6b7280',
+                          color: 'var(--text-secondary)',
                           fontStyle: 'italic',
                         }}
                       >

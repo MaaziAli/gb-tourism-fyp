@@ -23,24 +23,18 @@ function Register() {
   }
 
   return (
-    <div
-      style={{
-        maxWidth: '1000px',
-        margin: '0 auto',
-        padding: '20px',
-      }}
-    >
+    <div className="page-container">
       <div
         style={{
           maxWidth: '400px',
           margin: '40px auto',
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--bg-card)',
           padding: '24px',
           borderRadius: '8px',
-          boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
-        <h1 style={{ marginBottom: '24px' }}>Register</h1>
+        <h1 style={{ marginBottom: '24px', color: 'var(--text-primary)' }}>Register</h1>
         <form
           onSubmit={handleSubmit}
           style={{
@@ -50,7 +44,7 @@ function Register() {
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="full_name">Full name</label>
+            <label htmlFor="full_name" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Full name</label>
             <input
               id="full_name"
               type="text"
@@ -61,13 +55,15 @@ function Register() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
               }}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Email</label>
             <input
               id="email"
               type="email"
@@ -78,13 +74,15 @@ function Register() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
               }}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Password</label>
             <input
               id="password"
               type="password"
@@ -95,13 +93,15 @@ function Register() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
               }}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="role">Role</label>
+            <label htmlFor="role" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Role</label>
             <select
               id="role"
               value={role}
@@ -110,15 +110,17 @@ function Register() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
               }}
             >
               <option value="user">User</option>
               <option value="provider">Provider</option>
             </select>
           </div>
-          {error && <p style={{ color: 'red', fontSize: '0.9rem' }}>{error}</p>}
+          {error && <p style={{ color: 'var(--danger)', fontSize: '0.9rem' }}>{error}</p>}
           <button
             type="submit"
             style={{
@@ -126,7 +128,7 @@ function Register() {
               padding: '10px 16px',
               borderRadius: '6px',
               border: 'none',
-              backgroundColor: '#2563eb',
+              backgroundColor: 'var(--accent)',
               color: '#ffffff',
               cursor: 'pointer',
               fontSize: '1rem',

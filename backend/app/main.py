@@ -10,7 +10,8 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import auth, bookings, listings, users, recommendations, admin
+from app.models import review as _review_model  # noqa
+from app.routers import auth, bookings, listings, users, recommendations, admin, reviews as reviews_router
 
 
 # Save and serve uploads from backend/uploads/
@@ -46,6 +47,7 @@ def create_app() -> FastAPI:
     app.include_router(users.router)
     app.include_router(recommendations.router)
     app.include_router(admin.router)
+    app.include_router(reviews_router.router)
 
     # Static files for uploaded images
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
