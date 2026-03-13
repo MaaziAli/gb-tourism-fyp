@@ -16,6 +16,9 @@ export default function ListingDetail() {
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [msg, setMsg] = useState({ type: '', text: '' })
+  const [hasBooked, setHasBooked] = useState(false)
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false)
+  const [hasUpcomingBooking, setHasUpcomingBooking] = useState(false)
 
   const currentUser = getUser()
   const isOwner = listing && currentUser && 
@@ -35,6 +38,51 @@ export default function ListingDetail() {
       setListing(lRes.data)
       setReviews(rRes.data)
       setSummary(sRes.data)
+
+      // Check booking history and review status for the current user
+      if (isLoggedIn() && currentUser) {
+        try {
+          const bookingsRes = await api.get('/bookings/me')
+
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+
+          const eligibleBooking = bookingsRes.data.find(b => {
+            if (b.listing_id !== parseInt(id, 10)) return false
+            if (b.status === 'cancelled') return false
+            if (!b.check_out) return false
+            const checkOut = new Date(b.check_out)
+            checkOut.setHours(0, 0, 0, 0)
+            return checkOut < today
+          })
+
+          const upcomingBooking = bookingsRes.data.find(b => {
+            if (b.listing_id !== parseInt(id, 10)) return false
+            if (b.status === 'cancelled') return false
+            if (!b.check_out) return false
+            const checkOut = new Date(b.check_out)
+            checkOut.setHours(0, 0, 0, 0)
+            return checkOut >= today
+          })
+
+          setHasBooked(!!eligibleBooking)
+          setHasUpcomingBooking(!!upcomingBooking)
+
+          const reviewed = rRes.data.some(
+            r => r.user_id === currentUser.id
+          )
+          setAlreadyReviewed(reviewed)
+        } catch (e) {
+          console.error('Failed to load bookings for review eligibility', e)
+          setHasBooked(false)
+          setHasUpcomingBooking(false)
+          setAlreadyReviewed(false)
+        }
+      } else {
+        setHasBooked(false)
+        setHasUpcomingBooking(false)
+        setAlreadyReviewed(false)
+      }
     } catch(e) { console.error(e) }
     finally { setLoading(false) }
   }
@@ -250,6 +298,52 @@ export default function ListingDetail() {
               </div>
             )}
           </div>
+
+          {/* Review eligibility info messages */}
+          {isLoggedIn() && !isOwner && !isAdmin &&
+           !hasBooked && !hasUpcomingBooking && (
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-secondary)',
+              fontSize: '0.875rem',
+              textAlign: 'center',
+              marginTop: '16px'
+            }}>
+              🔒 Book this listing to leave a review
+            </div>
+          )}
+
+          {isLoggedIn() && !isOwner && !isAdmin &&
+           hasUpcomingBooking && !hasBooked && (
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--accent-light)',
+              color: 'var(--accent)',
+              fontSize: '0.875rem',
+              textAlign: 'center',
+              marginTop: '16px'
+            }}>
+              ⏳ You can write a review after your check-out date
+            </div>
+          )}
+
+          {isLoggedIn() && !isOwner && !isAdmin &&
+           hasBooked && alreadyReviewed && (
+            <div style={{
+              padding: '14px 16px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--success-bg)',
+              color: 'var(--success)',
+              fontSize: '0.875rem',
+              textAlign: 'center',
+              marginTop: '16px'
+            }}>
+              ✅ You have already reviewed this listing
+            </div>
+          )}
         </div>
 
         {/* RIGHT */}
@@ -333,7 +427,8 @@ export default function ListingDetail() {
           )}
 
           {/* Write review */}
-          {isLoggedIn() && !isOwner && !isAdmin && (
+          {isLoggedIn() && !isOwner && !isAdmin &&
+           hasBooked && !alreadyReviewed && (
             <div className="card">
               <h3 style={{margin:'0 0 14px',fontWeight:700,
                            fontSize:'1rem',

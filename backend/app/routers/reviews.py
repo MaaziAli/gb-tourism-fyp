@@ -1,4 +1,5 @@
 from typing import List
+from datetime import date as date_type
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -43,14 +44,24 @@ def create_review(
         raise HTTPException(404, "Listing not found")
     if listing.owner_id == current_user.id:
         raise HTTPException(400, "You cannot review your own listing")
+
     booking = db.query(Booking).filter(
         Booking.listing_id == listing_id,
         Booking.user_id == current_user.id,
+        Booking.status != "cancelled",
     ).first()
+
     if not booking:
         raise HTTPException(
             400,
             "You must book this listing before reviewing",
+        )
+
+    today = date_type.today()
+    if booking.check_out is None or booking.check_out >= today:
+        raise HTTPException(
+            400,
+            "You can only review after your check-out date",
         )
     existing = db.query(Review).filter(
         Review.listing_id == listing_id,
