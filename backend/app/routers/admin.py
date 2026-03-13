@@ -251,3 +251,57 @@ def admin_update_user_role(
         "created_at": user.created_at,
     }
 
+
+@router.get("/reviews")
+def get_all_reviews(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admins only")
+
+    from app.models.review import Review
+    from app.models.listing import Listing
+    from app.models.user import User as Reviewer
+
+    reviews = db.query(Review).order_by(Review.created_at.desc()).all()
+
+    result: list[dict] = []
+    for r in reviews:
+        listing = db.query(Listing).filter(Listing.id == r.listing_id).first()
+        reviewer = db.query(Reviewer).filter(Reviewer.id == r.user_id).first()
+        result.append(
+            {
+                "id": r.id,
+                "rating": r.rating,
+                "comment": r.comment,
+                "created_at": r.created_at,
+                "listing_id": r.listing_id,
+                "listing_title": listing.title if listing else "Unknown",
+                "reviewer_name": reviewer.full_name if reviewer else "Unknown",
+                "reviewer_email": reviewer.email if reviewer else "",
+            }
+        )
+
+    return result
+
+
+@router.delete("/reviews/{review_id}", status_code=204)
+def admin_delete_review(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admins only")
+
+    from app.models.review import Review
+
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    db.delete(review)
+    db.commit()
+    return
+

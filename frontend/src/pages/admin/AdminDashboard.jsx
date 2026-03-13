@@ -9,6 +9,8 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [userSearch, setUserSearch] = useState('')
+  const [reviews, setReviews] = useState([])
+  const [reviewsLoading, setReviewsLoading] = useState(false)
 
   useEffect(() => {
     const loadAll = async () => {
@@ -36,6 +38,24 @@ function AdminDashboard() {
     }
     loadAll()
   }, [])
+
+  useEffect(() => {
+    if (activeSection === 'reviews') {
+      fetchReviews()
+    }
+  }, [activeSection])
+
+  async function fetchReviews() {
+    setReviewsLoading(true)
+    try {
+      const res = await api.get('/admin/reviews')
+      setReviews(res.data)
+    } catch (err) {
+      console.error('Failed to load reviews', err)
+    } finally {
+      setReviewsLoading(false)
+    }
+  }
 
   const handleChangeUserRole = async (userId, role) => {
     try {
@@ -74,6 +94,17 @@ function AdminDashboard() {
     } catch (err) {
       console.error('Failed to delete listing', err)
       alert('Failed to delete listing.')
+    }
+  }
+
+  const deleteReview = async (reviewId) => {
+    if (!window.confirm('Delete this review?')) return
+    try {
+      await api.delete(`/admin/reviews/${reviewId}`)
+      fetchReviews()
+    } catch (err) {
+      console.error('Failed to delete review', err)
+      alert('Failed to delete review.')
     }
   }
 
@@ -191,6 +222,22 @@ function AdminDashboard() {
             }}
           >
             Listings
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('reviews')}
+            style={{
+              textAlign: 'left',
+              padding: '8px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor:
+                activeSection === 'reviews' ? '#1f2937' : 'transparent',
+              color: '#e5e7eb',
+            }}
+          >
+            Reviews
           </button>
         </nav>
       </aside>
@@ -763,6 +810,234 @@ function AdminDashboard() {
               </table>
             </div>
           </>
+        )}
+
+        {!loading && !error && activeSection === 'reviews' && (
+          <div>
+            <h2
+              style={{
+                margin: '0 0 24px',
+                color: 'var(--text-primary)',
+                fontSize: '1.4rem',
+                fontWeight: 800,
+              }}
+            >
+              ⭐ All Reviews
+            </h2>
+
+            {reviewsLoading ? (
+              <div
+                style={{
+                  color: 'var(--text-secondary)',
+                  textAlign: 'center',
+                  padding: '40px',
+                }}
+              >
+                Loading reviews...
+              </div>
+            ) : reviews.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '48px',
+                  background: 'var(--bg-card)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <div style={{ fontSize: '3rem' }}>⭐</div>
+                <p>No reviews yet.</p>
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: 'var(--bg-card)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    padding: '16px 24px',
+                    borderBottom: '1px solid var(--border-color)',
+                    display: 'flex',
+                    gap: '24px',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    Total:{' '}
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {reviews.length} reviews
+                    </strong>
+                  </span>
+                  <span
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    Avg rating:{' '}
+                    <strong style={{ color: '#f59e0b' }}>
+                      {reviews.length > 0
+                        ? (
+                            reviews.reduce(
+                              (s, r) => s + (r.rating || 0),
+                              0,
+                            ) / reviews.length
+                          ).toFixed(1)
+                        : '—'}{' '}
+                      ★
+                    </strong>
+                  </span>
+                </div>
+
+                {reviews.map((r, idx) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      padding: '18px 24px',
+                      borderBottom:
+                        idx < reviews.length - 1
+                          ? '1px solid var(--border-color)'
+                          : 'none',
+                      display: 'flex',
+                      gap: '16px',
+                      alignItems: 'flex-start',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        background: 'var(--accent)',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {r.reviewer_name?.charAt(0).toUpperCase()}
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '6px',
+                        }}
+                      >
+                        <div>
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              color: 'var(--text-primary)',
+                              fontSize: '0.9rem',
+                            }}
+                          >
+                            {r.reviewer_name}
+                          </span>
+                          <span
+                            style={{
+                              margin: '0 8px',
+                              color: 'var(--text-muted)',
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            {r.reviewer_email}
+                          </span>
+                          <span style={{ color: '#f59e0b' }}>
+                            {'★'.repeat(r.rating)}
+                            {'☆'.repeat(5 - r.rating)}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '8px',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            {new Date(r.created_at).toLocaleDateString(
+                              'en-PK',
+                              {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              },
+                            )}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => deleteReview(r.id)}
+                            style={{
+                              background: 'var(--danger-bg)',
+                              color: 'var(--danger)',
+                              border: '1px solid var(--danger)',
+                              borderRadius: '6px',
+                              padding: '3px 10px',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'inline-block',
+                          background: 'var(--accent-light)',
+                          color: 'var(--accent)',
+                          padding: '2px 10px',
+                          borderRadius: '999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          marginBottom: r.comment ? '8px' : 0,
+                        }}
+                      >
+                        🏨 {r.listing_title}
+                      </div>
+
+                      {r.comment && (
+                        <p
+                          style={{
+                            margin: '6px 0 0',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.875rem',
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          "{r.comment}"
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </main>
     </div>
