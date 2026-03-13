@@ -14,6 +14,7 @@ import MyListings from './pages/MyListings'
 import Profile from './pages/Profile'
 import Recommendations from './pages/Recommendations'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import ListingDetail from './pages/ListingDetail'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Listings />} />
+        <Route path="/listing/:id" element={<ListingDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route

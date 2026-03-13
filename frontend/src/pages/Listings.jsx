@@ -590,16 +590,18 @@ function Listings() {
                     flexDirection: 'column',
                   }}
                 >
-                  <h2
+                  <h3
+                    onClick={() => navigate(`/listing/${listing.id}`)}
                     style={{
-                      margin: '0 0 6px 0',
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
+                      cursor: 'pointer',
+                      margin: '0 0 6px',
+                      fontSize: '1rem',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
                     }}
                   >
                     {listing.title}
-                  </h2>
+                  </h3>
 
                   <div
                     style={{
