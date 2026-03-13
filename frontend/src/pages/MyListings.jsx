@@ -13,7 +13,10 @@ function MyListings() {
   const [loadingBookings, setLoadingBookings] = useState({})
   const [deleteErrors, setDeleteErrors] = useState({})
 
-  const containerStyle = {}
+  const containerStyle = {
+    background: 'var(--bg-primary)',
+    minHeight: '100vh',
+  }
 
   const gridStyle = {
     display: 'grid',
@@ -363,10 +366,12 @@ function MyListings() {
                   style={{
                     marginTop: '4px',
                     fontSize: '0.8rem',
-                    color: 'var(--text-secondary)',
+                    color: 'var(--text-muted)',
                   }}
                 >
-                  {bookingsCount === null ? '— bookings' : `${bookingsCount} bookings`}
+                  {bookingsCount === null
+                    ? '— bookings'
+                    : `${bookingsCount} bookings`}
                 </div>
 
                 <div

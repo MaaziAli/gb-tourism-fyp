@@ -10,7 +10,10 @@ function MyBookings() {
   const [cancelErrors, setCancelErrors] = useState({})
   const navigate = useNavigate()
 
-  const containerStyle = {}
+  const containerStyle = {
+    background: 'var(--bg-primary)',
+    minHeight: '100vh',
+  }
 
   const listWrapperStyle = {
     maxWidth: '750px',

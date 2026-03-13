@@ -80,7 +80,7 @@ function AdminDashboard() {
   const containerStyle = {
     display: 'flex',
     minHeight: 'calc(100vh - 60px)',
-    backgroundColor: '#f9fafb',
+    backgroundColor: 'var(--bg-primary)',
   }
 
   const sidebarStyle = {
@@ -93,6 +93,7 @@ function AdminDashboard() {
   const mainStyle = {
     flex: 1,
     padding: '24px',
+    backgroundColor: 'var(--bg-primary)',
   }
 
   const filteredUsers = users.filter((u) => {
@@ -195,9 +196,11 @@ function AdminDashboard() {
       </aside>
 
       <main style={mainStyle}>
-        {loading && <p style={{ color: '#6b7280' }}>Loading admin data...</p>}
+        {loading && (
+          <p style={{ color: 'var(--text-secondary)' }}>Loading admin data...</p>
+        )}
         {error && (
-          <p style={{ color: 'red', marginBottom: '16px' }}>{error}</p>
+          <p style={{ color: 'var(--danger)', marginBottom: '16px' }}>{error}</p>
         )}
 
         {!loading && !error && activeSection === 'dashboard' && stats && (
@@ -207,7 +210,7 @@ function AdminDashboard() {
                 margin: 0,
                 fontSize: '1.5rem',
                 fontWeight: 700,
-                color: '#111827',
+                color: 'var(--text-primary)',
                 marginBottom: '16px',
               }}
             >
@@ -246,9 +249,9 @@ function AdminDashboard() {
                 <div
                   key={card.label}
                   style={{
-                    backgroundColor: '#ffffff',
+                    backgroundColor: 'var(--bg-card)',
                     borderRadius: '12px',
-                    border: '1px solid #e5e7eb',
+                    border: '1px solid var(--border-color)',
                     padding: '20px',
                   }}
                 >
@@ -257,9 +260,9 @@ function AdminDashboard() {
                   </div>
                   <div
                     style={{
-                      fontSize: '2rem',
-                      fontWeight: 700,
-                      color: '#111827',
+                    fontSize: '2rem',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
                     }}
                   >
                     {card.value}
@@ -268,7 +271,7 @@ function AdminDashboard() {
                     style={{
                       marginTop: '4px',
                       fontSize: '0.85rem',
-                      color: '#6b7280',
+                      color: 'var(--text-secondary)',
                     }}
                   >
                     {card.label}
@@ -286,9 +289,9 @@ function AdminDashboard() {
             >
               <div
                 style={{
-                  backgroundColor: '#ffffff',
+                  backgroundColor: 'var(--bg-card)',
                   borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
+                  border: '1px solid var(--border-color)',
                   padding: '16px',
                 }}
               >
@@ -297,23 +300,35 @@ function AdminDashboard() {
                     margin: '0 0 8px 0',
                     fontSize: '1rem',
                     fontWeight: 600,
-                    color: '#111827',
+                    color: 'var(--text-primary)',
                   }}
                 >
                   Users by Role
                 </h2>
-                <p style={{ margin: '4px 0', fontSize: '0.9rem' }}>
+                <p
+                  style={{
+                    margin: '4px 0',
+                    fontSize: '0.9rem',
+                    color: 'var(--text-primary)',
+                  }}
+                >
                   Travelers: {stats.total_travelers}
                 </p>
-                <p style={{ margin: '4px 0', fontSize: '0.9rem' }}>
+                <p
+                  style={{
+                    margin: '4px 0',
+                    fontSize: '0.9rem',
+                    color: 'var(--text-primary)',
+                  }}
+                >
                   Providers: {stats.total_providers}
                 </p>
               </div>
               <div
                 style={{
-                  backgroundColor: '#ffffff',
+                  backgroundColor: 'var(--bg-card)',
                   borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
+                  border: '1px solid var(--border-color)',
                   padding: '16px',
                 }}
               >
@@ -322,14 +337,21 @@ function AdminDashboard() {
                     margin: '0 0 8px 0',
                     fontSize: '1rem',
                     fontWeight: 600,
-                    color: '#111827',
+                    color: 'var(--text-primary)',
                   }}
                 >
                   Listings by Type
                 </h2>
                 {Object.entries(stats.listings_by_type || {}).map(
                   ([type, count]) => (
-                    <p key={type} style={{ margin: '4px 0', fontSize: '0.9rem' }}>
+                    <p
+                      key={type}
+                      style={{
+                        margin: '4px 0',
+                        fontSize: '0.9rem',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
                       {type}: {count}
                     </p>
                   ),
@@ -346,7 +368,7 @@ function AdminDashboard() {
                 margin: 0,
                 fontSize: '1.5rem',
                 fontWeight: 700,
-                color: '#111827',
+                color: 'var(--text-primary)',
                 marginBottom: '16px',
               }}
             >
@@ -361,17 +383,19 @@ function AdminDashboard() {
                 style={{
                   padding: '8px 12px',
                   borderRadius: '8px',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--border-color)',
                   fontSize: '0.9rem',
                   width: '260px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
                 }}
               />
             </div>
             <div
               style={{
-                backgroundColor: '#ffffff',
+                backgroundColor: 'var(--bg-card)',
                 borderRadius: '12px',
-                border: '1px solid #e5e7eb',
+                border: '1px solid var(--border-color)',
                 overflow: 'hidden',
               }}
             >
@@ -384,29 +408,94 @@ function AdminDashboard() {
               >
                 <thead
                   style={{
-                    backgroundColor: '#f3f4f6',
+                    backgroundColor: 'var(--bg-secondary)',
                     textAlign: 'left',
                   }}
                 >
                   <tr>
-                    <th style={{ padding: '10px 16px' }}>Name</th>
-                    <th style={{ padding: '10px 16px' }}>Email</th>
-                    <th style={{ padding: '10px 16px' }}>Role</th>
-                    <th style={{ padding: '10px 16px' }}>Listings</th>
-                    <th style={{ padding: '10px 16px' }}>Bookings</th>
-                    <th style={{ padding: '10px 16px' }}>Actions</th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Name
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Email
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Role
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Listings
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Bookings
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredUsers.map((u) => (
                     <tr key={u.id}>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
                         {u.full_name}
                       </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
                         {u.email}
                       </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
                         <span
                           style={{
                             display: 'inline-block',
@@ -420,13 +509,30 @@ function AdminDashboard() {
                           {u.role}
                         </span>
                       </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
                         {u.listings_count}
                       </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
                         {u.bookings_count}
                       </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
                         <select
                           value={u.role}
                           onChange={(e) =>
@@ -436,8 +542,10 @@ function AdminDashboard() {
                             marginRight: '8px',
                             padding: '4px 8px',
                             borderRadius: '6px',
-                            border: '1px solid #d1d5db',
+                            border: '1px solid var(--border-color)',
                             fontSize: '0.8rem',
+                            backgroundColor: 'var(--bg-secondary)',
+                            color: 'var(--text-primary)',
                           }}
                         >
                           <option value="user">user</option>
@@ -450,9 +558,9 @@ function AdminDashboard() {
                           style={{
                             padding: '6px 10px',
                             borderRadius: '6px',
-                            border: '1px solid #dc2626',
-                            backgroundColor: '#ffffff',
-                            color: '#dc2626',
+                            border: '1px solid var(--danger)',
+                            backgroundColor: 'var(--bg-card)',
+                            color: 'var(--danger)',
                             fontSize: '0.8rem',
                             cursor: 'pointer',
                           }}
@@ -475,7 +583,7 @@ function AdminDashboard() {
                 margin: 0,
                 fontSize: '1.5rem',
                 fontWeight: 700,
-                color: '#111827',
+                color: 'var(--text-primary)',
                 marginBottom: '16px',
               }}
             >
@@ -483,9 +591,9 @@ function AdminDashboard() {
             </h1>
             <div
               style={{
-                backgroundColor: '#ffffff',
+                backgroundColor: 'var(--bg-card)',
                 borderRadius: '12px',
-                border: '1px solid #e5e7eb',
+                border: '1px solid var(--border-color)',
                 overflow: 'hidden',
               }}
             >
@@ -498,44 +606,138 @@ function AdminDashboard() {
               >
                 <thead
                   style={{
-                    backgroundColor: '#f3f4f6',
+                    backgroundColor: 'var(--bg-secondary)',
                     textAlign: 'left',
                   }}
                 >
                   <tr>
-                    <th style={{ padding: '10px 16px' }}>Title</th>
-                    <th style={{ padding: '10px 16px' }}>Owner</th>
-                    <th style={{ padding: '10px 16px' }}>Location</th>
-                    <th style={{ padding: '10px 16px' }}>Type</th>
-                    <th style={{ padding: '10px 16px' }}>Price</th>
-                    <th style={{ padding: '10px 16px' }}>Bookings</th>
-                    <th style={{ padding: '10px 16px' }}>Actions</th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Title
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Owner
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Location
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Type
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Price
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Bookings
+                    </th>
+                    <th
+                      style={{
+                        padding: '10px 16px',
+                        color: 'var(--text-secondary)',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {listings.map((l) => (
                     <tr key={l.id}>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
                         {l.title}
                       </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
                         <div>{l.owner_name}</div>
                         <div
-                          style={{ fontSize: '0.8rem', color: '#6b7280' }}
+                          style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-secondary)',
+                          }}
                         >
                           {l.owner_email}
                         </div>
                       </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
                         {l.location}
                       </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
                         {l.service_type}
                       </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
                         PKR {l.price_per_night}
                       </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <td
+                        style={{
+                          padding: '10px 16px',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
                         {l.bookings_count}
                       </td>
                       <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
@@ -545,9 +747,9 @@ function AdminDashboard() {
                           style={{
                             padding: '6px 10px',
                             borderRadius: '6px',
-                            border: '1px solid #dc2626',
-                            backgroundColor: '#ffffff',
-                            color: '#dc2626',
+                            border: '1px solid var(--danger)',
+                            backgroundColor: 'var(--bg-card)',
+                            color: 'var(--danger)',
                             fontSize: '0.8rem',
                             cursor: 'pointer',
                           }}

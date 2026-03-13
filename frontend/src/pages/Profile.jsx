@@ -136,6 +136,7 @@ function Profile() {
         backgroundColor: 'var(--bg-card)',
         borderRadius: '8px',
         boxShadow: 'var(--shadow-sm)',
+        border: '1px solid var(--border-color)',
       }}
     >
       {/* Section 1 - User info */}
@@ -275,7 +276,7 @@ function Profile() {
       {/* Section 3 - Danger zone */}
       <hr style={{ margin: '24px 0', borderColor: 'var(--border-color)' }} />
 
-      <h2 style={{ marginBottom: '8px', color: 'var(--danger)', fontSize: '1rem' }}>
+      <h2 style={{ marginBottom: '8px', color: '#ef4444', fontSize: '1rem' }}>
         Danger Zone
       </h2>
       <p style={{ marginBottom: '12px', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>

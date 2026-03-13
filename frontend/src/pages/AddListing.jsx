@@ -72,8 +72,14 @@ function AddListing() {
   }
 
   return (
-    <div className="page-container">
-      <div
+    <div
+      style={{
+        background: 'var(--bg-primary)',
+        minHeight: '100vh',
+      }}
+    >
+      <div className="page-container">
+        <div
         style={{
           maxWidth: '600px',
           margin: '40px auto',
@@ -82,7 +88,7 @@ function AddListing() {
           borderRadius: '12px',
           boxShadow: 'var(--shadow-sm)',
         }}
-      >
+        >
         <h1
           style={{
             margin: 0,
@@ -175,7 +181,7 @@ function AddListing() {
                   padding: 0,
                   border: 'none',
                   background: 'none',
-                  color: '#2563eb',
+                  color: 'var(--accent)',
                   fontSize: '0.85rem',
                   cursor: 'pointer',
                   textDecoration: 'underline',
@@ -210,8 +216,10 @@ function AddListing() {
                 padding: '10px 12px',
                 fontSize: '0.95rem',
                 borderRadius: '8px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 boxSizing: 'border-box',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
               }}
               required
             />
@@ -224,7 +232,7 @@ function AddListing() {
                 display: 'block',
                 fontSize: '0.85rem',
                 fontWeight: 500,
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 marginBottom: '4px',
               }}
             >
@@ -241,8 +249,10 @@ function AddListing() {
                 padding: '10px 12px',
                 fontSize: '0.95rem',
                 borderRadius: '8px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 boxSizing: 'border-box',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
               }}
               required
             />
@@ -255,7 +265,7 @@ function AddListing() {
                 display: 'block',
                 fontSize: '0.85rem',
                 fontWeight: 500,
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 marginBottom: '4px',
               }}
             >
@@ -272,9 +282,11 @@ function AddListing() {
                 padding: '10px 12px',
                 fontSize: '0.95rem',
                 borderRadius: '8px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 boxSizing: 'border-box',
                 resize: 'vertical',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
               }}
             />
           </div>
@@ -286,7 +298,7 @@ function AddListing() {
                 display: 'block',
                 fontSize: '0.85rem',
                 fontWeight: 500,
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 marginBottom: '4px',
               }}
             >
@@ -303,8 +315,10 @@ function AddListing() {
                 padding: '10px 12px',
                 fontSize: '0.95rem',
                 borderRadius: '8px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 boxSizing: 'border-box',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
               }}
               required
               min="1"
@@ -314,7 +328,7 @@ function AddListing() {
               style={{
                 marginTop: '4px',
                 fontSize: '0.8rem',
-                color: '#6b7280',
+                color: 'var(--text-muted)',
               }}
             >
               Enter price in PKR (Pakistani Rupees)
@@ -328,7 +342,7 @@ function AddListing() {
                 display: 'block',
                 fontSize: '0.85rem',
                 fontWeight: 500,
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 marginBottom: '4px',
               }}
             >
@@ -343,8 +357,10 @@ function AddListing() {
                 padding: '10px 12px',
                 fontSize: '0.95rem',
                 borderRadius: '8px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 boxSizing: 'border-box',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
               }}
             >
               <option value="hotel">🏨 Hotel</option>
@@ -360,7 +376,7 @@ function AddListing() {
                 display: 'block',
                 fontSize: '0.85rem',
                 fontWeight: 500,
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 marginBottom: '4px',
               }}
             >
@@ -369,24 +385,24 @@ function AddListing() {
             <label
               htmlFor="imageFile"
               style={{
-                border: '2px dashed #d1d5db',
+                border: '2px dashed var(--border-color)',
                 borderRadius: '8px',
                 padding: '20px',
                 textAlign: 'center',
                 cursor: 'pointer',
-                backgroundColor: '#f9fafb',
+                backgroundColor: 'var(--bg-secondary)',
                 display: 'block',
               }}
             >
               <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>📷</div>
-              <div style={{ fontSize: '0.9rem', color: '#374151' }}>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                 Click to upload an image
               </div>
               <div
                 style={{
                   marginTop: '4px',
                   fontSize: '0.8rem',
-                  color: '#6b7280',
+                  color: 'var(--text-muted)',
                 }}
               >
                 JPG, PNG up to 5MB
@@ -404,7 +420,7 @@ function AddListing() {
                 style={{
                   marginTop: '6px',
                   fontSize: '0.85rem',
-                  color: '#374151',
+                  color: 'var(--text-secondary)',
                 }}
               >
                 Selected file: <strong>{imageFile.name}</strong>
@@ -420,7 +436,7 @@ function AddListing() {
               padding: '11px',
               borderRadius: '8px',
               border: 'none',
-              backgroundColor: '#2563eb',
+              backgroundColor: 'var(--accent)',
               color: '#ffffff',
               cursor: submitting ? 'default' : 'pointer',
               fontSize: '1rem',
@@ -431,6 +447,7 @@ function AddListing() {
             {submitting ? 'Creating...' : 'Create Listing'}
           </button>
         </form>
+        </div>
       </div>
     </div>
   )

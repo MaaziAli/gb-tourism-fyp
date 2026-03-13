@@ -80,6 +80,7 @@ function BookingForm() {
     padding: '24px',
     borderRadius: '8px',
     boxShadow: 'var(--shadow-sm)',
+    border: '1px solid var(--border-color)',
   }
 
   if (loading) {
@@ -101,10 +102,20 @@ function BookingForm() {
   return (
     <div className="page-container" style={containerStyle}>
       <div style={cardStyle}>
-        <h1 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>Book Listing</h1>
+        <h1 style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>
+          Book Listing
+        </h1>
         {listing && (
           <div style={{ marginBottom: '16px' }}>
-            <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-primary)' }}>{listing.title}</h2>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: '1.15rem',
+                color: 'var(--text-primary)',
+              }}
+            >
+              {listing.title}
+            </h2>
             <p style={{ margin: '4px 0', color: 'var(--text-secondary)' }}>
               <strong>Location:</strong> {listing.location}
             </p>
@@ -129,7 +140,12 @@ function BookingForm() {
           style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="checkIn" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Check-in date</label>
+            <label
+              htmlFor="checkIn"
+              style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}
+            >
+              Check-in date
+            </label>
             <input
               id="checkIn"
               type="date"
@@ -142,13 +158,18 @@ function BookingForm() {
                 borderRadius: '6px',
                 border: '1px solid var(--border-color)',
                 width: '100%',
-                backgroundColor: 'var(--bg-card)',
+                backgroundColor: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
               }}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="checkOut" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Check-out date</label>
+            <label
+              htmlFor="checkOut"
+              style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}
+            >
+              Check-out date
+            </label>
             <input
               id="checkOut"
               type="date"
@@ -161,7 +182,7 @@ function BookingForm() {
                 borderRadius: '6px',
                 border: '1px solid var(--border-color)',
                 width: '100%',
-                backgroundColor: 'var(--bg-card)',
+                backgroundColor: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
               }}
             />

@@ -87,15 +87,17 @@ function EditListing() {
     maxWidth: '1000px',
     margin: '0 auto',
     padding: '20px',
+    background: 'var(--bg-primary)',
+    minHeight: '100vh',
   }
 
   const cardStyle = {
     maxWidth: '480px',
     margin: '40px auto',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--bg-card)',
     padding: '24px',
     borderRadius: '8px',
-    boxShadow: '0 1px 4px rgba(15, 23, 42, 0.08)',
+    boxShadow: 'var(--shadow-sm)',
   }
 
   if (loading) {
@@ -117,7 +119,14 @@ function EditListing() {
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
-        <h1 style={{ marginBottom: '24px' }}>Edit Listing</h1>
+        <h1
+          style={{
+            marginBottom: '24px',
+            color: 'var(--text-primary)',
+          }}
+        >
+          Edit Listing
+        </h1>
         <form
           onSubmit={handleSubmit}
           style={{
@@ -127,7 +136,12 @@ function EditListing() {
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="title">Title</label>
+            <label
+              htmlFor="title"
+              style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}
+            >
+              Title
+            </label>
             <input
               id="title"
               type="text"
@@ -138,14 +152,21 @@ function EditListing() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
               }}
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="location">Location</label>
+            <label
+              htmlFor="location"
+              style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}
+            >
+              Location
+            </label>
             <input
               id="location"
               type="text"
@@ -156,14 +177,21 @@ function EditListing() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
               }}
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="description">Description (optional)</label>
+            <label
+              htmlFor="description"
+              style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}
+            >
+              Description (optional)
+            </label>
             <textarea
               id="description"
               rows={3}
@@ -173,15 +201,22 @@ function EditListing() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
                 resize: 'vertical',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
               }}
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="pricePerNight">Price per night</label>
+            <label
+              htmlFor="pricePerNight"
+              style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}
+            >
+              Price per night
+            </label>
             <input
               id="pricePerNight"
               type="number"
@@ -194,14 +229,21 @@ function EditListing() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
               }}
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="serviceType">Service type</label>
+            <label
+              htmlFor="serviceType"
+              style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}
+            >
+              Service type
+            </label>
             <select
               id="serviceType"
               value={serviceType}
@@ -210,8 +252,10 @@ function EditListing() {
                 padding: '8px',
                 fontSize: '0.95rem',
                 borderRadius: '6px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 width: '100%',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
               }}
             >
               <option value="hotel">hotel</option>
@@ -222,7 +266,9 @@ function EditListing() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontWeight: 500 }}>Current image</label>
+            <label style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>
+              Current image
+            </label>
             {currentImageUrl ? (
               <div style={{ marginBottom: '8px' }}>
                 <img
@@ -239,19 +285,36 @@ function EditListing() {
                     e.target.src = 'https://placehold.co/400x250?text=No+Image'
                   }}
                 />
-                <p style={{ marginTop: '6px', fontSize: '0.85rem', color: '#6b7280' }}>
+                <p
+                  style={{
+                    marginTop: '6px',
+                    fontSize: '0.85rem',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
                   Upload a new image to replace it (optional).
                 </p>
               </div>
             ) : (
-              <p style={{ marginBottom: '6px', fontSize: '0.85rem', color: '#6b7280' }}>
+              <p
+                style={{
+                  marginBottom: '6px',
+                  fontSize: '0.85rem',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 No image uploaded yet.
               </p>
             )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="imageFile">Image (optional)</label>
+            <label
+              htmlFor="imageFile"
+              style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}
+            >
+              Image (optional)
+            </label>
             <input
               id="imageFile"
               type="file"
@@ -276,7 +339,7 @@ function EditListing() {
               padding: '10px 16px',
               borderRadius: '6px',
               border: 'none',
-              backgroundColor: '#2563eb',
+              backgroundColor: 'var(--accent)',
               color: '#ffffff',
               cursor: saving ? 'default' : 'pointer',
               opacity: saving ? 0.8 : 1,
