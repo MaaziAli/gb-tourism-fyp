@@ -14,6 +14,7 @@ from app.models.listing import Listing
 from app.models.review import Review
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingResponse
+from app.utils.notify import create_notification
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
@@ -100,6 +101,34 @@ def create_booking(
     db.add(booking)
     db.commit()
     db.refresh(booking)
+
+    # Notify the traveler
+    create_notification(
+        db,
+        user_id=current_user.id,
+        title="Booking Confirmed! 🎉",
+        message=(
+            f"Your booking for '{listing.title}' "
+            f"from {body.check_in} to {body.check_out} "
+            f"is confirmed. Total: PKR {total_price:,.0f}"
+        ),
+        type="success",
+    )
+
+    # Notify the listing owner (provider)
+    create_notification(
+        db,
+        user_id=listing.owner_id,
+        title="New Booking Received! 📅",
+        message=(
+            f"{current_user.full_name} booked "
+            f"'{listing.title}' from {body.check_in} "
+            f"to {body.check_out}. "
+            f"Revenue: PKR {total_price:,.0f}"
+        ),
+        type="booking",
+    )
+
     return booking
 
 
@@ -236,8 +265,21 @@ def cancel_booking(
             detail="Booking is already cancelled",
         )
     booking.status = "cancelled"
+    listing = (
+        db.query(Listing).filter(Listing.id == booking.listing_id).first()
+    )
     db.commit()
     db.refresh(booking)
+
+    if listing:
+        create_notification(
+            db,
+            user_id=current_user.id,
+            title="Booking Cancelled",
+            message=f"Your booking for '{listing.title}' has been cancelled.",
+            type="warning",
+        )
+
     return booking
 
 

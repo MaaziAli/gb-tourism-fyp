@@ -11,6 +11,7 @@ from ..models.listing import Listing
 from ..models.review import Review
 from ..models.user import User
 from ..schemas.review import ReviewCreate, ReviewResponse
+from ..utils.notify import create_notification
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 
@@ -81,6 +82,34 @@ def create_review(
     db.add(review)
     db.commit()
     db.refresh(review)
+
+    # Notify listing owner of new review
+    listing = db.query(Listing).filter(Listing.id == listing_id).first()
+    if listing and listing.owner_id != current_user.id:
+        if body.comment and len(body.comment) > 60:
+            msg = (
+                f"{current_user.full_name} left a {body.rating}-star review on "
+                f"'{listing.title}': "
+                f"\"{body.comment[:60]}...\""
+            )
+        elif body.comment:
+            msg = (
+                f"{current_user.full_name} left a {body.rating}-star review on "
+                f"'{listing.title}': \"{body.comment}\""
+            )
+        else:
+            msg = (
+                f"{current_user.full_name} left a {body.rating}-star review on "
+                f"'{listing.title}'."
+            )
+        create_notification(
+            db,
+            user_id=listing.owner_id,
+            title="New Review Posted ⭐",
+            message=msg,
+            type="review",
+        )
+
     return to_response(review, db)
 
 

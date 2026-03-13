@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { logout } from '../utils/auth'
 import { getRole, isLoggedIn } from '../utils/role'
 import { useTheme } from '../hooks/useTheme'
+import NotificationBell from './NotificationBell'
 
 function Navbar() {
   const navigate = useNavigate()
@@ -126,6 +127,7 @@ function Navbar() {
               </Link>
             </>
           )}
+          <NotificationBell />
           <button
             type="button"
             className="theme-toggle"
