@@ -9,6 +9,9 @@ export default function MyListings() {
   const [bookingsMap, setBookingsMap] = useState({})
   const [expandedId, setExpandedId] = useState(null)
   const [bookingsLoading, setBookingsLoading] = useState(false)
+  const [reviewsMap, setReviewsMap] = useState({})
+  const [expandedReviews, setExpandedReviews] = useState(null)
+  const [reviewsLoading, setReviewsLoading] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -31,6 +34,8 @@ export default function MyListings() {
       setExpandedId(null)
       return
     }
+    // Close reviews if open for this listing
+    if (expandedReviews === listingId) setExpandedReviews(null)
     setExpandedId(listingId)
     if (bookingsMap[listingId]) return
     setBookingsLoading(true)
@@ -47,6 +52,23 @@ export default function MyListings() {
     } finally {
       setBookingsLoading(false)
     }
+  }
+
+  async function toggleReviews(listingId) {
+    if (expandedReviews === listingId) {
+      setExpandedReviews(null)
+      return
+    }
+    setExpandedReviews(listingId)
+    if (reviewsMap[listingId]) return
+    setReviewsLoading(true)
+    try {
+      const res = await api.get(`/reviews/listing/${listingId}`)
+      setReviewsMap(prev => ({
+        ...prev, [listingId]: res.data
+      }))
+    } catch(e) { console.error(e) }
+    finally { setReviewsLoading(false) }
   }
 
   async function deleteListing(id) {
@@ -387,6 +409,39 @@ export default function MyListings() {
                           )}
                         </button>
                         <button
+                          onClick={() => {
+                            // Close bookings if open
+                            if (expandedId === listing.id) setExpandedId(null)
+                            toggleReviews(listing.id)
+                          }}
+                          style={{
+                            background: expandedReviews === listing.id
+                              ? '#f59e0b' : 'var(--bg-secondary)',
+                            color: expandedReviews === listing.id
+                              ? 'white' : 'var(--text-secondary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            padding: '7px 14px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem', fontWeight: 600
+                          }}
+                        >
+                          ⭐ Reviews
+                          {reviewsMap[listing.id] && (
+                            <span style={{
+                              marginLeft: '6px',
+                              background: expandedReviews === listing.id
+                                ? 'rgba(255,255,255,0.3)' : 'var(--accent)',
+                              color: 'white',
+                              borderRadius: '999px',
+                              padding: '1px 7px',
+                              fontSize: '0.72rem'
+                            }}>
+                              {reviewsMap[listing.id].length}
+                            </span>
+                          )}
+                        </button>
+                        <button
                           onClick={() =>
                             navigate(`/edit-listing/${listing.id}`)
                           }
@@ -593,6 +648,190 @@ export default function MyListings() {
                                 .toLocaleString('en-PK')}
                             </span>
                           </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {expandedReviews === listing.id && (
+                    <div style={{
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)',
+                      borderTop: 'none',
+                      borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+                      overflow: 'hidden'
+                    }}>
+                      {reviewsLoading && !reviewsMap[listing.id] ? (
+                        <div style={{
+                          padding: '24px', textAlign: 'center',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          Loading reviews...
+                        </div>
+                      ) : (reviewsMap[listing.id] || []).length === 0 ? (
+                        <div style={{
+                          padding: '28px', textAlign: 'center',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          <div style={{fontSize: '2rem', marginBottom: '8px'}}>
+                            ✍️
+                          </div>
+                          <p style={{margin: 0}}>
+                            No reviews yet for this service.
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          {/* Header bar */}
+                          <div style={{
+                            padding: '12px 20px',
+                            borderBottom: '1px solid var(--border-color)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <span style={{
+                              fontWeight: 700, fontSize: '0.875rem',
+                              color: 'var(--text-primary)'
+                            }}>
+                              ⭐ Guest Reviews ({reviewsMap[listing.id].length})
+                            </span>
+                            <span style={{
+                              fontSize: '0.85rem',
+                              color: '#f59e0b', fontWeight: 700
+                            }}>
+                              Avg: {(
+                                reviewsMap[listing.id].reduce(
+                                  (s, r) => s + r.rating, 0
+                                ) / reviewsMap[listing.id].length
+                              ).toFixed(1)} ★
+                            </span>
+                          </div>
+
+                          {/* Rating breakdown bar */}
+                          <div style={{
+                            padding: '12px 20px',
+                            borderBottom: '1px solid var(--border-color)',
+                            display: 'flex', gap: '8px', alignItems: 'center'
+                          }}>
+                            {[5,4,3,2,1].map(star => {
+                              const count = reviewsMap[listing.id].filter(
+                                r => r.rating === star
+                              ).length
+                              const pct = reviewsMap[listing.id].length > 0
+                                ? (count / reviewsMap[listing.id].length) * 100
+                                : 0
+                              return (
+                                <div key={star} style={{
+                                  display: 'flex', alignItems: 'center',
+                                  gap: '4px', flex: 1
+                                }}>
+                                  <span style={{
+                                    fontSize: '0.72rem',
+                                    color: 'var(--text-muted)',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {star}★
+                                  </span>
+                                  <div style={{
+                                    flex: 1, height: '6px',
+                                    background: 'var(--border-color)',
+                                    borderRadius: '3px', overflow: 'hidden'
+                                  }}>
+                                    <div style={{
+                                      width: `${pct}%`, height: '100%',
+                                      background: '#f59e0b',
+                                      borderRadius: '3px'
+                                    }} />
+                                  </div>
+                                  <span style={{
+                                    fontSize: '0.72rem',
+                                    color: 'var(--text-muted)',
+                                    width: '16px', textAlign: 'right'
+                                  }}>
+                                    {count}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          {/* Review list */}
+                          {reviewsMap[listing.id].map((r, i) => (
+                            <div key={r.id} style={{
+                              padding: '14px 20px',
+                              borderBottom: i < reviewsMap[listing.id].length - 1
+                                ? '1px solid var(--border-color)' : 'none',
+                              display: 'flex', gap: '12px',
+                              alignItems: 'flex-start'
+                            }}>
+                              {/* Avatar */}
+                              <div style={{
+                                width: 36, height: 36, borderRadius: '50%',
+                                background: 'var(--accent)', color: 'white',
+                                display: 'flex', alignItems: 'center',
+                                justifyContent: 'center', fontWeight: 700,
+                                fontSize: '0.95rem', flexShrink: 0
+                              }}>
+                                {r.reviewer_name?.charAt(0).toUpperCase()}
+                              </div>
+
+                              {/* Content */}
+                              <div style={{flex: 1}}>
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center', marginBottom: '4px'
+                                }}>
+                                  <div style={{
+                                    display: 'flex', gap: '8px',
+                                    alignItems: 'center'
+                                  }}>
+                                    <span style={{
+                                      fontWeight: 700, fontSize: '0.875rem',
+                                      color: 'var(--text-primary)'
+                                    }}>
+                                      {r.reviewer_name}
+                                    </span>
+                                    <span style={{color: '#f59e0b', fontSize: '0.85rem'}}>
+                                      {'★'.repeat(r.rating)}
+                                      {'☆'.repeat(5 - r.rating)}
+                                    </span>
+                                  </div>
+                                  <span style={{
+                                    fontSize: '0.75rem',
+                                    color: 'var(--text-muted)'
+                                  }}>
+                                    {new Date(r.created_at).toLocaleDateString(
+                                      'en-PK', {
+                                        day: 'numeric', month: 'short',
+                                        year: 'numeric'
+                                      }
+                                    )}
+                                  </span>
+                                </div>
+
+                                {r.comment ? (
+                                  <p style={{
+                                    margin: 0, fontSize: '0.875rem',
+                                    color: 'var(--text-secondary)',
+                                    lineHeight: 1.6,
+                                    fontStyle: 'italic'
+                                  }}>
+                                    "{r.comment}"
+                                  </p>
+                                ) : (
+                                  <p style={{
+                                    margin: 0, fontSize: '0.8rem',
+                                    color: 'var(--text-muted)',
+                                    fontStyle: 'italic'
+                                  }}>
+                                    No comment left.
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
