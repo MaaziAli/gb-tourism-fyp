@@ -265,6 +265,24 @@ export default function MyBookings() {
                         >
                           📍 {b.listing?.location}
                         </p>
+                        {b.room_type_name && (
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              marginTop: '4px',
+                              background: 'var(--accent-light)',
+                              color: 'var(--accent)',
+                              padding: '2px 10px',
+                              borderRadius: '999px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            🛏️ {b.room_type_name}
+                          </div>
+                        )}
                       </div>
                       <span style={statusStyle(b.status)}>
                         {b.status === 'active'

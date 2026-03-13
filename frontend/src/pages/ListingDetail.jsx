@@ -504,22 +504,31 @@ export default function ListingDetail() {
             )}
 
             {/* Book Now button */}
-            {!isOwner && !isAdmin && (
-              <button className="btn-primary"
-                style={{
-                  width:'100%',justifyContent:'center',
-                  padding:'13px',fontSize:'1rem'
-                }}
-                onClick={() => {
-                  const params = selectedRoom
-                    ? `?room_type_id=${selectedRoom.id}&room_name=${encodeURIComponent(selectedRoom.name)}`
-                    : ''
-                  navigate(`/booking/${id}${params}`)
-                }}>
-                🗓️ Book Now
-                {selectedRoom && ` — ${selectedRoom.name}`}
-              </button>
-            )}
+            {!isAdmin &&
+              listing &&
+              !(currentUser && listing.owner_id === currentUser.id) && (
+                <button
+                  className="btn-primary"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    padding: '13px',
+                    fontSize: '1rem',
+                    marginTop: '8px',
+                  }}
+                  onClick={() => {
+                    const params = selectedRoom
+                      ? `?room_type_id=${selectedRoom.id}&room_name=${encodeURIComponent(
+                          selectedRoom.name,
+                        )}`
+                      : ''
+                    navigate(`/booking/${id}${params}`)
+                  }}
+                >
+                  🗓️ Book Now
+                  {selectedRoom ? ` — ${selectedRoom.name}` : ''}
+                </button>
+              )}
             {isOwner && (
               <button className="btn-primary"
                 style={{width:'100%',justifyContent:'center',
