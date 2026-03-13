@@ -1,58 +1,41 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { logout } from '../utils/auth'
 import { getRole, isLoggedIn } from '../utils/role'
+import { useTheme } from '../hooks/useTheme'
 
 function Navbar() {
   const navigate = useNavigate()
+  const location = useLocation()
   const loggedIn = isLoggedIn()
   const role = getRole()
+  const { theme, toggleTheme } = useTheme()
 
   const handleLogout = async () => {
     await logout(navigate)
   }
 
+  const isActive = (path) => location.pathname === path
+
   return (
-    <nav
-      style={{
-        backgroundColor: '#111827',
-        color: '#ffffff',
-        padding: '12px 0',
-        marginBottom: '16px',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: '1000px',
-          margin: '0 auto',
-          padding: '0 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px',
-        }}
-      >
-        <div style={{ fontWeight: 600 }}>GB Tourism</div>
-        <div
-          style={{
-            display: 'flex',
-            gap: '16px',
-            alignItems: 'center',
-          }}
-        >
+    <nav className="navbar">
+      <div className="navbar-inner">
+        <div className="navbar-logo">
+          <span>🏔️</span>
+          <span>GB Tourism</span>
+        </div>
+        <div className="nav-links">
           <Link
             to="/"
-            style={{ color: '#e5e7eb', textDecoration: 'none', fontSize: '0.95rem' }}
+            className={`nav-link${isActive('/') ? ' active' : ''}`}
           >
             Listings
           </Link>
           {loggedIn && role !== 'admin' && (
             <Link
               to="/recommendations"
-              style={{
-                color: '#e5e7eb',
-                textDecoration: 'none',
-                fontSize: '0.95rem',
-              }}
+              className={`nav-link${
+                isActive('/recommendations') ? ' active' : ''
+              }`}
             >
               ✨ For You
             </Link>
@@ -60,11 +43,7 @@ function Navbar() {
           {loggedIn && role === 'admin' && (
             <Link
               to="/admin"
-              style={{
-                color: '#e5e7eb',
-                textDecoration: 'none',
-                fontSize: '0.95rem',
-              }}
+              className={`nav-link${isActive('/admin') ? ' active' : ''}`}
             >
               ⚙️ Admin
             </Link>
@@ -73,21 +52,17 @@ function Navbar() {
             <>
               <Link
                 to="/add-listing"
-                style={{
-                  color: '#e5e7eb',
-                  textDecoration: 'none',
-                  fontSize: '0.95rem',
-                }}
+                className={`nav-link${
+                  isActive('/add-listing') ? ' active' : ''
+                }`}
               >
                 Add Listing
               </Link>
               <Link
                 to="/my-listings"
-                style={{
-                  color: '#e5e7eb',
-                  textDecoration: 'none',
-                  fontSize: '0.95rem',
-                }}
+                className={`nav-link${
+                  isActive('/my-listings') ? ' active' : ''
+                }`}
               >
                 My Listings
               </Link>
@@ -97,21 +72,17 @@ function Navbar() {
             <>
               <Link
                 to="/my-bookings"
-                style={{
-                  color: '#e5e7eb',
-                  textDecoration: 'none',
-                  fontSize: '0.95rem',
-                }}
+                className={`nav-link${
+                  isActive('/my-bookings') ? ' active' : ''
+                }`}
               >
                 My Bookings
               </Link>
               <Link
                 to="/profile"
-                style={{
-                  color: '#e5e7eb',
-                  textDecoration: 'none',
-                  fontSize: '0.95rem',
-                }}
+                className={`nav-link${
+                  isActive('/profile') ? ' active' : ''
+                }`}
               >
                 Profile
               </Link>
@@ -120,11 +91,9 @@ function Navbar() {
           {loggedIn && role === 'admin' && (
             <Link
               to="/profile"
-              style={{
-                color: '#e5e7eb',
-                textDecoration: 'none',
-                fontSize: '0.95rem',
-              }}
+              className={`nav-link${
+                isActive('/profile') ? ' active' : ''
+              }`}
             >
               Profile
             </Link>
@@ -133,38 +102,38 @@ function Navbar() {
             <>
               <Link
                 to="/login"
-                style={{
-                  color: '#e5e7eb',
-                  textDecoration: 'none',
-                  fontSize: '0.95rem',
-                }}
+                className={`nav-link${
+                  isActive('/login') ? ' active' : ''
+                }`}
               >
                 Login
               </Link>
               <Link
                 to="/register"
-                style={{
-                  color: '#e5e7eb',
-                  textDecoration: 'none',
-                  fontSize: '0.95rem',
-                }}
+                className={`nav-link${
+                  isActive('/register') ? ' active' : ''
+                }`}
               >
                 Register
               </Link>
             </>
           )}
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
           {loggedIn && (
             <button
               type="button"
               onClick={handleLogout}
+              className="nav-link"
               style={{
-                padding: '6px 12px',
-                borderRadius: '6px',
-                border: '1px solid #4b5563',
-                backgroundColor: 'transparent',
-                color: '#e5e7eb',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
+                background: 'transparent',
+                border: '1px solid rgba(148,163,184,0.8)',
               }}
             >
               Logout
