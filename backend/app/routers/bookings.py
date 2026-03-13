@@ -173,13 +173,44 @@ def get_provider_revenue(
     return {"total_bookings": total}
 
 
-@router.get("/me", response_model=list[BookingResponse])
+@router.get("/me")
 def get_my_bookings(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
-    """Get all bookings for the current user."""
-    return db.query(Booking).filter(Booking.user_id == current_user.id).all()
+    bookings = (
+        db.query(Booking)
+        .filter(Booking.user_id == current_user.id)
+        .order_by(Booking.created_at.desc())
+        .all()
+    )
+
+    result = []
+    for b in bookings:
+        listing = (
+            db.query(Listing).filter(Listing.id == b.listing_id).first()
+        )
+        result.append(
+            {
+                "id": b.id,
+                "listing_id": b.listing_id,
+                "listing_title": listing.title if listing else "Unknown",
+                "location": listing.location if listing else "",
+                "image_url": listing.image_url if listing else None,
+                "check_in": b.check_in.isoformat() if b.check_in else None,
+                "check_out": b.check_out.isoformat()
+                if b.check_out
+                else None,
+                "total_price": b.total_price,
+                "status": b.status or "active",
+                "room_type_id": b.room_type_id,
+                "room_type_name": b.room_type_name,
+                "created_at": b.created_at.isoformat()
+                if b.created_at
+                else None,
+            }
+        )
+    return result
 
 
 @router.patch("/{booking_id}/cancel", response_model=BookingResponse)

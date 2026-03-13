@@ -16,18 +16,7 @@ export default function MyBookings() {
   async function fetchBookings() {
     try {
       const res = await api.get('/bookings/me')
-      const base = res.data || []
-      const enriched = await Promise.all(
-        base.map(async (b) => {
-          try {
-            const lr = await api.get(`/listings/${b.listing_id}`)
-            return { ...b, listing: lr.data }
-          } catch {
-            return { ...b, listing: null }
-          }
-        }),
-      )
-      setBookings(enriched)
+      setBookings(res.data || [])
     } catch (e) {
       setError(e.response?.data?.detail || 'Failed to load')
     } finally {
@@ -214,8 +203,8 @@ export default function MyBookings() {
                   }}
                 >
                   <img
-                    src={getImageUrl(b.listing?.image_url)}
-                    alt={b.listing?.title || `Booking #${b.id}`}
+                  src={getImageUrl(b.image_url)}
+                  alt={b.listing_title || `Booking #${b.id}`}
                     onError={(e) => {
                       e.target.onerror = null
                       e.target.src =
@@ -254,7 +243,7 @@ export default function MyBookings() {
                             color: 'var(--text-primary)',
                           }}
                         >
-                          {b.listing?.title || `Booking #${b.id}`}
+                          {b.listing_title || `Booking #${b.id}`}
                         </h3>
                         <p
                           style={{
@@ -263,13 +252,12 @@ export default function MyBookings() {
                             color: 'var(--text-secondary)',
                           }}
                         >
-                          📍 {b.listing?.location}
+                          📍 {b.location}
                         </p>
                         {b.room_type_name && (
-                          <div
+                          <span
                             style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
+                              display: 'inline-block',
                               marginTop: '6px',
                               background: 'var(--accent-light)',
                               color: 'var(--accent)',
@@ -280,7 +268,7 @@ export default function MyBookings() {
                             }}
                           >
                             🛏️ {b.room_type_name}
-                          </div>
+                          </span>
                         )}
                       </div>
                       <span style={statusStyle(b.status)}>

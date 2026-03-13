@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
-import { getUser, getUserRole, isLoggedIn } from '../utils/auth'
+import { getUser, getRole, isLoggedIn } from '../utils/role'
 
 export default function ListingDetail() {
   const { id } = useParams()
@@ -27,7 +27,7 @@ export default function ListingDetail() {
   const currentUser = getUser()
   const isOwner = listing && currentUser && 
                  listing.owner_id === currentUser.id
-  const isAdmin = getUserRole() === 'admin'
+  const isAdmin = getRole() === 'admin'
 
   useEffect(() => { fetchAll() }, [id])
 
@@ -502,38 +502,12 @@ export default function ListingDetail() {
                 </div>
               </div>
             )}
-            {/* Book Now — show for all logged-in non-owners */}
-            {(() => {
-              const user = getUser()
-              const userRole = getUserRole()
-              if (!listing) return null
-              if (userRole === 'admin') return null
-              if (user && listing.owner_id === user.id) return null
-              return (
-                <button
-                  className="btn-primary"
-                  style={{
-                    width: '100%',
-                    padding: '13px',
-                    fontSize: '1rem',
-                    marginTop: '12px',
-                    textAlign: 'center',
-                    display: 'block',
-                  }}
-                  onClick={() => {
-                    const params = selectedRoom
-                      ? `?room_type_id=${selectedRoom.id}&room_name=${encodeURIComponent(
-                          selectedRoom.name,
-                        )}`
-                      : ''
-                    navigate(`/booking/${id}${params}`)
-                  }}
-                >
-                  🗓️ Book Now
-                  {selectedRoom ? ` — ${selectedRoom.name}` : ''}
-                </button>
-              )
-            })()}
+            <BookNowButton
+              listing={listing}
+              selectedRoom={selectedRoom}
+              navigate={navigate}
+              id={id}
+            />
             {isOwner && (
               <button className="btn-primary"
                 style={{width:'100%',justifyContent:'center',
@@ -706,6 +680,53 @@ export default function ListingDetail() {
         </div>
       )}
     </div>
+  )
+}
+
+function BookNowButton({ listing, selectedRoom, navigate, id }) {
+  const stored = typeof window !== 'undefined'
+    ? localStorage.getItem('user')
+    : null
+  if (!stored || !listing) return null
+
+  let user = null
+  try {
+    user = JSON.parse(stored)
+  } catch (e) {
+    return null
+  }
+
+  if (user?.role === 'admin') return null
+  if (user?.id === listing.owner_id) return null
+
+  return (
+    <button
+      onClick={() => {
+        const params = selectedRoom
+          ? `?room_type_id=${selectedRoom.id}&room_name=${encodeURIComponent(
+              selectedRoom.name,
+            )}`
+          : ''
+        navigate(`/booking/${id}${params}`)
+      }}
+      style={{
+        width: '100%',
+        padding: '13px',
+        fontSize: '1rem',
+        fontWeight: 700,
+        marginTop: '12px',
+        background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+        color: 'white',
+        border: 'none',
+        borderRadius: '10px',
+        cursor: 'pointer',
+        display: 'block',
+        textAlign: 'center',
+      }}
+    >
+      🗓️ Book Now
+      {selectedRoom ? ` — ${selectedRoom.name}` : ''}
+    </button>
   )
 }
 
