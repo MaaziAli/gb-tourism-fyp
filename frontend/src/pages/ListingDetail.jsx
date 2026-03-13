@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
-import { isLoggedIn, getUser, getRole } from '../utils/role'
+import { getUser, getUserRole, isLoggedIn } from '../utils/auth'
 
 export default function ListingDetail() {
   const { id } = useParams()
@@ -26,8 +26,8 @@ export default function ListingDetail() {
 
   const currentUser = getUser()
   const isOwner = listing && currentUser && 
-                  listing.owner_id === currentUser.id
-  const isAdmin = getRole() === 'admin'
+                 listing.owner_id === currentUser.id
+  const isAdmin = getUserRole() === 'admin'
 
   useEffect(() => { fetchAll() }, [id])
 
@@ -502,19 +502,23 @@ export default function ListingDetail() {
                 </div>
               </div>
             )}
-
-            {/* Book Now button */}
-            {!isAdmin &&
-              listing &&
-              !(currentUser && listing.owner_id === currentUser.id) && (
+            {/* Book Now — show for all logged-in non-owners */}
+            {(() => {
+              const user = getUser()
+              const userRole = getUserRole()
+              if (!listing) return null
+              if (userRole === 'admin') return null
+              if (user && listing.owner_id === user.id) return null
+              return (
                 <button
                   className="btn-primary"
                   style={{
                     width: '100%',
-                    justifyContent: 'center',
                     padding: '13px',
                     fontSize: '1rem',
-                    marginTop: '8px',
+                    marginTop: '12px',
+                    textAlign: 'center',
+                    display: 'block',
                   }}
                   onClick={() => {
                     const params = selectedRoom
@@ -528,7 +532,8 @@ export default function ListingDetail() {
                   🗓️ Book Now
                   {selectedRoom ? ` — ${selectedRoom.name}` : ''}
                 </button>
-              )}
+              )
+            })()}
             {isOwner && (
               <button className="btn-primary"
                 style={{width:'100%',justifyContent:'center',

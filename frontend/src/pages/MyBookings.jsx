@@ -270,11 +270,10 @@ export default function MyBookings() {
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px',
-                              marginTop: '4px',
+                              marginTop: '6px',
                               background: 'var(--accent-light)',
                               color: 'var(--accent)',
-                              padding: '2px 10px',
+                              padding: '3px 12px',
                               borderRadius: '999px',
                               fontSize: '0.8rem',
                               fontWeight: 600,
