@@ -55,7 +55,10 @@ function Listings() {
       })
   }, [])
 
-  const containerStyle = {}
+  const containerStyle = {
+    background: 'var(--bg-primary)',
+    minHeight: '100vh',
+  }
 
   const gridStyle = {
     display: 'grid',

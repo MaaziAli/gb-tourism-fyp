@@ -129,16 +129,20 @@ function Profile() {
 
   return (
     <div
-      style={{
-        maxWidth: '600px',
-        margin: '40px auto',
-        padding: '20px',
-        backgroundColor: 'var(--bg-card)',
-        borderRadius: '8px',
-        boxShadow: 'var(--shadow-sm)',
-        border: '1px solid var(--border-color)',
-      }}
+      className="page-container"
+      style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}
     >
+      <div
+        style={{
+          maxWidth: '600px',
+          margin: '40px auto',
+          padding: '20px',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '8px',
+          boxShadow: 'var(--shadow-sm)',
+          border: '1px solid var(--border-color)',
+        }}
+      >
       {/* Section 1 - User info */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <div
@@ -305,6 +309,7 @@ function Profile() {
           {error}
         </p>
       )}
+      </div>
     </div>
   )
 }

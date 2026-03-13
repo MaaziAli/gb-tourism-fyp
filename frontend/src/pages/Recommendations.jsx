@@ -83,7 +83,10 @@ function Recommendations() {
 
   if (loading) {
     return (
-      <div className="page-container" style={containerStyle}>
+      <div
+        className="page-container"
+        style={{ ...containerStyle, background: 'var(--bg-primary)', minHeight: '100vh' }}
+      >
         <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
           Finding the best listings for you...
         </p>
@@ -93,7 +96,10 @@ function Recommendations() {
 
   if (error) {
     return (
-      <div className="page-container" style={containerStyle}>
+      <div
+        className="page-container"
+        style={{ ...containerStyle, background: 'var(--bg-primary)', minHeight: '100vh' }}
+      >
         <p style={{ color: 'var(--danger)' }}>{error}</p>
       </div>
     )
@@ -101,7 +107,10 @@ function Recommendations() {
 
   if (!items.length) {
     return (
-      <div className="page-container" style={containerStyle}>
+      <div
+        className="page-container"
+        style={{ ...containerStyle, background: 'var(--bg-primary)', minHeight: '100vh' }}
+      >
         <h1
           style={{
             margin: 0,
@@ -138,7 +147,10 @@ function Recommendations() {
   }
 
   return (
-    <div className="page-container" style={containerStyle}>
+    <div
+      className="page-container"
+      style={{ ...containerStyle, background: 'var(--bg-primary)', minHeight: '100vh' }}
+    >
       <h1
         style={{
           margin: 0,

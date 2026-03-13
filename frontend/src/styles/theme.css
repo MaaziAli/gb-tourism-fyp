@@ -59,19 +59,27 @@
 }
 
 body {
-  background-color: var(--bg-secondary);
+  background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
                Roboto, sans-serif;
   margin: 0;
+  padding: 0;
+  min-height: 100vh;
   line-height: 1.6;
+}
+
+#root {
+  background: var(--bg-primary);
+  min-height: 100vh;
 }
 
 /* ===== LAYOUT ===== */
 .page-container {
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 40px 24px;
+  padding: 32px 24px;
+  background: transparent;
 }
 
 /* ===== NAVBAR ===== */
