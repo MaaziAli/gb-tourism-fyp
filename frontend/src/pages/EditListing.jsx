@@ -17,6 +17,9 @@ function EditListing() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [currentImageUrl, setCurrentImageUrl] = useState('')
+  const [extraImages, setExtraImages] = useState([])
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imageMsg, setImageMsg] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -51,6 +54,49 @@ function EditListing() {
       isMounted = false
     }
   }, [listingId])
+
+  useEffect(() => {
+    if (!listingId) return
+    api
+      .get(`/listing-images/${listingId}`)
+      .then((r) => setExtraImages(r.data || []))
+      .catch((e) => {
+        console.error('Failed to load listing images', e)
+      })
+  }, [listingId])
+
+  async function uploadExtraImage(file) {
+    if (!file || !listingId) return
+    setUploadingImage(true)
+    setImageMsg('')
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('caption', '')
+    try {
+      const res = await api.post(
+        `/listing-images/${listingId}`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      )
+      setExtraImages((prev) => [...prev, res.data])
+      setImageMsg('✅ Image uploaded!')
+    } catch (e) {
+      console.error('Failed to upload image', e)
+      setImageMsg('❌ Upload failed')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  async function deleteExtraImage(imageId) {
+    if (!window.confirm('Remove this image?')) return
+    try {
+      await api.delete(`/listing-images/${imageId}`)
+      setExtraImages((prev) => prev.filter((i) => i.id !== imageId))
+    } catch (e) {
+      console.error('Failed to delete image', e)
+    }
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -325,6 +371,116 @@ function EditListing() {
                 fontSize: '0.95rem',
               }}
             />
+          </div>
+
+          {/* Room Images Section */}
+          <div style={{ marginBottom: '24px' }}>
+            <label
+              style={{
+                display: 'block',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                marginBottom: '12px',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              📸 Room & Facility Photos
+            </label>
+
+            {extraImages.length > 0 && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '10px',
+                  marginBottom: '12px',
+                }}
+              >
+                {extraImages.map((img) => (
+                  <div key={img.id} style={{ position: 'relative' }}>
+                    <img
+                      src={`http://127.0.0.1:8000/uploads/${img.filename}`}
+                      alt="Room"
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.src =
+                          'https://placehold.co/200x140/e5e7eb/9ca3af?text=Photo'
+                      }}
+                      style={{
+                        width: '100%',
+                        height: '100px',
+                        objectFit: 'cover',
+                        borderRadius: 'var(--radius-sm)',
+                        display: 'block',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => deleteExtraImage(img.id)}
+                      style={{
+                        position: 'absolute',
+                        top: '6px',
+                        right: '6px',
+                        background: 'rgba(239,68,68,0.9)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        lineHeight: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <label
+              style={{
+                display: 'block',
+                border: '2px dashed var(--border-color)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '16px',
+                textAlign: 'center',
+                cursor: uploadingImage ? 'not-allowed' : 'pointer',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-muted)',
+                fontSize: '0.875rem',
+              }}
+            >
+              {uploadingImage
+                ? 'Uploading...'
+                : '+ Click to add a room photo (JPG, PNG)'}
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                disabled={uploadingImage}
+                onChange={(e) => uploadExtraImage(e.target.files?.[0])}
+              />
+            </label>
+
+            {imageMsg && (
+              <p
+                style={{
+                  margin: '8px 0 0',
+                  fontSize: '0.85rem',
+                  color: imageMsg.startsWith('✅')
+                    ? 'var(--success)'
+                    : 'var(--danger)',
+                }}
+              >
+                {imageMsg}
+              </p>
+            )}
           </div>
 
           {error && (

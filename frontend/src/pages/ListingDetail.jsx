@@ -19,6 +19,8 @@ export default function ListingDetail() {
   const [hasBooked, setHasBooked] = useState(false)
   const [alreadyReviewed, setAlreadyReviewed] = useState(false)
   const [hasUpcomingBooking, setHasUpcomingBooking] = useState(false)
+  const [extraImages, setExtraImages] = useState([])
+  const [activeImage, setActiveImage] = useState(null)
 
   const currentUser = getUser()
   const isOwner = listing && currentUser && 
@@ -30,14 +32,16 @@ export default function ListingDetail() {
   async function fetchAll() {
     setLoading(true)
     try {
-      const [lRes, rRes, sRes] = await Promise.all([
+      const [lRes, rRes, sRes, imgRes] = await Promise.all([
         api.get(`/listings/${id}`),
         api.get(`/reviews/listing/${id}`),
-        api.get(`/reviews/listing/${id}/summary`)
+        api.get(`/reviews/listing/${id}/summary`),
+        api.get(`/listing-images/${id}`).catch(() => ({ data: [] })),
       ])
       setListing(lRes.data)
       setReviews(rRes.data)
       setSummary(sRes.data)
+      setExtraImages(imgRes.data || [])
 
       // Check booking history and review status for the current user
       if (isLoggedIn() && currentUser) {
@@ -184,6 +188,64 @@ export default function ListingDetail() {
                       objectFit:'cover',display:'block'}}
             />
           </div>
+
+          {extraImages.length > 0 && (
+            <div style={{ marginBottom: '20px' }}>
+              <h3
+                style={{
+                  margin: '0 0 12px',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                📸 Room & Facility Photos ({extraImages.length})
+              </h3>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '10px',
+                }}
+              >
+                {extraImages.map((img) => (
+                  <div
+                    key={img.id}
+                    style={{
+                      borderRadius: 'var(--radius-sm)',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s',
+                    }}
+                    onClick={() => setActiveImage(img)}
+                  >
+                    <img
+                      src={`http://127.0.0.1:8000/uploads/${img.filename}`}
+                      alt={img.caption || 'Room photo'}
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.src =
+                          'https://placehold.co/300x200/e5e7eb/9ca3af?text=Photo'
+                      }}
+                      style={{
+                        width: '100%',
+                        height: '120px',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'transform 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'scale(1.03)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'scale(1)'
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Info card */}
           <div className="card" style={{marginBottom:'20px'}}>
@@ -493,6 +555,67 @@ export default function ListingDetail() {
           )}
         </div>
       </div>
+      {activeImage && (
+        <div
+          onClick={() => setActiveImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <img
+              src={`http://127.0.0.1:8000/uploads/${activeImage.filename}`}
+              alt={activeImage.caption || 'Room photo'}
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '80vh',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+              }}
+            />
+            {activeImage.caption && (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: 'white',
+                  marginTop: '12px',
+                  fontSize: '0.9rem',
+                }}
+              >
+                {activeImage.caption}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setActiveImage(null)}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              cursor: 'pointer',
+              fontSize: '1.3rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   )
 }
