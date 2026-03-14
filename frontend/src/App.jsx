@@ -26,6 +26,7 @@ function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<Listings />} />
+          <Route path="/listings" element={<Listings />} />
           <Route path="/home" element={<Home />} />
           <Route path="/map" element={<MapView />} />
           <Route path="/listing/:id" element={<ListingDetail />} />

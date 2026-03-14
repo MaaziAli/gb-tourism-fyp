@@ -55,7 +55,7 @@ export default function Home() {
 
   return (
     <div style={{
-      background: '#0a0f1e',
+      background: 'var(--bg-primary)',
       minHeight: '100vh', fontFamily: 'var(--font-primary)'
     }}>
 
@@ -237,7 +237,7 @@ export default function Home() {
           SERVICE CATEGORIES
       ══════════════════════════════════════ */}
       <div style={{
-        background: '#0d1220',
+        background: 'var(--bg-secondary)',
         padding: '80px 16px'
       }}>
         <div style={{
@@ -249,13 +249,13 @@ export default function Home() {
             <h2 style={{
               margin: '0 0 12px',
               fontSize: '1.9rem', fontWeight: 800,
-              color: 'white', letterSpacing: '-0.02em'
+              color: 'var(--text-primary)', letterSpacing: '-0.02em'
             }}>
               Everything You Need
             </h2>
             <p style={{
               margin: 0,
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--text-secondary)',
               fontSize: '1rem'
             }}>
               One platform for your entire GB journey
@@ -273,9 +273,9 @@ export default function Home() {
                 onClick={() => navigate('/listings')}
                 style={{
                   padding: '28px 24px',
-                  background: 'rgba(255,255,255,0.04)',
+                  background: 'var(--bg-card)',
                   borderRadius: '20px',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--border-color)',
                   cursor: 'pointer',
                   transition: 'all 0.22s'
                 }}
@@ -291,11 +291,11 @@ export default function Home() {
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.background =
-                    'rgba(255,255,255,0.04)'
+                    'var(--bg-card)'
                   e.currentTarget.style.transform =
                     'translateY(0)'
                   e.currentTarget.style.borderColor =
-                    'rgba(255,255,255,0.08)'
+                    'var(--border-color)'
                   e.currentTarget.style.boxShadow = 'none'
                 }}
               >
@@ -312,13 +312,13 @@ export default function Home() {
                 </div>
                 <h3 style={{
                   margin: '0 0 8px', fontWeight: 700,
-                  fontSize: '1rem', color: 'white'
+                  fontSize: '1rem', color: 'var(--text-primary)'
                 }}>
                   {f.title}
                 </h3>
                 <p style={{
                   margin: 0, fontSize: '0.85rem',
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'var(--text-secondary)',
                   lineHeight: 1.6
                 }}>
                   {f.desc}
@@ -334,7 +334,7 @@ export default function Home() {
       ══════════════════════════════════════ */}
       {featuredListings.length > 0 && (
         <div style={{
-          background: '#080d18',
+          background: 'var(--bg-primary)',
           padding: '80px 16px'
         }}>
           <div style={{
@@ -350,7 +350,7 @@ export default function Home() {
               <div>
                 <p style={{
                   margin: '0 0 8px', fontSize: '0.8rem',
-                  color: '#0ea5e9', fontWeight: 700,
+                  color: 'var(--accent)', fontWeight: 700,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase'
                 }}>
@@ -358,7 +358,7 @@ export default function Home() {
                 </p>
                 <h2 style={{
                   margin: 0, fontSize: '1.9rem',
-                  fontWeight: 800, color: 'white',
+                  fontWeight: 800, color: 'var(--text-primary)',
                   letterSpacing: '-0.02em'
                 }}>
                   Featured Services
@@ -368,8 +368,8 @@ export default function Home() {
                 onClick={() => navigate('/listings')}
                 style={{
                   background: 'transparent',
-                  color: '#38bdf8',
-                  border: '1px solid rgba(56,189,248,0.3)',
+                  color: 'var(--accent)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '10px',
                   padding: '10px 22px',
                   cursor: 'pointer', fontWeight: 600,
@@ -385,7 +385,7 @@ export default function Home() {
                 onMouseLeave={e => {
                   e.target.style.background = 'transparent'
                   e.target.style.borderColor =
-                    'rgba(56,189,248,0.3)'
+                    'var(--border-color)'
                 }}
               >
                 View All →
@@ -407,9 +407,9 @@ export default function Home() {
                       navigate(`/listing/${listing.id}`)
                     }
                     style={{
-                      background: 'rgba(255,255,255,0.04)',
+                      background: 'var(--bg-card)',
                       borderRadius: '20px',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      border: '1px solid var(--border-color)',
                       overflow: 'hidden', cursor: 'pointer',
                       transition: 'all 0.22s'
                     }}
@@ -417,7 +417,7 @@ export default function Home() {
                       e.currentTarget.style.transform =
                         'translateY(-6px)'
                       e.currentTarget.style.borderColor =
-                        'rgba(14,165,233,0.4)'
+                        'var(--accent)'
                       e.currentTarget.style.boxShadow =
                         '0 20px 50px rgba(0,0,0,0.4)'
                     }}
@@ -425,7 +425,7 @@ export default function Home() {
                       e.currentTarget.style.transform =
                         'translateY(0)'
                       e.currentTarget.style.borderColor =
-                        'rgba(255,255,255,0.08)'
+                        'var(--border-color)'
                       e.currentTarget.style.boxShadow =
                         'none'
                     }}
@@ -478,7 +478,7 @@ export default function Home() {
                     <div style={{padding: '16px'}}>
                       <h3 style={{
                         margin: '0 0 6px', fontWeight: 700,
-                        fontSize: '1rem', color: 'white',
+                        fontSize: '1rem', color: 'var(--text-primary)',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
@@ -488,7 +488,7 @@ export default function Home() {
                       <p style={{
                         margin: '0 0 14px',
                         fontSize: '0.85rem',
-                        color: 'rgba(255,255,255,0.45)'
+                        color: 'var(--text-secondary)'
                       }}>
                         📍 {listing.location}
                       </p>
@@ -500,14 +500,14 @@ export default function Home() {
                         <div>
                           <span style={{
                             fontSize: '1.1rem', fontWeight: 800,
-                            color: '#38bdf8'
+                            color: 'var(--accent)'
                           }}>
                             PKR {listing.price_per_night
                               ?.toLocaleString('en-PK')}
                           </span>
                           <span style={{
                             fontSize: '0.78rem',
-                            color: 'rgba(255,255,255,0.35)'
+                            color: 'var(--text-muted)'
                           }}>
                             {' '}/night
                           </span>
@@ -519,10 +519,10 @@ export default function Home() {
                           }}
                           style={{
                             background:
-                              'rgba(14,165,233,0.15)',
-                            color: '#38bdf8',
+                              'var(--accent-light)',
+                            color: 'var(--accent)',
                             border:
-                              '1px solid rgba(14,165,233,0.3)',
+                              '1px solid var(--accent)',
                             borderRadius: '8px',
                             padding: '6px 14px',
                             cursor: 'pointer',
@@ -546,7 +546,7 @@ export default function Home() {
           DESTINATIONS
       ══════════════════════════════════════ */}
       <div style={{
-        background: '#0d1220',
+        background: 'var(--bg-secondary)',
         padding: '80px 16px'
       }}>
         <div style={{
@@ -557,7 +557,7 @@ export default function Home() {
           }}>
             <p style={{
               margin: '0 0 10px', fontSize: '0.8rem',
-              color: '#0ea5e9', fontWeight: 700,
+              color: 'var(--accent)', fontWeight: 700,
               letterSpacing: '0.1em',
               textTransform: 'uppercase'
             }}>
@@ -565,14 +565,14 @@ export default function Home() {
             </p>
             <h2 style={{
               margin: '0 0 12px', fontSize: '1.9rem',
-              fontWeight: 800, color: 'white',
+              fontWeight: 800, color: 'var(--text-primary)',
               letterSpacing: '-0.02em'
             }}>
               Popular Destinations
             </h2>
             <p style={{
               margin: 0,
-              color: 'rgba(255,255,255,0.4)',
+              color: 'var(--text-secondary)',
               fontSize: '0.95rem'
             }}>
               The most breathtaking valleys on Earth
@@ -590,25 +590,25 @@ export default function Home() {
                 onClick={() => navigate('/listings')}
                 style={{
                   padding: '22px 16px',
-                  background: 'rgba(255,255,255,0.04)',
+                  background: 'var(--bg-card)',
                   borderRadius: '18px',
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: '1px solid var(--border-color)',
                   textAlign: 'center', cursor: 'pointer',
                   transition: 'all 0.2s'
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.background =
-                    'rgba(14,165,233,0.1)'
+                    'var(--accent-light)'
                   e.currentTarget.style.borderColor =
-                    'rgba(14,165,233,0.3)'
+                    'var(--accent)'
                   e.currentTarget.style.transform =
                     'translateY(-4px)'
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.background =
-                    'rgba(255,255,255,0.04)'
+                    'var(--bg-card)'
                   e.currentTarget.style.borderColor =
-                    'rgba(255,255,255,0.07)'
+                    'var(--border-color)'
                   e.currentTarget.style.transform =
                     'translateY(0)'
                 }}
@@ -620,13 +620,13 @@ export default function Home() {
                 </div>
                 <div style={{
                   fontWeight: 700, fontSize: '0.875rem',
-                  color: 'white', marginBottom: '5px'
+                  color: 'var(--text-primary)', marginBottom: '5px'
                 }}>
                   {d.name}
                 </div>
                 <div style={{
                   fontSize: '0.72rem',
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-secondary)',
                   lineHeight: 1.4
                 }}>
                   {d.desc}
@@ -737,9 +737,9 @@ export default function Home() {
           FOOTER
       ══════════════════════════════════════ */}
       <div style={{
-        background: '#060b14',
+        background: 'var(--bg-secondary)',
         padding: '40px 16px',
-        borderTop: '1px solid rgba(255,255,255,0.06)'
+        borderTop: '1px solid var(--border-color)'
       }}>
         <div style={{
           maxWidth: '900px', margin: '0 auto',
@@ -751,12 +751,12 @@ export default function Home() {
           <div>
             <div style={{
               fontSize: '1.2rem', fontWeight: 800,
-              color: 'white', marginBottom: '4px'
+              color: 'var(--text-primary)', marginBottom: '4px'
             }}>
               🏔️ GB Tourism
             </div>
             <p style={{
-              color: 'rgba(255,255,255,0.3)',
+              color: 'var(--text-muted)',
               margin: 0, fontSize: '0.8rem'
             }}>
               © 2026 GB Tourism. Built for Gilgit-Baltistan.
@@ -774,17 +774,17 @@ export default function Home() {
               <span key={l.path}
                 onClick={() => navigate(l.path)}
                 style={{
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer', fontSize: '0.875rem',
                   fontWeight: 500,
                   transition: 'color 0.15s'
                 }}
                 onMouseEnter={e =>
-                  e.target.style.color = 'white'
+                  e.target.style.color = 'var(--text-primary)'
                 }
                 onMouseLeave={e =>
                   e.target.style.color =
-                    'rgba(255,255,255,0.4)'
+                    'var(--text-secondary)'
                 }
               >
                 {l.label}
