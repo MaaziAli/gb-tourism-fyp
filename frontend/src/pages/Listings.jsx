@@ -538,6 +538,54 @@ export default function Listings() {
                         }
                       </span>
                     </div>
+                    {/* Action buttons */}
+                    <div style={{
+                      marginTop: '12px',
+                      display: 'flex', gap: '8px'
+                    }}>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation()
+                          navigate(`/listing/${listing.id}`)
+                        }}
+                        style={{
+                          flex: 1, padding: '9px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer', fontWeight: 600,
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        View Details
+                      </button>
+                      {(() => {
+                        const raw = localStorage.getItem('user')
+                        if (!raw) return null
+                        let u
+                        try { u = JSON.parse(raw) } catch(e) { return null }
+                        if (u.role === 'admin') return null
+                        if (u.role === 'provider') return null
+                        return (
+                          <button
+                            onClick={e => {
+                              e.stopPropagation()
+                              navigate(`/booking/${listing.id}`)
+                            }}
+                            style={{
+                              flex: 1, padding: '9px',
+                              borderRadius: '8px', border: 'none',
+                              background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                              color: 'white', cursor: 'pointer',
+                              fontWeight: 700, fontSize: '0.85rem'
+                            }}
+                          >
+                            Book Now
+                          </button>
+                        )
+                      })()}
+                    </div>
                   </div>
                 </div>
               )

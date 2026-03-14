@@ -179,7 +179,7 @@ export default function ListingDetail() {
     { bg: '#f3f4f6', color: '#374151', label: listing.service_type }
 
   return (
-    <div className="page-container" data-owner-id={listing?.owner_id}>
+    <div className="page-container">
       {/* Back link */}
       <button onClick={() => navigate(-1)} style={{
         background:'none', border:'none', 
@@ -502,7 +502,11 @@ export default function ListingDetail() {
                 </div>
               </div>
             )}
-            <BookButton listingId={id} selectedRoom={selectedRoom} />
+            <BookButton
+              listingId={id}
+              selectedRoom={selectedRoom}
+              ownerId={listing?.owner_id}
+            />
             {isOwner && (
               <button className="btn-primary"
                 style={{width:'100%',justifyContent:'center',
@@ -678,8 +682,10 @@ export default function ListingDetail() {
   )
 }
 
-function BookButton({ listingId, selectedRoom }) {
+function BookButton({ listingId, selectedRoom, ownerId }) {
   const raw = localStorage.getItem('user')
+
+  // Not logged in — show login link
   if (!raw) {
     return (
       <a href="/login" style={{
@@ -698,10 +704,10 @@ function BookButton({ listingId, selectedRoom }) {
   try { user = JSON.parse(raw) }
   catch(e) { return null }
 
+  // Hide for admin
   if (user.role === 'admin') return null
 
-  const card = document.querySelector('[data-owner-id]')
-  const ownerId = card ? parseInt(card.dataset.ownerId) : null
+  // Hide for listing owner
   if (ownerId && user.id === ownerId) return null
 
   const params = selectedRoom
