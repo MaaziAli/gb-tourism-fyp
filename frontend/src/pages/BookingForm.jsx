@@ -22,19 +22,6 @@ export default function BookingForm() {
   const today = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
-    if (roomTypeId && listingId) {
-      api.get('/room-types/' + listingId)
-        .then(res => {
-          const room = res.data.find(
-            r => r.id === parseInt(roomTypeId, 10)
-          )
-          if (room) setRoomPrice(room.price_per_night)
-        })
-        .catch(console.error)
-    }
-  }, [roomTypeId, listingId])
-
-  useEffect(() => {
     if (!listingId) {
       setLoading(false)
       return
@@ -50,7 +37,22 @@ export default function BookingForm() {
   }, [listingId])
 
   useEffect(() => {
-    const pricePerNight = roomPrice ?? listing?.price_per_night ?? 0
+    const rtId = searchParams.get('room_type_id')
+    const listId = listingId
+    if (rtId && listId) {
+      api.get('/room-types/' + listId)
+        .then(res => {
+          const found = res.data.find(
+            r => r.id === parseInt(rtId, 10)
+          )
+          if (found) setRoomPrice(found.price_per_night)
+        })
+        .catch(console.error)
+    }
+  }, [searchParams, listingId])
+
+  useEffect(() => {
+    const pricePerNight = roomPrice || listing?.price_per_night || 0
     if (checkIn && checkOut && checkIn < checkOut) {
       const n = Math.round(
         (new Date(checkOut) - new Date(checkIn))
@@ -281,7 +283,7 @@ export default function BookingForm() {
                   >
                     <span style={{ color: 'var(--text-secondary)' }}>
                       PKR{' '}
-                      {(roomPrice ?? listing?.price_per_night)
+                      {(roomPrice || listing?.price_per_night)
                         ?.toLocaleString('en-PK')}{' '}
                       × {nights} night{nights > 1 ? 's' : ''}
                     </span>
@@ -455,7 +457,7 @@ export default function BookingForm() {
                     color: 'var(--accent)',
                   }}
                 >
-                  PKR {(roomPrice ?? listing?.price_per_night)
+                  PKR {(roomPrice || listing?.price_per_night)
                     ?.toLocaleString('en-PK')}
                 </span>
               </div>
