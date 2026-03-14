@@ -277,354 +277,336 @@ export default function MapView() {
   ]
 
   return (
-    <div
-      style={{
-        background: 'var(--bg-primary)',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
-          padding: '20px 16px',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}
-        >
+    <div style={{
+      background: 'var(--bg-primary)',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+
+      {/* Header */}
+      <div style={{
+        background:
+          'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
+        padding: '20px 16px'
+      }}>
+        <div style={{
+          maxWidth: '1200px', margin: '0 auto',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap', gap: '12px'
+        }}>
           <div>
-            <h1
-              style={{
-                color: 'white',
-                margin: '0 0 4px',
-                fontSize: '1.5rem',
-                fontWeight: 800,
-              }}
-            >
+            <h1 style={{
+              color: 'white', margin: '0 0 4px',
+              fontSize: isMobile ? '1.2rem' : '1.5rem',
+              fontWeight: 800
+            }}>
               📍 Explore on Map
             </h1>
-            <p
-              style={{
-                color: 'rgba(255,255,255,0.8)',
-                margin: 0,
-                fontSize: '0.875rem',
-              }}
-            >
-              {filteredListings.length} services across Gilgit-Baltistan
+            <p style={{
+              color: 'rgba(255,255,255,0.8)',
+              margin: 0,
+              fontSize: isMobile ? '0.8rem' : '0.875rem'
+            }}>
+              {filteredListings.length} services across GB
             </p>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              flexWrap: 'wrap',
-              justifyContent: isMobile ? 'flex-start' : 'flex-end',
-            }}
-          >
-            {SERVICE_TYPES.map((t) => (
-              <button
-                key={t.value}
+
+          {/* Filter pills */}
+          <div style={{
+            display: 'flex', gap: '6px',
+            flexWrap: 'wrap'
+          }}>
+            {SERVICE_TYPES.map(t => (
+              <button key={t.value}
                 onClick={() => setFilter(t.value)}
                 style={{
-                  background:
-                    filter === t.value
-                      ? 'white'
-                      : 'rgba(255,255,255,0.2)',
-                  color: filter === t.value ? '#1e3a5f' : 'white',
-                  border: '1px solid rgba(255,255,255,0.3)',
+                  background: filter === t.value
+                    ? 'white'
+                    : 'rgba(255,255,255,0.2)',
+                  color: filter === t.value
+                    ? '#1e3a5f' : 'white',
+                  border:
+                    '1px solid rgba(255,255,255,0.3)',
                   borderRadius: '999px',
-                  padding: '6px 14px',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.82rem',
+                  padding: isMobile
+                    ? '5px 10px' : '6px 14px',
+                  cursor: 'pointer', fontWeight: 600,
+                  fontSize: isMobile
+                    ? '0.72rem' : '0.82rem'
                 }}
               >
-                {t.emoji} {t.label}
+                {t.emoji}{' '}
+                {isMobile ? '' : t.label}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <div
-          style={{
-            flex: 1,
-            maxWidth: '1200px',
-            width: '100%',
-            margin: '0 auto',
-            padding: isMobile ? '12px' : '16px',
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: '16px',
-            alignItems: 'flex-start',
-          }}
-        >
-          {/* Map container */}
-          <div
-            style={{
-              flex: isMobile ? 'none' : 1,
-              borderRadius: 'var(--radius-md)',
-              overflow: 'hidden',
-              border: '1px solid var(--border-color)',
-              boxShadow: 'var(--shadow-md)',
-              height: isMobile ? '350px' : '600px',
-              minHeight: isMobile ? '350px' : '600px',
-              maxHeight: isMobile ? '350px' : '600px',
-              position: 'relative',
-              width: isMobile ? '100%' : 'auto',
-            }}
-          >
-            {loading && (
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 1000,
-                  background: 'var(--bg-card)',
-                  flexDirection: 'column',
-                  gap: '12px',
-                }}
-              >
-                <div style={{ fontSize: '2.5rem' }}>🗺️</div>
-                <p
+      {isMobile ? (
+        /* ═══════════════════════════════
+           MOBILE: listings on top, map below
+        ═══════════════════════════════ */
+        <div style={{flex: 1}}>
+
+          {/* Listings horizontal scroll - TOP */}
+          <div style={{
+            padding: '14px 12px 10px',
+            background: 'var(--bg-secondary)',
+            borderBottom:
+              '1px solid var(--border-color)'
+          }}>
+            <p style={{
+              margin: '0 0 10px', fontWeight: 700,
+              color: 'var(--text-primary)',
+              fontSize: '0.85rem'
+            }}>
+              {filteredListings.length} services found
+            </p>
+            <div style={{
+              display: 'flex', gap: '12px',
+              overflowX: 'auto', paddingBottom: '6px',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none'
+            }}>
+              {filteredListings.length === 0 ? (
+                <p style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.85rem', margin: 0
+                }}>
+                  No services for this filter
+                </p>
+              ) : filteredListings.map(listing => (
+                <div
+                  key={listing.id}
+                  onClick={() =>
+                    navigate(`/listing/${listing.id}`)
+                  }
                   style={{
-                    color: 'var(--text-secondary)',
-                    margin: 0,
+                    background: 'var(--bg-card)',
+                    border:
+                      '1px solid var(--border-color)',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    flexShrink: 0, width: '160px',
+                    boxShadow: 'var(--shadow-sm)'
                   }}
                 >
+                  <img
+                    src={listing.image_url
+                      ? 'http://127.0.0.1:8000/uploads/'
+                        + listing.image_url
+                      : 'https://placehold.co/160x85/e5e7eb/9ca3af?text=GB'
+                    }
+                    alt={listing.title}
+                    onError={e => {
+                      e.target.onerror = null
+                      e.target.src =
+                        'https://placehold.co/160x85/e5e7eb/9ca3af?text=GB'
+                    }}
+                    style={{
+                      width: '100%', height: '85px',
+                      objectFit: 'cover', display: 'block'
+                    }}
+                  />
+                  <div style={{padding: '8px 10px'}}>
+                    <div style={{
+                      fontWeight: 700, fontSize: '0.78rem',
+                      color: 'var(--text-primary)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      marginBottom: '2px'
+                    }}>
+                      {listing.title}
+                    </div>
+                    <div style={{
+                      fontSize: '0.7rem',
+                      color: 'var(--text-secondary)',
+                      marginBottom: '2px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      📍 {listing.location}
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'var(--accent)'
+                    }}>
+                      PKR {listing.price_per_night
+                        ?.toLocaleString('en-PK')}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Map - BELOW listings on mobile */}
+          <div style={{
+            height: '420px',
+            position: 'relative'
+          }}>
+            {loading && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'center', zIndex: 1000,
+                background: 'var(--bg-card)',
+                flexDirection: 'column', gap: '12px'
+              }}>
+                <div style={{fontSize: '2.5rem'}}>🗺️</div>
+                <p style={{
+                  color: 'var(--text-secondary)',
+                  margin: 0
+                }}>
                   Loading map...
                 </p>
               </div>
             )}
-            <div
-              ref={mapRef}
-              style={{
-                width: '100%',
-                height: '100%',
-                minHeight: isMobile ? '350px' : '600px',
-              }}
-            />
+            <div ref={mapRef} style={{
+              width: '100%', height: '100%'
+            }} />
+          </div>
+        </div>
+
+      ) : (
+        /* ═══════════════════════════════
+           DESKTOP: map left, sidebar right
+        ═══════════════════════════════ */
+        <div style={{
+          flex: 1,
+          maxWidth: '1200px', width: '100%',
+          margin: '0 auto', padding: '16px',
+          display: 'flex', gap: '16px',
+          alignItems: 'flex-start'
+        }}>
+
+          {/* Map */}
+          <div style={{
+            flex: 1, borderRadius: 'var(--radius-md)',
+            overflow: 'hidden',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-md)',
+            height: '600px', minHeight: '600px',
+            position: 'relative'
+          }}>
+            {loading && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'center', zIndex: 1000,
+                background: 'var(--bg-card)',
+                flexDirection: 'column', gap: '12px'
+              }}>
+                <div style={{fontSize: '2.5rem'}}>🗺️</div>
+                <p style={{
+                  color: 'var(--text-secondary)',
+                  margin: 0
+                }}>
+                  Loading map...
+                </p>
+              </div>
+            )}
+            <div ref={mapRef} style={{
+              width: '100%', height: '100%',
+              minHeight: '600px'
+            }} />
           </div>
 
           {/* Sidebar */}
-          <div
-            style={{
-              width: isMobile ? '100%' : '300px',
-              flexShrink: 0,
-            }}
-          >
-            <p
-              style={{
-                margin: '0 0 10px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                fontSize: '0.9rem',
-              }}
-            >
+          <div style={{
+            width: '300px', flexShrink: 0,
+            display: 'flex', flexDirection: 'column',
+            gap: '10px', overflowY: 'auto',
+            maxHeight: '650px'
+          }}>
+            <p style={{
+              margin: '0 0 4px', fontWeight: 700,
+              color: 'var(--text-primary)',
+              fontSize: '0.9rem'
+            }}>
               {filteredListings.length} results
             </p>
 
-            {isMobile ? (
-              <div
+            {filteredListings.map(listing => (
+              <div key={listing.id}
+                onClick={() =>
+                  navigate(`/listing/${listing.id}`)
+                }
                 style={{
-                  display: 'flex',
-                  gap: '12px',
-                  overflowX: 'auto',
-                  paddingBottom: '8px',
-                  WebkitOverflowScrolling: 'touch',
+                  background:
+                    selected?.id === listing.id
+                      ? 'var(--accent-light)'
+                      : 'var(--bg-card)',
+                  border:
+                    selected?.id === listing.id
+                      ? '2px solid var(--accent)'
+                      : '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px', cursor: 'pointer',
+                  display: 'flex', gap: '10px',
+                  alignItems: 'flex-start',
+                  transition: 'all 0.15s'
                 }}
               >
-                {filteredListings.map((listing) => (
-                  <div
-                    key={listing.id}
-                    onClick={() =>
-                      navigate(`/listing/${listing.id}`)
-                    }
-                    style={{
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 'var(--radius-sm)',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      width: '180px',
-                      boxShadow: 'var(--shadow-sm)',
-                    }}
-                  >
-                    <img
-                      src={
-                        listing.image_url
-                          ? 'http://127.0.0.1:8000/uploads/' +
-                              listing.image_url
-                          : 'https://placehold.co/180x90/e5e7eb/9ca3af?text=GB'
-                      }
-                      alt={listing.title}
-                      onError={(e) => {
-                        e.target.onerror = null
-                        e.target.src =
-                          'https://placehold.co/180x90/e5e7eb/9ca3af?text=GB'
-                      }}
-                      style={{
-                        width: '100%',
-                        height: '85px',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
-                    <div style={{ padding: '8px 10px' }}>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: '0.78rem',
-                          color: 'var(--text-primary)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          marginBottom: '2px',
-                        }}
-                      >
-                        {listing.title}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.7rem',
-                          color: 'var(--text-secondary)',
-                          marginBottom: '3px',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        📍 {listing.location}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          color: 'var(--accent)',
-                        }}
-                      >
-                        PKR{' '}
-                        {listing.price_per_night?.toLocaleString(
-                          'en-PK',
-                        )}
-                      </div>
-                    </div>
+                <img
+                  src={listing.image_url
+                    ? 'http://127.0.0.1:8000/uploads/'
+                      + listing.image_url
+                    : 'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
+                  }
+                  alt={listing.title}
+                  onError={e => {
+                    e.target.onerror = null
+                    e.target.src =
+                      'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
+                  }}
+                  style={{
+                    width: 56, height: 56,
+                    borderRadius: '6px',
+                    objectFit: 'cover', flexShrink: 0
+                  }}
+                />
+                <div style={{flex: 1, minWidth: 0}}>
+                  <div style={{
+                    fontWeight: 700,
+                    fontSize: '0.825rem',
+                    color: 'var(--text-primary)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    marginBottom: '2px'
+                  }}>
+                    {getServiceEmoji(listing.service_type)}
+                    {' '}{listing.title}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                  overflowY: 'auto',
-                  maxHeight: '650px',
-                }}
-              >
-                {filteredListings.map((listing) => (
-                  <div
-                    key={listing.id}
-                    onClick={() =>
-                      navigate(`/listing/${listing.id}`)
-                    }
-                    style={{
-                      background:
-                        selected?.id === listing.id
-                          ? 'var(--accent-light)'
-                          : 'var(--bg-card)',
-                      border:
-                        selected?.id === listing.id
-                          ? '2px solid var(--accent)'
-                          : '1px solid var(--border-color)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '10px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      gap: '10px',
-                      alignItems: 'flex-start',
-                    }}
-                  >
-                    <img
-                      src={
-                        listing.image_url
-                          ? 'http://127.0.0.1:8000/uploads/' +
-                              listing.image_url
-                          : 'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
-                      }
-                      alt={listing.title}
-                      onError={(e) => {
-                        e.target.onerror = null
-                        e.target.src =
-                          'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
-                      }}
-                      style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: '6px',
-                        objectFit: 'cover',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          fontSize: '0.825rem',
-                          color: 'var(--text-primary)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          marginBottom: '2px',
-                        }}
-                      >
-                        {getServiceEmoji(listing.service_type)}{' '}
-                        {listing.title}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-secondary)',
-                          marginBottom: '2px',
-                        }}
-                      >
-                        📍 {listing.location}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          color: 'var(--accent)',
-                        }}
-                      >
-                        PKR{' '}
-                        {listing.price_per_night?.toLocaleString(
-                          'en-PK',
-                        )}
-                        /night
-                      </div>
-                    </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '2px'
+                  }}>
+                    📍 {listing.location}
                   </div>
-                ))}
+                  <div style={{
+                    fontSize: '0.8rem', fontWeight: 700,
+                    color: 'var(--accent)'
+                  }}>
+                    PKR {listing.price_per_night
+                      ?.toLocaleString('en-PK')}/night
+                  </div>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
