@@ -21,6 +21,8 @@ import ProviderAnalytics from './pages/ProviderAnalytics'
 import PaymentPage from './pages/PaymentPage'
 import PaymentHistory from './pages/PaymentHistory'
 import ProviderPayments from './pages/ProviderPayments'
+import TripPlanner from './pages/TripPlanner'
+import MyTrips from './pages/MyTrips'
 
 function App() {
   return (
@@ -64,6 +66,22 @@ function App() {
             element={
               <PrivateRoute>
                 <Recommendations />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/trip-planner"
+            element={
+              <PrivateRoute>
+                <TripPlanner />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/my-trips"
+            element={
+              <PrivateRoute>
+                <MyTrips />
               </PrivateRoute>
             }
           />

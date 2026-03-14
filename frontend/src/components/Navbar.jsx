@@ -150,6 +150,28 @@ function Navbar() {
                 >
                   My Bookings
                 </Link>
+                {role === 'user' && (
+                  <>
+                    <Link
+                      to="/trip-planner"
+                      className={`nav-link${
+                        isActive('/trip-planner') ? ' active' : ''
+                      }`}
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      🗺️ Trip Planner
+                    </Link>
+                    <Link
+                      to="/my-trips"
+                      className={`nav-link${
+                        isActive('/my-trips') ? ' active' : ''
+                      }`}
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      📋 My Trips
+                    </Link>
+                  </>
+                )}
                 <Link
                   to="/profile"
                   className={`nav-link${

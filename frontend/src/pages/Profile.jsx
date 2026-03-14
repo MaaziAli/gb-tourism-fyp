@@ -541,6 +541,16 @@ export default function Profile() {
               emoji: '💳',
               path: '/my-spending',
             },
+            role === 'user' && {
+              label: 'Trip Planner',
+              emoji: '🗺️',
+              path: '/trip-planner',
+            },
+            role === 'user' && {
+              label: 'My Trips',
+              emoji: '📋',
+              path: '/my-trips',
+            },
             role === 'provider' && {
               label: 'My Services',
               emoji: '🏨',
