@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
-import { getImageUrl } from '../utils/image'
 
 export default function BookingForm() {
   const { listingId } = useParams()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const roomTypeId = searchParams.get('room_type_id')
   const roomTypeName = searchParams.get('room_name')
-  const navigate = useNavigate()
+
   const [listing, setListing] = useState(null)
+  const [roomPrice, setRoomPrice] = useState(null)
   const [checkIn, setCheckIn] = useState('')
   const [checkOut, setCheckOut] = useState('')
   const [nights, setNights] = useState(0)
@@ -17,468 +18,602 @@ export default function BookingForm() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [roomPrice, setRoomPrice] = useState(null)
+  const [success, setSuccess] = useState(false)
 
   const today = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
-    if (!listingId) {
-      setLoading(false)
-      return
-    }
-    api
-      .get(`/listings/${listingId}`)
-      .then((r) => setListing(r.data))
-      .catch((e) => {
-        console.error('Failed to load listing', e)
-        setListing(null)
-      })
+    api.get('/listings/' + listingId)
+      .then(r => setListing(r.data))
+      .catch(console.error)
       .finally(() => setLoading(false))
   }, [listingId])
 
   useEffect(() => {
-    const rtId = searchParams.get('room_type_id')
-    const listId = listingId
-    if (rtId && listId) {
-      api.get('/room-types/' + listId)
+    if (roomTypeId && listingId) {
+      api.get('/room-types/' + listingId)
         .then(res => {
           const found = res.data.find(
-            r => r.id === parseInt(rtId, 10)
+            r => r.id === parseInt(roomTypeId)
           )
           if (found) setRoomPrice(found.price_per_night)
         })
         .catch(console.error)
     }
-  }, [searchParams, listingId])
+  }, [roomTypeId, listingId])
 
   useEffect(() => {
-    const pricePerNight = roomPrice || listing?.price_per_night || 0
-    if (checkIn && checkOut && checkIn < checkOut) {
-      const n = Math.round(
-        (new Date(checkOut) - new Date(checkIn))
-        / (1000 * 60 * 60 * 24)
-      )
-      setNights(n)
-      setTotalPrice(n * pricePerNight)
-    } else {
-      setNights(0)
-      setTotalPrice(0)
+    if (checkIn && checkOut) {
+      const d1 = new Date(checkIn)
+      const d2 = new Date(checkOut)
+      const n = Math.round((d2 - d1) / (1000 * 60 * 60 * 24))
+      if (n > 0) {
+        setNights(n)
+        const price = roomPrice || listing?.price_per_night || 0
+        setTotalPrice(n * price)
+      } else {
+        setNights(0)
+        setTotalPrice(0)
+      }
     }
-  }, [checkIn, checkOut, listing, roomPrice])
+  }, [checkIn, checkOut, roomPrice, listing])
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setError('')
     if (!checkIn || !checkOut) {
       setError('Please select check-in and check-out dates')
       return
     }
-    if (checkIn >= checkOut) {
+    if (nights <= 0) {
       setError('Check-out must be after check-in')
       return
     }
-    if (!listingId) {
-      setError('Missing listing id')
-      return
-    }
+    setError('')
     setSubmitting(true)
     try {
       await api.post('/bookings/', {
-        listing_id: parseInt(listingId, 10),
+        listing_id: parseInt(listingId),
         check_in: checkIn,
         check_out: checkOut,
-        room_type_id: roomTypeId ? parseInt(roomTypeId, 10) : null,
+        room_type_id: roomTypeId
+          ? parseInt(roomTypeId) : null
       })
-      navigate('/my-bookings')
-    } catch (e) {
+      setSuccess(true)
+    } catch(e) {
       setError(e.response?.data?.detail || 'Booking failed')
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (loading)
-    return (
-      <div
-        style={{
-          background: 'var(--bg-primary)',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-        }}
-      >
-        Loading...
-      </div>
-    )
+  const pricePerNight =
+    roomPrice || listing?.price_per_night || 0
 
-  if (!listing)
+  // SUCCESS STATE
+  if (success) {
     return (
-      <div
-        style={{
-          background: 'var(--bg-primary)',
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-        }}
-      >
-        Listing not found.
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg-primary)',
+        display: 'flex', alignItems: 'center',
+        justifyContent: 'center', padding: '20px'
+      }}>
+        <div style={{
+          maxWidth: '440px', width: '100%',
+          background: 'var(--bg-card)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-color)',
+          boxShadow: 'var(--shadow-md)',
+          overflow: 'hidden', textAlign: 'center'
+        }}>
+          <div style={{
+            background:
+              'linear-gradient(135deg, #16a34a, #15803d)',
+            padding: '40px 24px'
+          }}>
+            <div style={{
+              fontSize: '3.5rem', marginBottom: '12px'
+            }}>
+              🎉
+            </div>
+            <h2 style={{
+              color: 'white', margin: '0 0 8px',
+              fontSize: '1.5rem', fontWeight: 800
+            }}>
+              Booking Confirmed!
+            </h2>
+            <p style={{
+              color: 'rgba(255,255,255,0.8)',
+              margin: 0, fontSize: '0.9rem'
+            }}>
+              Your trip to {listing?.location} is booked
+            </p>
+          </div>
+          <div style={{padding: '28px 24px'}}>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px', marginBottom: '20px'
+            }}>
+              <div style={{
+                fontWeight: 700, fontSize: '1rem',
+                color: 'var(--text-primary)',
+                marginBottom: '8px'
+              }}>
+                {listing?.title}
+              </div>
+              {roomTypeName && (
+                <div style={{
+                  display: 'inline-block',
+                  background: 'var(--accent-light)',
+                  color: 'var(--accent)',
+                  padding: '2px 10px',
+                  borderRadius: '999px',
+                  fontSize: '0.78rem', fontWeight: 600,
+                  marginBottom: '8px'
+                }}>
+                  🛏️ {roomTypeName}
+                </div>
+              )}
+              <div style={{
+                fontSize: '0.875rem',
+                color: 'var(--text-secondary)',
+                display: 'flex', flexDirection: 'column',
+                gap: '4px', marginTop: '6px'
+              }}>
+                <span>📅 {checkIn} → {checkOut}</span>
+                <span>🌙 {nights} night{nights > 1 ? 's' : ''}</span>
+                <span style={{
+                  fontWeight: 700, color: 'var(--accent)',
+                  fontSize: '1rem', marginTop: '4px'
+                }}>
+                  PKR {totalPrice.toLocaleString('en-PK')} total
+                </span>
+              </div>
+            </div>
+            <div style={{
+              display: 'flex', gap: '10px'
+            }}>
+              <button
+                onClick={() => navigate('/my-bookings')}
+                style={{
+                  flex: 1, padding: '12px',
+                  borderRadius: '10px', border: 'none',
+                  background:
+                    'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                  color: 'white', fontWeight: 700,
+                  fontSize: '0.9rem', cursor: 'pointer'
+                }}
+              >
+                View My Bookings
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                style={{
+                  flex: 1, padding: '12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-secondary)',
+                  fontWeight: 600, fontSize: '0.9rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Explore More
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     )
+  }
+
+  // LOADING STATE
+  if (loading) return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg-primary)',
+      display: 'flex', alignItems: 'center',
+      justifyContent: 'center',
+      color: 'var(--text-secondary)'
+    }}>
+      Loading...
+    </div>
+  )
 
   return (
-    <div
-      style={{
-        background: 'var(--bg-primary)',
-        minHeight: '100vh',
-        padding: '32px 16px',
-      }}
-    >
-      <div style={{ maxWidth: '780px', margin: '0 auto' }}>
-        <button
-          onClick={() => navigate(-1)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            marginBottom: '24px',
-            padding: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}
-        >
-          ← Back
-        </button>
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg-primary)',
+      paddingBottom: '48px'
+    }}>
 
-        <h1
-          style={{
-            margin: '0 0 24px',
-            fontSize: '1.6rem',
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-          }}
-        >
-          Complete Your Booking
-        </h1>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 340px',
-            gap: '24px',
-            alignItems: 'start',
-          }}
-        >
-          <div
+      {/* Gradient header */}
+      <div style={{
+        background:
+          'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
+        padding: '32px 16px 80px'
+      }}>
+        <div style={{maxWidth: '760px', margin: '0 auto'}}>
+          <button
+            onClick={() => navigate(-1)}
             style={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              padding: '28px',
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: 'white', borderRadius: '8px',
+              padding: '7px 16px', cursor: 'pointer',
+              fontSize: '0.85rem', fontWeight: 600,
+              marginBottom: '20px',
+              display: 'flex', alignItems: 'center',
+              gap: '6px'
             }}
           >
-            <h2
-              style={{
-                margin: '0 0 20px',
-                fontSize: '1.1rem',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-              }}
-            >
-              📅 Select Your Dates
-            </h2>
+            ← Back
+          </button>
+          <h1 style={{
+            color: 'white', margin: '0 0 6px',
+            fontSize: '1.7rem', fontWeight: 800
+          }}>
+            Complete Your Booking
+          </h1>
+          <p style={{
+            color: 'rgba(255,255,255,0.75)',
+            margin: 0, fontSize: '0.9rem'
+          }}>
+            You're one step away from your GB adventure
+          </p>
+        </div>
+      </div>
 
-            <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '20px' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontWeight: 600,
-                    fontSize: '0.875rem',
-                    marginBottom: '8px',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  Check-in Date
+      {/* Main content pulled up */}
+      <div style={{
+        maxWidth: '760px', margin: '-56px auto 0',
+        padding: '0 16px',
+        display: 'grid',
+        gridTemplateColumns: '1fr 340px',
+        gap: '20px', alignItems: 'start'
+      }}>
+
+        {/* LEFT — Booking form */}
+        <div>
+          {/* Date picker card */}
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-md)',
+            padding: '24px', marginBottom: '16px'
+          }}>
+            <h3 style={{
+              margin: '0 0 20px', fontSize: '1rem',
+              fontWeight: 700, color: 'var(--text-primary)',
+              display: 'flex', alignItems: 'center',
+              gap: '8px'
+            }}>
+              📅 Select Your Dates
+            </h3>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '14px', marginBottom: '16px'
+            }}>
+              <div>
+                <label style={{
+                  display: 'block', fontSize: '0.8rem',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Check-in
                 </label>
                 <input
                   type="date"
                   value={checkIn}
                   min={today}
-                  onChange={(e) => {
+                  onChange={e => {
                     setCheckIn(e.target.value)
-                    if (checkOut && e.target.value >= checkOut) {
+                    if (checkOut &&
+                        e.target.value >= checkOut) {
                       setCheckOut('')
                     }
                   }}
-                  required
                   style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
+                    width: '100%', padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: checkIn
+                      ? '2px solid var(--accent)'
+                      : '1px solid var(--border-color)',
                     background: 'var(--bg-secondary)',
                     color: 'var(--text-primary)',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box',
-                    colorScheme: 'dark',
+                    fontSize: '0.95rem',
+                    boxSizing: 'border-box', outline: 'none',
+                    fontFamily: 'var(--font-primary)'
                   }}
                 />
               </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontWeight: 600,
-                    fontSize: '0.875rem',
-                    marginBottom: '8px',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  Check-out Date
+              <div>
+                <label style={{
+                  display: 'block', fontSize: '0.8rem',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Check-out
                 </label>
                 <input
                   type="date"
                   value={checkOut}
                   min={checkIn || today}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  required
+                  onChange={e => setCheckOut(e.target.value)}
                   style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
+                    width: '100%', padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: checkOut
+                      ? '2px solid var(--accent)'
+                      : '1px solid var(--border-color)',
                     background: 'var(--bg-secondary)',
                     color: 'var(--text-primary)',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box',
-                    colorScheme: 'dark',
+                    fontSize: '0.95rem',
+                    boxSizing: 'border-box', outline: 'none',
+                    fontFamily: 'var(--font-primary)'
                   }}
                 />
               </div>
+            </div>
 
-              {nights > 0 && (
-                <div
-                  style={{
-                    background: 'var(--bg-secondary)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '16px',
-                    marginBottom: '20px',
-                    border: '1px solid var(--border-color)',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    <span style={{ color: 'var(--text-secondary)' }}>
-                      PKR{' '}
-                      {(roomPrice || listing?.price_per_night)
-                        ?.toLocaleString('en-PK')}{' '}
-                      × {nights} night{nights > 1 ? 's' : ''}
-                    </span>
-                    <span
-                      style={{
-                        color: 'var(--text-primary)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      PKR {totalPrice.toLocaleString('en-PK')}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      paddingTop: '10px',
-                      borderTop: '1px solid var(--border-color)',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontWeight: 700,
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      Total
-                    </span>
-                    <span
-                      style={{
-                        fontWeight: 800,
-                        fontSize: '1.1rem',
-                        color: 'var(--accent)',
-                      }}
-                    >
-                      PKR {totalPrice.toLocaleString('en-PK')}
-                    </span>
-                  </div>
+            {/* Duration display */}
+            {nights > 0 ? (
+              <div style={{
+                background: 'var(--accent-light)',
+                borderRadius: '10px',
+                padding: '14px 16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span style={{fontSize: '1.2rem'}}>🌙</span>
+                  <span style={{
+                    fontWeight: 700,
+                    color: 'var(--accent)',
+                    fontSize: '0.95rem'
+                  }}>
+                    {nights} night{nights > 1 ? 's' : ''}
+                  </span>
                 </div>
-              )}
-
-              {error && (
-                <div
-                  style={{
-                    padding: '12px 14px',
-                    marginBottom: '16px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--danger-bg)',
-                    color: 'var(--danger)',
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="btn-primary"
-                style={{
-                  width: '100%',
-                  justifyContent: 'center',
-                  padding: '14px',
-                  fontSize: '1rem',
-                  opacity: submitting ? 0.7 : 1,
-                }}
-              >
-                {submitting
-                  ? 'Booking...'
-                  : nights > 0
-                  ? `Confirm Booking — PKR ${totalPrice.toLocaleString('en-PK')}`
-                  : 'Select dates to continue'}
-              </button>
-
-              <p
-                style={{
-                  textAlign: 'center',
-                  marginTop: '12px',
-                  fontSize: '0.8rem',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                ✅ Free cancellation anytime before check-in
-              </p>
-            </form>
+                <span style={{
+                  fontWeight: 800, fontSize: '1.1rem',
+                  color: 'var(--accent)'
+                }}>
+                  PKR {totalPrice.toLocaleString('en-PK')}
+                </span>
+              </div>
+            ) : (
+              <div style={{
+                background: 'var(--bg-secondary)',
+                borderRadius: '10px',
+                padding: '14px 16px',
+                textAlign: 'center',
+                color: 'var(--text-muted)',
+                fontSize: '0.875rem'
+              }}>
+                Select dates to see total price
+              </div>
+            )}
           </div>
 
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              overflow: 'hidden',
-              position: 'sticky',
-              top: '90px',
-            }}
-          >
-            <img
-              src={getImageUrl(listing.image_url)}
-              alt={listing.title}
-              onError={(e) => {
-                e.target.onerror = null
-                e.target.src =
-                  'https://placehold.co/400x200/e5e7eb/9ca3af?text=GB+Tourism'
-              }}
-              style={{
-                width: '100%',
-                height: '180px',
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
-            <div style={{ padding: '20px' }}>
-              <h3
-                style={{
-                  margin: '0 0 6px',
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                  color: 'var(--text-primary)',
+          {/* Policies card */}
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-sm)',
+            padding: '20px 24px'
+          }}>
+            <h3 style={{
+              margin: '0 0 14px', fontSize: '0.9rem',
+              fontWeight: 700, color: 'var(--text-primary)'
+            }}>
+              📋 Booking Policies
+            </h3>
+            {[
+              { icon: '✅', text: 'Free cancellation anytime before check-in' },
+              { icon: '💳', text: 'No payment required now — pay at property' },
+              { icon: '📞', text: 'Provider will contact you to confirm' },
+            ].map(p => (
+              <div key={p.text} style={{
+                display: 'flex', gap: '10px',
+                alignItems: 'flex-start',
+                marginBottom: '10px'
+              }}>
+                <span style={{fontSize: '1rem', flexShrink: 0}}>
+                  {p.icon}
+                </span>
+                <span style={{
+                  fontSize: '0.85rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.5
+                }}>
+                  {p.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT — Summary + Submit */}
+        <div style={{position: 'sticky', top: '20px'}}>
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-md)',
+            overflow: 'hidden'
+          }}>
+            {/* Listing image */}
+            {listing?.image_url && (
+              <img
+                src={'http://127.0.0.1:8000/uploads/'
+                  + listing.image_url}
+                alt={listing?.title}
+                onError={e => {
+                  e.target.onerror = null
+                  e.target.src =
+                    'https://placehold.co/340x160/e5e7eb/9ca3af?text=GB+Tourism'
                 }}
-              >
-                {listing.title}
+                style={{
+                  width: '100%', height: '160px',
+                  objectFit: 'cover', display: 'block'
+                }}
+              />
+            )}
+
+            <div style={{padding: '20px'}}>
+              {/* Listing info */}
+              <h3 style={{
+                margin: '0 0 4px', fontWeight: 800,
+                fontSize: '1rem',
+                color: 'var(--text-primary)'
+              }}>
+                {listing?.title}
               </h3>
+              <p style={{
+                margin: '0 0 10px', fontSize: '0.85rem',
+                color: 'var(--text-secondary)'
+              }}>
+                📍 {listing?.location}
+              </p>
+
               {roomTypeName && (
-                <div
-                  style={{
-                    display: 'inline-block',
-                    background: 'var(--accent-light)',
-                    color: 'var(--accent)',
-                    padding: '3px 10px',
-                    borderRadius: '999px',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    marginBottom: '8px',
-                  }}
-                >
+                <div style={{
+                  display: 'inline-block',
+                  background: 'var(--accent-light)',
+                  color: 'var(--accent)',
+                  padding: '3px 12px',
+                  borderRadius: '999px',
+                  fontSize: '0.8rem', fontWeight: 600,
+                  marginBottom: '14px'
+                }}>
                   🛏️ {roomTypeName}
                 </div>
               )}
-              <p
-                style={{
-                  margin: '0 0 12px',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                📍 {listing.location}
-              </p>
-              <div
-                style={{
+
+              {/* Divider */}
+              <div style={{
+                height: '1px',
+                background: 'var(--border-color)',
+                margin: '14px 0'
+              }} />
+
+              {/* Price breakdown */}
+              <div style={{marginBottom: '16px'}}>
+                <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center',
-                  paddingTop: '12px',
+                  marginBottom: '8px'
+                }}>
+                  <span style={{
+                    fontSize: '0.875rem',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    PKR {pricePerNight.toLocaleString('en-PK')}
+                    {' '}× {nights || '?'} night
+                    {nights > 1 ? 's' : ''}
+                  </span>
+                  <span style={{
+                    fontSize: '0.875rem',
+                    color: 'var(--text-primary)',
+                    fontWeight: 600
+                  }}>
+                    PKR {nights > 0
+                      ? totalPrice.toLocaleString('en-PK')
+                      : '—'
+                    }
+                  </span>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '12px 0',
                   borderTop: '1px solid var(--border-color)',
-                }}
-              >
-                <span
-                  style={{
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  Per night
-                </span>
-                <span
-                  style={{
+                  marginTop: '8px'
+                }}>
+                  <span style={{
                     fontWeight: 800,
-                    fontSize: '1.1rem',
+                    color: 'var(--text-primary)',
+                    fontSize: '1rem'
+                  }}>
+                    Total
+                  </span>
+                  <span style={{
+                    fontWeight: 800,
                     color: 'var(--accent)',
-                  }}
-                >
-                  PKR {(roomPrice || listing?.price_per_night)
-                    ?.toLocaleString('en-PK')}
-                </span>
+                    fontSize: '1.15rem'
+                  }}>
+                    PKR {nights > 0
+                      ? totalPrice.toLocaleString('en-PK')
+                      : '—'
+                    }
+                  </span>
+                </div>
               </div>
-              {nights > 0 && (
-                <div
-                  style={{
-                    marginTop: '10px',
-                    padding: '10px 12px',
-                    background: 'var(--bg-secondary)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.875rem',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  📅 {checkIn} → {checkOut}
-                  <br />
-                  <strong style={{ color: 'var(--text-primary)' }}>
-                    {nights} night{nights > 1 ? 's' : ''}
-                  </strong>
+
+              {/* Error */}
+              {error && (
+                <div style={{
+                  background: 'var(--danger-bg)',
+                  color: 'var(--danger)',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem', fontWeight: 600,
+                  marginBottom: '14px'
+                }}>
+                  ⚠️ {error}
                 </div>
               )}
+
+              {/* Submit button */}
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || nights <= 0}
+                style={{
+                  width: '100%', padding: '14px',
+                  borderRadius: '12px', border: 'none',
+                  background: nights > 0
+                    ? 'linear-gradient(135deg, #1e3a5f, #0ea5e9)'
+                    : 'var(--border-color)',
+                  color: nights > 0
+                    ? 'white' : 'var(--text-muted)',
+                  fontWeight: 800, fontSize: '1rem',
+                  cursor: nights > 0
+                    ? 'pointer' : 'not-allowed',
+                  opacity: submitting ? 0.75 : 1,
+                  transition: 'all 0.2s'
+                }}
+              >
+                {submitting
+                  ? '⏳ Confirming...'
+                  : nights > 0
+                  ? `Confirm Booking — PKR ${totalPrice.toLocaleString('en-PK')}`
+                  : 'Select dates to continue'
+                }
+              </button>
+
+              <p style={{
+                textAlign: 'center', margin: '10px 0 0',
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)'
+              }}>
+                ✅ Free cancellation · No payment now
+              </p>
             </div>
           </div>
         </div>
@@ -486,4 +621,3 @@ export default function BookingForm() {
     </div>
   )
 }
-
