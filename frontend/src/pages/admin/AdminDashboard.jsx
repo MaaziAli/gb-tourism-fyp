@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import api from '../../api/axios'
+import useWindowSize from '../../hooks/useWindowSize'
 
 function AdminDashboard() {
+  const { isMobile } = useWindowSize()
   const [activeSection, setActiveSection] = useState('dashboard')
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState([])
@@ -127,12 +129,16 @@ function AdminDashboard() {
 
   const containerStyle = {
     display: 'flex',
+    flexDirection: isMobile ? 'column' : 'row',
+    gap: isMobile ? 0 : '24px',
+    alignItems: isMobile ? 'stretch' : 'flex-start',
     minHeight: 'calc(100vh - 60px)',
     backgroundColor: 'var(--bg-primary)',
   }
 
   const sidebarStyle = {
-    width: '220px',
+    width: isMobile ? '100%' : '220px',
+    flexShrink: 0,
     backgroundColor: '#111827',
     color: '#e5e7eb',
     padding: '20px 16px',
@@ -179,7 +185,7 @@ function AdminDashboard() {
           style={{
             fontSize: '1rem',
             fontWeight: 600,
-            marginBottom: '20px',
+            marginBottom: isMobile ? '12px' : '20px',
           }}
         >
           ⚙️ Admin Panel
@@ -187,9 +193,13 @@ function AdminDashboard() {
         <nav
           style={{
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: isMobile ? 'row' : 'column',
             gap: '8px',
             fontSize: '0.9rem',
+            overflowX: isMobile ? 'auto' : 'visible',
+            paddingBottom: isMobile ? '8px' : 0,
+            marginBottom: isMobile ? '16px' : 0,
+            flexWrap: isMobile ? 'nowrap' : 'wrap',
           }}
         >
           <button
@@ -465,194 +475,317 @@ function AdminDashboard() {
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
                   fontSize: '0.9rem',
-                  width: '260px',
+                  width: isMobile ? '100%' : '260px',
+                  maxWidth: '260px',
                   backgroundColor: 'var(--bg-secondary)',
                   color: 'var(--text-primary)',
                 }}
               />
             </div>
-            <div
-              style={{
-                backgroundColor: 'var(--bg-card)',
-                borderRadius: '12px',
-                border: '1px solid var(--border-color)',
-                overflow: 'hidden',
-              }}
-            >
-              <table
+            {isMobile ? (
+              <div
                 style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '0.9rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
                 }}
               >
-                <thead
-                  style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    textAlign: 'left',
-                  }}
-                >
-                  <tr>
-                    <th
+                {filteredUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    style={{
+                      background: 'var(--bg-card)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)',
+                      padding: '14px 16px',
+                    }}
+                  >
+                    <div
                       style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: '8px',
                       }}
                     >
-                      Name
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Email
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Role
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Listings
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Bookings
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((u) => (
-                    <tr key={u.id}>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {u.full_name}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {u.email}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                        }}
-                      >
-                        <span
+                      <div>
+                        <div
                           style={{
-                            display: 'inline-block',
-                            padding: '3px 10px',
-                            borderRadius: '999px',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            ...roleBadgeStyle(u.role),
-                          }}
-                        >
-                          {u.role}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {u.listings_count}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {u.bookings_count}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                        }}
-                      >
-                        <select
-                          value={u.role}
-                          onChange={(e) =>
-                            handleChangeUserRole(u.id, e.target.value)
-                          }
-                          style={{
-                            marginRight: '8px',
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border-color)',
-                            fontSize: '0.8rem',
-                            backgroundColor: 'var(--bg-secondary)',
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
                             color: 'var(--text-primary)',
                           }}
                         >
-                          <option value="user">user</option>
-                          <option value="provider">provider</option>
-                          <option value="admin">admin</option>
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteUser(u.id)}
+                          {user.full_name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-secondary)',
+                            marginTop: '2px',
+                          }}
+                        >
+                          {user.email}
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          padding: '3px 10px',
+                          borderRadius: '999px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          background:
+                            user.role === 'admin'
+                              ? '#fef3c7'
+                              : user.role === 'provider'
+                                ? '#eff6ff'
+                                : '#f0fdf4',
+                          color:
+                            user.role === 'admin'
+                              ? '#d97706'
+                              : user.role === 'provider'
+                                ? '#2563eb'
+                                : '#16a34a',
+                        }}
+                      >
+                        {user.role}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '8px',
+                        flexWrap: 'wrap',
+                        marginTop: '10px',
+                      }}
+                    >
+                      {['user', 'provider'].includes(user.role) && (
+                        <select
+                          value={user.role}
+                          onChange={(e) =>
+                            handleChangeUserRole(user.id, e.target.value)
+                          }
                           style={{
                             padding: '6px 10px',
                             borderRadius: '6px',
-                            border: '1px solid var(--danger)',
-                            backgroundColor: 'var(--bg-card)',
-                            color: 'var(--danger)',
+                            flex: 1,
+                            minWidth: '120px',
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-primary)',
                             fontSize: '0.8rem',
+                          }}
+                        >
+                          <option value="user">Traveler</option>
+                          <option value="provider">Provider</option>
+                        </select>
+                      )}
+                      {user.role !== 'admin' && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteUser(user.id)}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: 'var(--danger-bg)',
+                            color: 'var(--danger)',
                             cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
                           }}
                         >
                           Delete
                         </button>
-                      </td>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  overflow: 'hidden',
+                }}
+              >
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  <thead
+                    style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <tr>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Name
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Email
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Role
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Listings
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Bookings
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((u) => (
+                      <tr key={u.id}>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {u.full_name}
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {u.email}
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '3px 10px',
+                              borderRadius: '999px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              ...roleBadgeStyle(u.role),
+                            }}
+                          >
+                            {u.role}
+                          </span>
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {u.listings_count}
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {u.bookings_count}
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                          }}
+                        >
+                          <select
+                            value={u.role}
+                            onChange={(e) =>
+                              handleChangeUserRole(u.id, e.target.value)
+                            }
+                            style={{
+                              marginRight: '8px',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--border-color)',
+                              fontSize: '0.8rem',
+                              backgroundColor: 'var(--bg-secondary)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            <option value="user">user</option>
+                            <option value="provider">provider</option>
+                            <option value="admin">admin</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(u.id)}
+                            style={{
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--danger)',
+                              backgroundColor: 'var(--bg-card)',
+                              color: 'var(--danger)',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
 
@@ -669,179 +802,266 @@ function AdminDashboard() {
             >
               Stays & Experiences
             </h1>
-            <div
-              style={{
-                backgroundColor: 'var(--bg-card)',
-                borderRadius: '12px',
-                border: '1px solid var(--border-color)',
-                overflow: 'hidden',
-              }}
-            >
-              <table
+            {isMobile ? (
+              <div
                 style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '0.9rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
                 }}
               >
-                <thead
+                {listings.map((listing) => (
+                  <div
+                    key={listing.id}
+                    style={{
+                      background: 'var(--bg-card)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src={
+                        listing.image_url
+                          ? `http://127.0.0.1:8000/uploads/${listing.image_url}`
+                          : 'https://placehold.co/400x120/e5e7eb/9ca3af?text=GB'
+                      }
+                      alt={listing.title}
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.src =
+                          'https://placehold.co/400x120/e5e7eb/9ca3af?text=GB'
+                      }}
+                      style={{
+                        width: '100%',
+                        height: '100px',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                    <div style={{ padding: '12px 14px' }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          color: 'var(--text-primary)',
+                          marginBottom: '3px',
+                        }}
+                      >
+                        {listing.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.8rem',
+                          color: 'var(--text-secondary)',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        📍 {listing.location} · PKR{' '}
+                        {listing.price_per_night?.toLocaleString('en-PK')}/
+                        night
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteListing(listing.id)}
+                        style={{
+                          padding: '7px 16px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: 'var(--danger-bg)',
+                          color: 'var(--danger)',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          fontSize: '0.82rem',
+                          width: '100%',
+                        }}
+                      >
+                        🗑️ Delete Service
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  overflow: 'hidden',
+                }}
+              >
+                <table
                   style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    textAlign: 'left',
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '0.9rem',
                   }}
                 >
-                  <tr>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Title
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Owner
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Location
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Type
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Price
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Bookings
-                    </th>
-                    <th
-                      style={{
-                        padding: '10px 16px',
-                        color: 'var(--text-secondary)',
-                        borderBottom: '1px solid var(--border-color)',
-                      }}
-                    >
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {listings.map((l) => (
-                    <tr key={l.id}>
-                      <td
+                  <thead
+                    style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <tr>
+                      <th
                         style={{
                           padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {l.title}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        <div>{l.owner_name}</div>
-                        <div
-                          style={{
-                            fontSize: '0.8rem',
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          {l.owner_email}
-                        </div>
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {l.location}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {l.service_type}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
-                          borderBottom: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        PKR {l.price_per_night}
-                      </td>
-                      <td
-                        style={{
-                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
                           borderBottom: '1px solid var(--border-color)',
                         }}
                       >
-                        {l.bookings_count}
-                      </td>
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteListing(l.id)}
-                          style={{
-                            padding: '6px 10px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--danger)',
-                            backgroundColor: 'var(--bg-card)',
-                            color: 'var(--danger)',
-                            fontSize: '0.8rem',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </td>
+                        Title
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Owner
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Location
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Type
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Price
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Bookings
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {listings.map((l) => (
+                      <tr key={l.id}>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {l.title}
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          <div>{l.owner_name}</div>
+                          <div
+                            style={{
+                              fontSize: '0.8rem',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {l.owner_email}
+                          </div>
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {l.location}
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {l.service_type}
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          PKR {l.price_per_night}
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                          }}
+                        >
+                          {l.bookings_count}
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
+                            borderBottom: '1px solid #f3f4f6',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteListing(l.id)}
+                            style={{
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--danger)',
+                              backgroundColor: 'var(--bg-card)',
+                              color: 'var(--danger)',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
 
@@ -881,6 +1101,102 @@ function AdminDashboard() {
               >
                 <div style={{ fontSize: '3rem' }}>⭐</div>
                 <p>No reviews yet.</p>
+              </div>
+            ) : isMobile ? (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                {reviews.map((r) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      background: 'var(--bg-card)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)',
+                      padding: '14px 16px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: '8px',
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {r.reviewer_name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                          }}
+                        >
+                          {r.reviewer_email}
+                        </div>
+                      </div>
+                      <div style={{ color: '#f59e0b' }}>
+                        {'★'.repeat(r.rating)}
+                        {'☆'.repeat(5 - r.rating)}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: 'inline-block',
+                        background: 'var(--accent-light)',
+                        color: 'var(--accent)',
+                        padding: '2px 10px',
+                        borderRadius: '999px',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        marginBottom: '8px',
+                      }}
+                    >
+                      🏨 {r.listing_title}
+                    </div>
+                    {r.comment && (
+                      <p
+                        style={{
+                          margin: '6px 0 8px',
+                          fontSize: '0.85rem',
+                          color: 'var(--text-secondary)',
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        "{r.comment}"
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => deleteReview(r.id)}
+                      style={{
+                        padding: '7px 16px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: 'var(--danger-bg)',
+                        color: 'var(--danger)',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.82rem',
+                        width: '100%',
+                      }}
+                    >
+                      Delete Review
+                    </button>
+                  </div>
+                ))}
               </div>
             ) : (
               <div
