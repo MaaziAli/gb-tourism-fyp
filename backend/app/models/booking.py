@@ -19,6 +19,7 @@ class Booking(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     room_type_id = Column(Integer, ForeignKey("room_types.id"), nullable=True)
     room_type_name = Column(String, nullable=True)
+    payment_status = Column(String, default="unpaid")  # unpaid, paid
 
     user = relationship("User", back_populates="bookings")
     listing = relationship("Listing", back_populates="bookings")

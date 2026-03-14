@@ -18,6 +18,7 @@ import Recommendations from './pages/Recommendations'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ListingDetail from './pages/ListingDetail'
 import ProviderAnalytics from './pages/ProviderAnalytics'
+import PaymentPage from './pages/PaymentPage'
 
 function App() {
   return (
@@ -61,6 +62,14 @@ function App() {
             element={
               <PrivateRoute>
                 <BookingForm />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/payment/:bookingId"
+            element={
+              <PrivateRoute>
+                <PaymentPage />
               </PrivateRoute>
             }
           />

@@ -493,6 +493,34 @@ export default function MyBookings() {
                           </span>
                         </span>
 
+                        {isActive && b.payment_status !== 'paid' && (
+                          <button
+                            onClick={() =>
+                              navigate('/payment/' + b.id)
+                            }
+                            style={{
+                              padding: '7px 16px',
+                              borderRadius: '8px', border: 'none',
+                              background:
+                                'linear-gradient(135deg, #16a34a, #15803d)',
+                              color: 'white', fontWeight: 700,
+                              fontSize: '0.82rem', cursor: 'pointer'
+                            }}
+                          >
+                            💳 Pay Now
+                          </button>
+                        )}
+                        {isActive && b.payment_status === 'paid' && (
+                          <span style={{
+                            padding: '7px 16px',
+                            borderRadius: '8px',
+                            background: '#dcfce7',
+                            color: '#16a34a',
+                            fontWeight: 700, fontSize: '0.82rem'
+                          }}>
+                            ✅ Paid
+                          </span>
+                        )}
                         {isActive && upcoming && (
                           <button
                             onClick={() =>

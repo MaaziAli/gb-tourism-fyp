@@ -1,0 +1,184 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from typing import Optional
+import uuid
+
+from app.database import get_db
+from app.models.payment import Payment
+from app.models.booking import Booking
+from app.models.listing import Listing
+from app.dependencies.auth import get_current_user
+from app.utils.notify import create_notification
+
+router = APIRouter(prefix="/payments", tags=["Payments"])
+
+COMMISSION_RATE = 0.10  # 10% platform commission
+
+
+class PaymentRequest(BaseModel):
+    booking_id: int
+    payment_method: str = "card"
+    card_number: Optional[str] = None
+    card_expiry: Optional[str] = None
+    card_cvv: Optional[str] = None
+    card_name: Optional[str] = None
+
+
+class PaymentResponse(BaseModel):
+    success: bool
+    transaction_id: str
+    amount: float
+    platform_commission: float
+    provider_amount: float
+    card_last4: Optional[str] = None
+    message: str
+
+
+@router.post("/process", response_model=PaymentResponse)
+def process_payment(
+    body: PaymentRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    # Get booking
+    booking = (
+        db.query(Booking)
+        .filter(
+            Booking.id == body.booking_id,
+            Booking.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not booking:
+        raise HTTPException(404, "Booking not found")
+    if booking.status == "cancelled":
+        raise HTTPException(400, "Booking is cancelled")
+    if getattr(booking, "payment_status", "unpaid") == "paid":
+        raise HTTPException(400, "Already paid")
+
+    # Simulate payment validation
+    if body.payment_method == "card":
+        if not body.card_number:
+            raise HTTPException(400, "Card number required")
+        # Simulate failure for test card
+        clean = body.card_number.replace(" ", "")
+        if clean == "4000000000000002":
+            raise HTTPException(
+                400,
+                "Payment declined. Please try another card.",
+            )
+
+    amount = booking.total_price
+    commission = round(amount * COMMISSION_RATE, 2)
+    provider_amount = round(amount - commission, 2)
+
+    # Generate transaction ID
+    txn_id = "TXN-" + str(uuid.uuid4()).replace("-", "")[:12].upper()
+
+    # Get last 4 digits
+    card_last4 = None
+    if body.card_number:
+        clean = body.card_number.replace(" ", "")
+        card_last4 = clean[-4:] if len(clean) >= 4 else None
+
+    # Save payment record
+    payment = Payment(
+        booking_id=booking.id,
+        user_id=current_user.id,
+        amount=amount,
+        platform_commission=commission,
+        provider_amount=provider_amount,
+        status="completed",
+        payment_method=body.payment_method,
+        card_last4=card_last4,
+        transaction_id=txn_id,
+    )
+    db.add(payment)
+
+    # Update booking payment status
+    booking.payment_status = "paid"
+    db.commit()
+
+    # Notify traveler
+    create_notification(
+        db,
+        user_id=current_user.id,
+        title="Payment Successful 💳",
+        message=(
+            f"PKR {amount:,.0f} paid for booking. "
+            f"Transaction ID: {txn_id}"
+        ),
+        type="success",
+    )
+
+    # Notify provider
+    listing = (
+        db.query(Listing).filter(Listing.id == booking.listing_id).first()
+    )
+    if listing:
+        create_notification(
+            db,
+            user_id=listing.owner_id,
+            title="Payment Received 💰",
+            message=(
+                f"PKR {provider_amount:,.0f} payment "
+                f"received for booking #{booking.id}. "
+                f"Platform fee: PKR {commission:,.0f}"
+            ),
+            type="success",
+        )
+
+    return PaymentResponse(
+        success=True,
+        transaction_id=txn_id,
+        amount=amount,
+        platform_commission=commission,
+        provider_amount=provider_amount,
+        card_last4=card_last4,
+        message="Payment processed successfully",
+    )
+
+
+@router.get("/booking/{booking_id}")
+def get_payment_status(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    payment = (
+        db.query(Payment).filter(Payment.booking_id == booking_id).first()
+    )
+    if not payment:
+        return {"paid": False}
+    if payment.user_id != current_user.id:
+        raise HTTPException(403, "Not your payment")
+    return {
+        "paid": payment.status == "completed",
+        "transaction_id": payment.transaction_id,
+        "amount": payment.amount,
+        "platform_commission": payment.platform_commission,
+        "provider_amount": payment.provider_amount,
+        "card_last4": payment.card_last4,
+        "payment_method": payment.payment_method,
+        "created_at": payment.created_at.isoformat(),
+    }
+
+
+@router.get("/admin/summary")
+def get_payment_summary(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Admins only")
+    payments = db.query(Payment).filter(Payment.status == "completed").all()
+    total_revenue = sum(p.amount for p in payments)
+    total_commission = sum(p.platform_commission for p in payments)
+    total_provider = sum(p.provider_amount for p in payments)
+    return {
+        "total_payments": len(payments),
+        "total_revenue": total_revenue,
+        "platform_commission": total_commission,
+        "provider_payouts": total_provider,
+    }

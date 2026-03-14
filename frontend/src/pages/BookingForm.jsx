@@ -19,6 +19,7 @@ export default function BookingForm() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [bookingId, setBookingId] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -71,13 +72,14 @@ export default function BookingForm() {
     setError('')
     setSubmitting(true)
     try {
-      await api.post('/bookings/', {
+      const res = await api.post('/bookings/', {
         listing_id: parseInt(listingId),
         check_in: checkIn,
         check_out: checkOut,
         room_type_id: roomTypeId
           ? parseInt(roomTypeId) : null
       })
+      setBookingId(res.data.id)
       setSuccess(true)
     } catch(e) {
       setError(e.response?.data?.detail || 'Booking failed')
@@ -172,8 +174,22 @@ export default function BookingForm() {
               </div>
             </div>
             <div style={{
-              display: 'flex', gap: '10px'
+              display: 'flex', flexDirection: 'column',
+              gap: '10px'
             }}>
+              <button
+                onClick={() => navigate('/payment/' + bookingId)}
+                style={{
+                  width: '100%', padding: '14px',
+                  borderRadius: '12px', border: 'none',
+                  background:
+                    'linear-gradient(135deg, #16a34a, #15803d)',
+                  color: 'white', fontWeight: 800,
+                  fontSize: '1rem', cursor: 'pointer'
+                }}
+              >
+                💳 Pay Now — PKR {totalPrice.toLocaleString('en-PK')}
+              </button>
               <button
                 onClick={() => navigate('/my-bookings')}
                 style={{

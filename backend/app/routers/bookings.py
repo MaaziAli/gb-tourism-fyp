@@ -237,6 +237,7 @@ def get_my_bookings(
             "room_type_name": b.room_type_name
                               if hasattr(b, 'room_type_name')
                               else None,
+            "payment_status": getattr(b, 'payment_status', 'unpaid'),
             "created_at": b.created_at.isoformat()
                           if b.created_at else None
         })
