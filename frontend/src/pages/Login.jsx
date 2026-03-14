@@ -248,39 +248,6 @@ export default function Login() {
             Create an Account
           </Link>
 
-          {/* Demo credentials hint */}
-          <div style={{
-            marginTop: '20px', padding: '12px 14px',
-            background: 'var(--bg-secondary)',
-            borderRadius: '8px',
-            border: '1px solid var(--border-color)'
-          }}>
-            <p style={{
-              margin: '0 0 6px', fontSize: '0.78rem',
-              fontWeight: 700, color: 'var(--text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
-            }}>
-              Demo Accounts
-            </p>
-            <div style={{
-              fontSize: '0.78rem',
-              color: 'var(--text-secondary)',
-              lineHeight: 1.8
-            }}>
-              <div>
-                👤 Traveler: use any registered account
-              </div>
-              <div>
-                🏨 Provider: register as Service Provider
-              </div>
-              <div>
-                🔑 Admin: admin@gbtourism.com /
-                Admin@12345
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
     </div>
