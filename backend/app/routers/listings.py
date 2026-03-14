@@ -70,19 +70,69 @@ def create_listing(
     return listing
 
 
-@router.get("/", response_model=list[ListingResponse])
+@router.get("/")
 def get_listings(db: Session = Depends(get_db)):
-    """Get all listings."""
-    return db.query(Listing).all()
+    """Get all listings with average_rating and review_count."""
+    from app.models.review import Review
+
+    listings = db.query(Listing).all()
+    result = []
+    for listing in listings:
+        reviews = (
+            db.query(Review).filter(Review.listing_id == listing.id).all()
+        )
+        review_count = len(reviews)
+        avg_rating = 0.0
+        if review_count > 0:
+            avg_rating = sum(r.rating for r in reviews) / review_count
+        result.append({
+            "id": listing.id,
+            "title": listing.title,
+            "description": listing.description,
+            "location": listing.location,
+            "price_per_night": listing.price_per_night,
+            "service_type": listing.service_type,
+            "image_url": listing.image_url,
+            "owner_id": listing.owner_id,
+            "average_rating": round(avg_rating, 1),
+            "review_count": review_count,
+        })
+    return result
 
 
-@router.get("/me", response_model=list[ListingResponse])
+@router.get("/me")
 def get_my_listings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get all listings owned by the current user."""
-    return db.query(Listing).filter(Listing.owner_id == current_user.id).all()
+    """Get all listings owned by the current user with rating data."""
+    from app.models.review import Review
+
+    listings = (
+        db.query(Listing).filter(Listing.owner_id == current_user.id).all()
+    )
+    result = []
+    for listing in listings:
+        reviews = (
+            db.query(Review).filter(Review.listing_id == listing.id).all()
+        )
+        review_count = len(reviews)
+        avg_rating = 0.0
+        if review_count > 0:
+            avg_rating = sum(r.rating for r in reviews) / review_count
+        result.append({
+            "id": listing.id,
+            "title": listing.title,
+            "description": listing.description,
+            "location": listing.location,
+            "price_per_night": listing.price_per_night,
+            "service_type": listing.service_type,
+            "image_url": listing.image_url,
+            "owner_id": listing.owner_id,
+            "average_rating": round(avg_rating, 1),
+            "review_count": review_count,
+        })
+    return result
 
 
 @router.get("/debug-upload-dir")
@@ -171,13 +221,33 @@ def clear_missing_listing_images(db: Session = Depends(get_db)):
     return {"cleared": len(cleared_ids), "listing_ids_cleared": cleared_ids}
 
 
-@router.get("/{listing_id}", response_model=ListingResponse)
+@router.get("/{listing_id}")
 def get_listing(listing_id: int, db: Session = Depends(get_db)):
-    """Get a single listing by ID."""
+    """Get a single listing by ID with average_rating and review_count."""
+    from app.models.review import Review
+
     listing = db.get(Listing, listing_id)
     if listing is None:
         raise HTTPException(status_code=404, detail="Listing not found")
-    return listing
+    reviews = (
+        db.query(Review).filter(Review.listing_id == listing_id).all()
+    )
+    review_count = len(reviews)
+    avg_rating = 0.0
+    if review_count > 0:
+        avg_rating = sum(r.rating for r in reviews) / review_count
+    return {
+        "id": listing.id,
+        "title": listing.title,
+        "description": listing.description,
+        "location": listing.location,
+        "price_per_night": listing.price_per_night,
+        "service_type": listing.service_type,
+        "image_url": listing.image_url,
+        "owner_id": listing.owner_id,
+        "average_rating": round(avg_rating, 1),
+        "review_count": review_count,
+    }
 
 
 @router.put("/{listing_id}", response_model=ListingResponse)

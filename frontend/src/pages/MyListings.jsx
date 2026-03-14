@@ -360,6 +360,50 @@ export default function MyListings() {
                           )}
                           /night
                         </p>
+                        {listing.average_rating > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              marginTop: '4px',
+                            }}
+                          >
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span
+                                key={star}
+                                style={{
+                                  color:
+                                    star <= Math.round(listing.average_rating)
+                                      ? '#f59e0b'
+                                      : 'var(--border-color)',
+                                  fontSize: '0.75rem',
+                                }}
+                              >
+                                ★
+                              </span>
+                            ))}
+                            <span
+                              style={{
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                color: 'var(--text-primary)',
+                                marginLeft: '2px',
+                              }}
+                            >
+                              {listing.average_rating.toFixed(1)}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '0.75rem',
+                                color: 'var(--text-muted)',
+                              }}
+                            >
+                              · {listing.review_count} review
+                              {listing.review_count !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Actions */}

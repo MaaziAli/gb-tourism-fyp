@@ -336,9 +336,16 @@ export default function Recommendations() {
                           background: 'rgba(0,0,0,0.65)',
                           color: 'white', padding: '3px 10px',
                           borderRadius: '999px',
-                          fontSize: '0.75rem', fontWeight: 700
+                          fontSize: '0.75rem', fontWeight: 700,
+                          display: 'flex', alignItems: 'center',
+                          gap: '4px'
                         }}>
                           ⭐ {item.average_rating.toFixed(1)}
+                          <span style={{
+                            opacity: 0.7, fontSize: '0.7rem'
+                          }}>
+                            ({item.review_count || 0})
+                          </span>
                         </div>
                       )}
                     </div>

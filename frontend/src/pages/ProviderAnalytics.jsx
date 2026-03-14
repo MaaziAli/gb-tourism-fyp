@@ -450,18 +450,45 @@ export default function ProviderAnalytics() {
                     </div>
 
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ marginBottom: '2px' }}>
-                        <Stars count={l.average_rating} />
-                      </div>
                       <div
                         style={{
-                          fontSize: '0.72rem',
-                          color: 'var(--text-muted)',
-                          textTransform: 'uppercase',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '3px',
                         }}
                       >
-                        {l.total_reviews} review
-                        {l.total_reviews !== 1 ? 's' : ''}
+                        {l.average_rating > 0 ? (
+                          <>
+                            <span style={{ color: '#f59e0b' }}>★</span>
+                            <span
+                              style={{
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                color: 'var(--text-primary)',
+                              }}
+                            >
+                              {l.average_rating?.toFixed(1)}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '0.75rem',
+                                color: 'var(--text-muted)',
+                              }}
+                            >
+                              ({l.total_reviews})
+                            </span>
+                          </>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '0.78rem',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            —
+                          </span>
+                        )}
                       </div>
                     </div>
 

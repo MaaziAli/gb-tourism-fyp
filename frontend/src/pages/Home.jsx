@@ -464,14 +464,20 @@ export default function Home() {
                         <span style={{
                           position: 'absolute',
                           top: '12px', right: '12px',
-                          background: 'rgba(0,0,0,0.6)',
+                          background: 'rgba(0,0,0,0.65)',
                           backdropFilter: 'blur(4px)',
                           color: 'white',
                           padding: '4px 10px',
                           borderRadius: '999px',
-                          fontSize: '0.72rem', fontWeight: 700
+                          fontSize: '0.72rem', fontWeight: 700,
+                          display: 'flex', alignItems: 'center', gap: '4px'
                         }}>
                           ⭐ {listing.average_rating.toFixed(1)}
+                          <span style={{
+                            opacity: 0.75, fontSize: '0.7rem'
+                          }}>
+                            ({listing.review_count})
+                          </span>
                         </span>
                       )}
                     </div>
@@ -511,6 +517,41 @@ export default function Home() {
                           }}>
                             {' '}/night
                           </span>
+                        </div>
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: '5px'
+                        }}>
+                          {listing.average_rating > 0 ? (
+                            <>
+                              {[1,2,3,4,5].map(star => (
+                                <span key={star} style={{
+                                  color: star <= Math.round(
+                                    listing.average_rating
+                                  ) ? '#f59e0b' : 'rgba(255,255,255,0.25)',
+                                  fontSize: '0.72rem'
+                                }}>★</span>
+                              ))}
+                              <span style={{
+                                fontSize: '0.78rem', fontWeight: 700,
+                                color: 'white'
+                              }}>
+                                {listing.average_rating.toFixed(1)}
+                              </span>
+                              <span style={{
+                                fontSize: '0.72rem',
+                                color: 'rgba(255,255,255,0.5)'
+                              }}>
+                                ({listing.review_count})
+                              </span>
+                            </>
+                          ) : (
+                            <span style={{
+                              fontSize: '0.75rem',
+                              color: 'rgba(255,255,255,0.4)'
+                            }}>
+                              No reviews yet
+                            </span>
+                          )}
                         </div>
                         <button
                           onClick={e => {

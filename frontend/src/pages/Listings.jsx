@@ -470,14 +470,22 @@ export default function Listings() {
                     </span>
                     {listing.average_rating > 0 && (
                       <span style={{
-                        position:'absolute',
-                        top:'12px', right:'12px',
-                        background:'rgba(0,0,0,0.65)',
-                        color:'white', padding:'4px 10px',
-                        borderRadius:'999px',
-                        fontSize:'0.75rem', fontWeight:700
+                        position: 'absolute',
+                        top: '12px', right: '12px',
+                        background: 'rgba(0,0,0,0.65)',
+                        backdropFilter: 'blur(4px)',
+                        color: 'white',
+                        padding: '4px 10px',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem', fontWeight: 700,
+                        display: 'flex', alignItems: 'center', gap: '4px'
                       }}>
-                        ⭐ {listing.average_rating?.toFixed(1)}
+                        ⭐ {listing.average_rating.toFixed(1)}
+                        <span style={{
+                          opacity: 0.75, fontSize: '0.7rem'
+                        }}>
+                          ({listing.review_count})
+                        </span>
                       </span>
                     )}
                   </div>
@@ -528,15 +536,47 @@ export default function Listings() {
                           {' '}/night
                         </span>
                       </div>
-                      <span style={{
-                        fontSize:'0.75rem',
-                        color:'var(--text-muted)'
+                      {/* Rating + review count */}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '6px'
                       }}>
-                        {listing.review_count > 0
-                          ? `${listing.review_count} review${listing.review_count > 1 ? 's' : ''}`
-                          : 'No reviews yet'
-                        }
-                      </span>
+                        {listing.average_rating > 0 ? (
+                          <>
+                            <div style={{
+                              display: 'flex', alignItems: 'center',
+                              gap: '3px'
+                            }}>
+                              {[1,2,3,4,5].map(star => (
+                                <span key={star} style={{
+                                  color: star <= Math.round(
+                                    listing.average_rating
+                                  ) ? '#f59e0b' : '#d1d5db',
+                                  fontSize: '0.75rem'
+                                }}>★</span>
+                              ))}
+                            </div>
+                            <span style={{
+                              fontSize: '0.78rem', fontWeight: 700,
+                              color: 'var(--text-primary)'
+                            }}>
+                              {listing.average_rating.toFixed(1)}
+                            </span>
+                            <span style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)'
+                            }}>
+                              ({listing.review_count})
+                            </span>
+                          </>
+                        ) : (
+                          <span style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)'
+                          }}>
+                            No reviews yet
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {/* Action buttons */}
                     <div style={{
