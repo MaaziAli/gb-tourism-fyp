@@ -4,6 +4,7 @@ import PrivateRoute from './components/PrivateRoute'
 import ProviderRoute from './components/ProviderRoute'
 import AdminRoute from './components/AdminRoute'
 import Listings from './pages/Listings'
+import MapView from './pages/MapView'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import MyBookings from './pages/MyBookings'
@@ -24,6 +25,7 @@ function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<Listings />} />
+          <Route path="/map" element={<MapView />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

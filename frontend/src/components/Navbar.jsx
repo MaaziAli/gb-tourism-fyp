@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, NavLink } from 'react-router-dom'
 import { logout } from '../utils/auth'
 import { getRole, isLoggedIn } from '../utils/role'
 import { useTheme } from '../hooks/useTheme'
@@ -25,12 +25,22 @@ function Navbar() {
           <span className="logo-badge">GB</span>
         </Link>
         <div className="nav-links">
-          <Link
+          <NavLink
             to="/"
-            className={`nav-link${isActive('/') ? ' active' : ''}`}
+            className={({ isActive: navActive }) =>
+              'nav-link' + (navActive ? ' active' : '')
+            }
           >
             Stays & Experiences
-          </Link>
+          </NavLink>
+          <NavLink
+            to="/map"
+            className={({ isActive }) =>
+              'nav-link' + (isActive ? ' active' : '')
+            }
+          >
+            📍 Map
+          </NavLink>
           {loggedIn && role !== 'admin' && (
             <Link
               to="/recommendations"
