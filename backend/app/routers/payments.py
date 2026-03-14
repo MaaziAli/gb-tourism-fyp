@@ -182,3 +182,187 @@ def get_payment_summary(
         "platform_commission": total_commission,
         "provider_payouts": total_provider,
     }
+
+
+@router.get("/my-spending")
+def get_my_spending(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Traveler: see all their payments"""
+    payments = (
+        db.query(Payment)
+        .filter(
+            Payment.user_id == current_user.id,
+            Payment.status == "completed",
+        )
+        .order_by(Payment.created_at.desc())
+        .all()
+    )
+
+    result = []
+    for p in payments:
+        booking = (
+            db.query(Booking).filter(Booking.id == p.booking_id).first()
+        )
+        listing = (
+            db.query(Listing).filter(Listing.id == booking.listing_id).first()
+            if booking
+            else None
+        )
+        result.append({
+            "id": p.id,
+            "transaction_id": p.transaction_id,
+            "amount": p.amount,
+            "payment_method": p.payment_method,
+            "card_last4": p.card_last4,
+            "created_at": p.created_at.isoformat(),
+            "listing_title": listing.title if listing else "Unknown",
+            "location": listing.location if listing else "",
+            "check_in": (
+                booking.check_in.isoformat()
+                if booking and booking.check_in
+                else None
+            ),
+            "check_out": (
+                booking.check_out.isoformat()
+                if booking and booking.check_out
+                else None
+            ),
+        })
+    total = sum(p.amount for p in payments)
+    return {"payments": result, "total_spent": total}
+
+
+@router.get("/provider-received")
+def get_provider_payments(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Provider: see payments received for listings"""
+    if current_user.role not in ["provider", "admin"]:
+        raise HTTPException(403, "Providers only")
+
+    from app.models.user import User
+
+    listings = (
+        db.query(Listing).filter(Listing.owner_id == current_user.id).all()
+    )
+    listing_ids = [l.id for l in listings]
+    listing_map = {l.id: l for l in listings}
+
+    bookings = (
+        db.query(Booking).filter(Booking.listing_id.in_(listing_ids)).all()
+    )
+    booking_map = {b.id: b for b in bookings}
+    booking_ids = [b.id for b in bookings]
+
+    payments = (
+        db.query(Payment)
+        .filter(
+            Payment.booking_id.in_(booking_ids),
+            Payment.status == "completed",
+        )
+        .order_by(Payment.created_at.desc())
+        .all()
+    )
+
+    result = []
+    for p in payments:
+        booking = booking_map.get(p.booking_id)
+        listing = (
+            listing_map.get(booking.listing_id) if booking else None
+        )
+        traveler = db.query(User).filter(User.id == p.user_id).first()
+        result.append({
+            "id": p.id,
+            "transaction_id": p.transaction_id,
+            "total_amount": p.amount,
+            "platform_fee": p.platform_commission,
+            "you_receive": p.provider_amount,
+            "payment_method": p.payment_method,
+            "created_at": p.created_at.isoformat(),
+            "listing_title": listing.title if listing else "Unknown",
+            "traveler_name": traveler.full_name if traveler else "Unknown",
+            "check_in": (
+                booking.check_in.isoformat()
+                if booking and booking.check_in
+                else None
+            ),
+            "check_out": (
+                booking.check_out.isoformat()
+                if booking and booking.check_out
+                else None
+            ),
+        })
+
+    total_received = sum(p.provider_amount for p in payments)
+    total_fees = sum(p.platform_commission for p in payments)
+    return {
+        "payments": result,
+        "total_received": total_received,
+        "total_platform_fees": total_fees,
+        "pending_note": "Payments are released after guest check-in",
+    }
+
+
+@router.get("/admin/all-payments")
+def get_all_payments(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Admin: see ALL payments with full details"""
+    if current_user.role != "admin":
+        raise HTTPException(403, "Admins only")
+
+    from app.models.user import User
+
+    payments = (
+        db.query(Payment).order_by(Payment.created_at.desc()).all()
+    )
+
+    result = []
+    for p in payments:
+        booking = (
+            db.query(Booking).filter(Booking.id == p.booking_id).first()
+        )
+        listing = (
+            db.query(Listing).filter(Listing.id == booking.listing_id).first()
+            if booking
+            else None
+        )
+        traveler = (
+            db.query(User).filter(User.id == p.user_id).first()
+        )
+        provider = (
+            db.query(User).filter(User.id == listing.owner_id).first()
+            if listing
+            else None
+        )
+
+        result.append({
+            "id": p.id,
+            "transaction_id": p.transaction_id,
+            "amount": p.amount,
+            "platform_commission": p.platform_commission,
+            "provider_amount": p.provider_amount,
+            "status": p.status,
+            "payment_method": p.payment_method,
+            "card_last4": p.card_last4,
+            "created_at": p.created_at.isoformat(),
+            "listing_title": listing.title if listing else "Unknown",
+            "traveler_name": traveler.full_name if traveler else "Unknown",
+            "traveler_email": traveler.email if traveler else "",
+            "provider_name": provider.full_name if provider else "Unknown",
+        })
+
+    total_volume = sum(p.amount for p in payments)
+    total_commission = sum(p.platform_commission for p in payments)
+    total_provider_paid = sum(p.provider_amount for p in payments)
+    return {
+        "payments": result,
+        "total_volume": total_volume,
+        "total_commission": total_commission,
+        "total_provider_payouts": total_provider_paid,
+        "total_transactions": len(payments),
+    }

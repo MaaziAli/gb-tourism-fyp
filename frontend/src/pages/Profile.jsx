@@ -534,10 +534,20 @@ export default function Profile() {
               emoji: '📅',
               path: '/my-bookings',
             },
+            role === 'user' && {
+              label: 'Payment History',
+              emoji: '💳',
+              path: '/my-spending',
+            },
             role === 'provider' && {
               label: 'My Services',
               emoji: '🏨',
               path: '/my-listings',
+            },
+            role === 'provider' && {
+              label: 'Payments Received',
+              emoji: '💰',
+              path: '/provider-payments',
             },
             role === 'provider' && {
               label: 'Analytics',

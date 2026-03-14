@@ -11,6 +11,8 @@ function AdminDashboard() {
   const [userSearch, setUserSearch] = useState('')
   const [reviews, setReviews] = useState([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [payments, setPayments] = useState(null)
+  const [paymentsLoading, setPaymentsLoading] = useState(false)
 
   useEffect(() => {
     const loadAll = async () => {
@@ -43,6 +45,9 @@ function AdminDashboard() {
     if (activeSection === 'reviews') {
       fetchReviews()
     }
+    if (activeSection === 'payments') {
+      fetchPayments()
+    }
   }, [activeSection])
 
   async function fetchReviews() {
@@ -54,6 +59,18 @@ function AdminDashboard() {
       console.error('Failed to load reviews', err)
     } finally {
       setReviewsLoading(false)
+    }
+  }
+
+  async function fetchPayments() {
+    setPaymentsLoading(true)
+    try {
+      const res = await api.get('/payments/admin/all-payments')
+      setPayments(res.data)
+    } catch (err) {
+      console.error('Failed to load payments', err)
+    } finally {
+      setPaymentsLoading(false)
     }
   }
 
@@ -238,6 +255,22 @@ function AdminDashboard() {
             }}
           >
             Reviews
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('payments')}
+            style={{
+              textAlign: 'left',
+              padding: '8px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor:
+                activeSection === 'payments' ? '#1f2937' : 'transparent',
+              color: '#e5e7eb',
+            }}
+          >
+            💳 Payments
           </button>
         </nav>
       </aside>
@@ -1037,6 +1070,269 @@ function AdminDashboard() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeSection === 'payments' && (
+          <div>
+            <h2
+              style={{
+                margin: '0 0 20px',
+                color: 'var(--text-primary)',
+                fontSize: '1.4rem',
+                fontWeight: 800,
+              }}
+            >
+              💳 All Payments
+            </h2>
+
+            {paymentsLoading ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                Loading payments...
+              </div>
+            ) : payments ? (
+              <div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns:
+                      'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '14px',
+                    marginBottom: '24px',
+                  }}
+                >
+                  {[
+                    {
+                      label: 'Total Volume',
+                      value:
+                        'PKR ' +
+                        payments.total_volume?.toLocaleString(
+                          'en-PK',
+                        ),
+                      color: 'var(--accent)',
+                      icon: '💰',
+                    },
+                    {
+                      label: 'Commission Earned',
+                      value:
+                        'PKR ' +
+                        payments.total_commission?.toLocaleString(
+                          'en-PK',
+                        ),
+                      color: '#16a34a',
+                      icon: '🏦',
+                    },
+                    {
+                      label: 'Provider Payouts',
+                      value:
+                        'PKR ' +
+                        payments.total_provider_payouts?.toLocaleString(
+                          'en-PK',
+                        ),
+                      color: '#d97706',
+                      icon: '📤',
+                    },
+                    {
+                      label: 'Transactions',
+                      value: payments.total_transactions,
+                      color: '#7c3aed',
+                      icon: '🔢',
+                    },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      style={{
+                        background: 'var(--bg-card)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-color)',
+                        padding: '16px 20px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '1.4rem',
+                          marginBottom: '6px',
+                        }}
+                      >
+                        {s.icon}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '1.2rem',
+                          fontWeight: 800,
+                          color: s.color,
+                        }}
+                      >
+                        {s.value}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.78rem',
+                          color: 'var(--text-secondary)',
+                          marginTop: '3px',
+                        }}
+                      >
+                        {s.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {payments.payments?.length === 0 ? (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '40px',
+                      background: 'var(--bg-card)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    No payments yet
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background: 'var(--bg-card)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                          '2fr 1.5fr 1fr 1fr 1fr 0.8fr',
+                        padding: '10px 20px',
+                        borderBottom:
+                          '1px solid var(--border-color)',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      <span>Service</span>
+                      <span>Traveler</span>
+                      <span>Amount</span>
+                      <span>Commission</span>
+                      <span>Provider Gets</span>
+                      <span>Method</span>
+                    </div>
+
+                    {payments.payments.map((p, i) => (
+                      <div
+                        key={p.id}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns:
+                            '2fr 1.5fr 1fr 1fr 1fr 0.8fr',
+                          padding: '14px 20px',
+                          borderBottom:
+                            i < payments.payments.length - 1
+                              ? '1px solid var(--border-color)'
+                              : 'none',
+                          alignItems: 'center',
+                          fontSize: '0.85rem',
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {p.listing_title}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.72rem',
+                              color: 'var(--text-muted)',
+                              fontFamily: 'monospace',
+                            }}
+                          >
+                            {p.transaction_id}
+                          </div>
+                        </div>
+                        <div>
+                          <div
+                            style={{
+                              color: 'var(--text-primary)',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {p.traveler_name}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.72rem',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            {p.traveler_email}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          PKR{' '}
+                          {p.amount?.toLocaleString('en-PK')}
+                        </span>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: '#16a34a',
+                          }}
+                        >
+                          PKR{' '}
+                          {p.platform_commission?.toLocaleString(
+                            'en-PK',
+                          )}
+                        </span>
+                        <span
+                          style={{
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
+                          PKR{' '}
+                          {p.provider_amount?.toLocaleString(
+                            'en-PK',
+                          )}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
+                          {p.payment_method === 'card'
+                            ? '💳 ' +
+                              (p.card_last4
+                                ? '••' + p.card_last4
+                                : 'Card')
+                            : p.payment_method === 'jazzcash'
+                              ? '📱 JazzCash'
+                              : '💚 EasyPaisa'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         )}
       </main>

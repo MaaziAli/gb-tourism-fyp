@@ -19,6 +19,8 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import ListingDetail from './pages/ListingDetail'
 import ProviderAnalytics from './pages/ProviderAnalytics'
 import PaymentPage from './pages/PaymentPage'
+import PaymentHistory from './pages/PaymentHistory'
+import ProviderPayments from './pages/ProviderPayments'
 
 function App() {
   return (
@@ -38,6 +40,22 @@ function App() {
             element={
               <PrivateRoute>
                 <MyBookings />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/my-spending"
+            element={
+              <PrivateRoute>
+                <PaymentHistory />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/provider-payments"
+            element={
+              <PrivateRoute>
+                <ProviderPayments />
               </PrivateRoute>
             }
           />
