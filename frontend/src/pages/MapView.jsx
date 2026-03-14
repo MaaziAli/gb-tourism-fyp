@@ -161,79 +161,75 @@ export default function MapView() {
 
       const icon = L.divIcon({
         className: '',
-        html: `
-          <div style="
-            background: ${color};
-            color: white;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            width: 36px; height: 36px;
-            display: flex; align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            border: 2px solid white;
-            font-size: 1rem;
-          ">
-            <span style="transform: rotate(45deg)">
-              ${emoji}
-            </span>
-          </div>
-        `,
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -36],
+        html: '<div style="'
+          + 'background:' + color + ';'
+          + 'color:white;'
+          + 'border-radius:50% 50% 50% 0;'
+          + 'transform:rotate(-45deg);'
+          + 'width:32px;height:32px;'
+          + 'display:flex;align-items:center;'
+          + 'justify-content:center;'
+          + 'box-shadow:0 2px 8px rgba(0,0,0,0.3);'
+          + 'border:2px solid white;'
+          + 'font-size:0.9rem;">'
+          + '<span style="transform:rotate(45deg)">'
+          + emoji
+          + '</span>'
+          + '</div>',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32],
       })
 
       const marker = L.marker(coords, { icon })
 
-      const price =
-        listing.price_per_night?.toLocaleString('en-PK') || '—'
-      const rating = listing.average_rating
-        ? `⭐ ${listing.average_rating.toFixed(1)}`
+      const ratingText = listing.average_rating
+        ? listing.average_rating.toFixed(1) + ' stars'
         : 'No reviews'
 
-      const popup = L.popup({ maxWidth: 220 }).setContent(`
-        <div style="font-family: system-ui, sans-serif;">
-          <img
-            src="${
-              listing.image_url
-                ? \`http://127.0.0.1:8000/uploads/\${listing.image_url}\`
-                : 'https://placehold.co/220x120/e5e7eb/9ca3af?text=GB+Tourism'
-            }"
-            style="width:100%;height:100px;object-fit:cover;
-                   border-radius:6px;margin-bottom:8px;display:block"
-            onerror="this.src='https://placehold.co/220x120/e5e7eb/9ca3af?text=GB+Tourism'"
-          />
-          <div style="font-weight:700;font-size:0.9rem;
-                      margin-bottom:4px;color:#111827">
-            ${listing.title}
-          </div>
-          <div style="font-size:0.8rem;color:#6b7280;
-                      margin-bottom:4px">
-            📍 ${listing.location}
-          </div>
-          <div style="display:flex;justify-content:space-between;
-                      align-items:center;margin-bottom:8px">
-            <span style="font-weight:700;color:#0ea5e9;
-                         font-size:0.875rem">
-              PKR ${price}/night
-            </span>
-            <span style="font-size:0.8rem;color:#6b7280">
-              ${rating}
-            </span>
-          </div>
-          <a href="/listing/${listing.id}"
-            onclick="event.preventDefault();
-                     window.location.href='/listing/${listing.id}'"
-            style="display:block;text-align:center;
-                   background:#0ea5e9;color:white;
-                   padding:7px;border-radius:6px;
-                   text-decoration:none;font-size:0.85rem;
-                   font-weight:600">
-            View Details →
-          </a>
-        </div>
-      `)
+      const price = listing.price_per_night
+        ?.toLocaleString('en-PK') || '0'
+
+      const imgSrc = listing.image_url
+        ? 'http://127.0.0.1:8000/uploads/' + listing.image_url
+        : 'https://placehold.co/220x120/e5e7eb/9ca3af?text=GB'
+
+      const popupHtml = '<div style="font-family:system-ui,sans-serif;'
+        + 'min-width:180px">'
+        + '<img src="' + imgSrc + '"'
+        + ' style="width:100%;height:90px;object-fit:cover;'
+        + 'border-radius:6px;margin-bottom:8px;display:block"'
+        + ' onerror="this.onerror=null;this.src='
+        + "'https://placehold.co/220x90/e5e7eb/9ca3af?text=GB'\""
+        + '/>'
+        + '<div style="font-weight:700;font-size:0.875rem;'
+        + 'color:#111827;margin-bottom:4px">'
+        + listing.title
+        + '</div>'
+        + '<div style="font-size:0.78rem;color:#6b7280;'
+        + 'margin-bottom:4px">Location: '
+        + listing.location
+        + '</div>'
+        + '<div style="display:flex;justify-content:space-between;'
+        + 'align-items:center;margin-bottom:8px">'
+        + '<span style="font-weight:700;color:#0ea5e9;'
+        + 'font-size:0.85rem">PKR ' + price + '/night</span>'
+        + '<span style="font-size:0.78rem;color:#6b7280">'
+        + ratingText + '</span>'
+        + '</div>'
+        + '<a href="/listing/' + listing.id + '"'
+        + ' onclick="event.preventDefault();'
+        + 'window.location.href=\'/listing/' + listing.id + '\'"'
+        + ' style="display:block;text-align:center;'
+        + 'background:#0ea5e9;color:white;padding:7px;'
+        + 'border-radius:6px;text-decoration:none;'
+        + 'font-size:0.85rem;font-weight:600">'
+        + 'View Details'
+        + '</a>'
+        + '</div>'
+
+      const popup = L.popup({ maxWidth: 220 })
+        .setContent(popupHtml)
 
       marker.bindPopup(popup)
       marker.on('click', () => setSelected(listing))
