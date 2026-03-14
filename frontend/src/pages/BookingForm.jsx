@@ -17,8 +17,22 @@ export default function BookingForm() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [roomPrice, setRoomPrice] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
+
+  useEffect(() => {
+    if (roomTypeId && listingId) {
+      api.get('/room-types/' + listingId)
+        .then(res => {
+          const room = res.data.find(
+            r => r.id === parseInt(roomTypeId, 10)
+          )
+          if (room) setRoomPrice(room.price_per_night)
+        })
+        .catch(console.error)
+    }
+  }, [roomTypeId, listingId])
 
   useEffect(() => {
     if (!listingId) {
@@ -36,17 +50,19 @@ export default function BookingForm() {
   }, [listingId])
 
   useEffect(() => {
+    const pricePerNight = roomPrice ?? listing?.price_per_night ?? 0
     if (checkIn && checkOut && checkIn < checkOut) {
-      const d1 = new Date(checkIn)
-      const d2 = new Date(checkOut)
-      const n = Math.round((d2 - d1) / (1000 * 60 * 60 * 24))
+      const n = Math.round(
+        (new Date(checkOut) - new Date(checkIn))
+        / (1000 * 60 * 60 * 24)
+      )
       setNights(n)
-      setTotalPrice(n * (listing?.price_per_night || 0))
+      setTotalPrice(n * pricePerNight)
     } else {
       setNights(0)
       setTotalPrice(0)
     }
-  }, [checkIn, checkOut, listing])
+  }, [checkIn, checkOut, listing, roomPrice])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -265,7 +281,8 @@ export default function BookingForm() {
                   >
                     <span style={{ color: 'var(--text-secondary)' }}>
                       PKR{' '}
-                      {listing.price_per_night?.toLocaleString('en-PK')}{' '}
+                      {(roomPrice ?? listing?.price_per_night)
+                        ?.toLocaleString('en-PK')}{' '}
                       × {nights} night{nights > 1 ? 's' : ''}
                     </span>
                     <span
@@ -438,7 +455,8 @@ export default function BookingForm() {
                     color: 'var(--accent)',
                   }}
                 >
-                  PKR {listing.price_per_night?.toLocaleString('en-PK')}
+                  PKR {(roomPrice ?? listing?.price_per_night)
+                    ?.toLocaleString('en-PK')}
                 </span>
               </div>
               {nights > 0 && (
