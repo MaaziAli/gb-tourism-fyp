@@ -14,205 +14,218 @@ function getServiceBadge(type) {
 }
 
 const FEATURES = [
-  {
-    emoji: '🏨',
-    title: 'Hotels & Stays',
-    desc: 'From budget guesthouses to luxury resorts across all of Gilgit-Baltistan'
-  },
-  {
-    emoji: '🏔️',
-    title: 'Tours & Treks',
-    desc: 'Guided mountain tours, glacier treks, and cultural experiences'
-  },
-  {
-    emoji: '🚐',
-    title: 'Transport',
-    desc: 'Jeep rides, shared vans, and private transfers between destinations'
-  },
-  {
-    emoji: '🎯',
-    title: 'Activities',
-    desc: 'Fishing, jeep safaris, polo matches, and local adventure sports'
-  },
+  { emoji: '🏨', title: 'Hotels & Stays',
+    desc: 'Budget guesthouses to luxury resorts',
+    color: '#2563eb' },
+  { emoji: '🏔️', title: 'Tours & Treks',
+    desc: 'Guided mountain & glacier experiences',
+    color: '#16a34a' },
+  { emoji: '🚐', title: 'Transport',
+    desc: 'Jeep rides & private transfers',
+    color: '#d97706' },
+  { emoji: '🎯', title: 'Activities',
+    desc: 'Fishing, polo, jeep safaris & more',
+    color: '#7c3aed' },
 ]
 
 const DESTINATIONS = [
-  { name: 'Hunza Valley', desc: 'Cherry blossoms & Karimabad Fort', emoji: '🌸' },
-  { name: 'Skardu', desc: 'Gateway to K2 & Deosai Plains', emoji: '🏔️' },
-  { name: 'Gilgit', desc: 'Capital city & cultural hub', emoji: '🌆' },
-  { name: 'Nagar', desc: 'Glaciers & traditional villages', emoji: '🧊' },
-  { name: 'Astore', desc: 'Remote valleys & scenic drives', emoji: '🛣️' },
-  { name: 'Ghizer', desc: 'Phander Lake & pine forests', emoji: '🌲' },
+  { name: 'Hunza Valley', desc: 'Cherry blossoms & forts', emoji: '🌸', color: '#fdf2f8' },
+  { name: 'Skardu', desc: 'Gateway to K2', emoji: '🏔️', color: '#f0f9ff' },
+  { name: 'Gilgit', desc: 'Cultural capital', emoji: '🌆', color: '#f0fdf4' },
+  { name: 'Nagar', desc: 'Glaciers & villages', emoji: '🧊', color: '#eff6ff' },
+  { name: 'Astore', desc: 'Remote scenic valleys', emoji: '🛣️', color: '#fefce8' },
+  { name: 'Ghizer', desc: 'Phander Lake & forests', emoji: '🌲', color: '#f0fdf4' },
 ]
 
 export default function Home() {
   const [featuredListings, setFeaturedListings] = useState([])
-  const [stats, setStats] = useState({
-    listings: 0, locations: 0
-  })
+  const [stats, setStats] = useState({ listings: 0, locations: 0 })
   const navigate = useNavigate()
 
   useEffect(() => {
     api.get('/listings').then(res => {
       const data = res.data || []
       setFeaturedListings(data.slice(0, 6))
-      const locations = new Set(
+      const locs = new Set(
         data.map(l => l.location?.split(',')[0]?.trim())
       ).size
-      setStats({ listings: data.length, locations })
+      setStats({ listings: data.length, locations: locs })
     }).catch(() => {})
   }, [])
 
   return (
     <div style={{
-      background: 'var(--bg-primary)',
-      minHeight: '100vh'
+      background: '#0a0f1e',
+      minHeight: '100vh', fontFamily: 'var(--font-primary)'
     }}>
 
-      {/* ============ HERO ============ */}
+      {/* ══════════════════════════════════════
+          HERO — Full dark immersive section
+      ══════════════════════════════════════ */}
       <div style={{
         background:
-          'linear-gradient(135deg, #0f2340 0%, #1e3a5f 50%, #0ea5e9 100%)',
-        padding: '80px 16px 100px',
+          'linear-gradient(160deg, #0a0f1e 0%, #0f2340 40%, #0c3460 70%, #0ea5e9 100%)',
+        padding: '72px 16px 120px',
         position: 'relative', overflow: 'hidden'
       }}>
-        {/* Decorative circles */}
+        {/* Glowing orbs */}
         <div style={{
-          position: 'absolute', top: '-80px', right: '-80px',
-          width: 320, height: 320, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.04)',
+          position: 'absolute', top: '10%', right: '8%',
+          width: 400, height: 400, borderRadius: '50%',
+          background:
+            'radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 70%)',
           pointerEvents: 'none'
         }} />
         <div style={{
-          position: 'absolute', bottom: '-60px', left: '-60px',
-          width: 240, height: 240, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.04)',
+          position: 'absolute', bottom: '5%', left: '5%',
+          width: 300, height: 300, borderRadius: '50%',
+          background:
+            'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)',
           pointerEvents: 'none'
         }} />
 
         <div style={{
-          maxWidth: '720px', margin: '0 auto',
-          textAlign: 'center', position: 'relative'
+          maxWidth: '760px', margin: '0 auto',
+          textAlign: 'center', position: 'relative', zIndex: 1
         }}>
-          {/* Badge */}
+          {/* Pill badge */}
           <div style={{
             display: 'inline-flex', alignItems: 'center',
             gap: '8px',
-            background: 'rgba(255,255,255,0.12)',
-            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(14,165,233,0.15)',
+            border: '1px solid rgba(14,165,233,0.35)',
             borderRadius: '999px',
-            padding: '7px 18px', marginBottom: '24px',
-            fontSize: '0.85rem', fontWeight: 600,
-            color: 'white'
+            padding: '8px 20px', marginBottom: '28px',
+            fontSize: '0.82rem', fontWeight: 700,
+            color: '#7dd3fc', letterSpacing: '0.05em',
+            textTransform: 'uppercase'
           }}>
-            🏔️ Gilgit-Baltistan Travel Platform
+            ✦ Pakistan's #1 GB Travel Platform
           </div>
 
-          {/* Headline */}
+          {/* Main headline */}
           <h1 style={{
-            color: 'white', margin: '0 0 20px',
-            fontSize: 'clamp(2rem, 5vw, 3rem)',
-            fontWeight: 800, lineHeight: 1.2,
+            margin: '0 0 22px',
+            fontSize: 'clamp(2.2rem, 6vw, 3.6rem)',
+            fontWeight: 800, lineHeight: 1.15,
             letterSpacing: '-0.03em'
           }}>
-            Discover the Roof
+            <span style={{ color: 'white' }}>
+              Discover the
+            </span>
             <br />
             <span style={{
               background:
-                'linear-gradient(90deg, #7dd3fc, #38bdf8)',
+                'linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8)',
+              backgroundSize: '200%',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
             }}>
-              of the World
+              Roof of the World
             </span>
           </h1>
 
           <p style={{
-            color: 'rgba(255,255,255,0.75)',
-            margin: '0 0 36px',
-            fontSize: '1.1rem', lineHeight: 1.7,
-            maxWidth: '520px', marginLeft: 'auto',
-            marginRight: 'auto'
+            color: 'rgba(255,255,255,0.6)',
+            margin: '0 auto 40px',
+            fontSize: '1.1rem', lineHeight: 1.75,
+            maxWidth: '520px'
           }}>
-            Book hotels, tours, transport and activities
-            across Gilgit-Baltistan — all in one place.
+            Book hotels, tours, transport & activities across
+            Gilgit-Baltistan. Your complete journey,
+            planned in minutes.
           </p>
 
           {/* CTA buttons */}
           <div style={{
-            display: 'flex', gap: '12px',
-            justifyContent: 'center', flexWrap: 'wrap'
+            display: 'flex', gap: '14px',
+            justifyContent: 'center', flexWrap: 'wrap',
+            marginBottom: '56px'
           }}>
             <button
               onClick={() => navigate('/listings')}
               style={{
-                background: 'white',
-                color: '#1e3a5f',
-                border: 'none', borderRadius: '12px',
-                padding: '14px 32px',
+                background:
+                  'linear-gradient(135deg, #0ea5e9, #6366f1)',
+                color: 'white', border: 'none',
+                borderRadius: '14px',
+                padding: '15px 36px',
                 fontWeight: 800, fontSize: '1rem',
                 cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-                transition: 'transform 0.2s'
+                boxShadow:
+                  '0 8px 32px rgba(14,165,233,0.35)',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                letterSpacing: '-0.01em'
               }}
-              onMouseEnter={e =>
+              onMouseEnter={e => {
                 e.target.style.transform = 'translateY(-2px)'
-              }
-              onMouseLeave={e =>
+                e.target.style.boxShadow =
+                  '0 12px 40px rgba(14,165,233,0.5)'
+              }}
+              onMouseLeave={e => {
                 e.target.style.transform = 'translateY(0)'
-              }
+                e.target.style.boxShadow =
+                  '0 8px 32px rgba(14,165,233,0.35)'
+              }}
             >
-              Explore Stays →
+              Explore Stays & Experiences →
             </button>
             <button
               onClick={() => navigate('/map')}
               style={{
-                background: 'rgba(255,255,255,0.15)',
+                background: 'rgba(255,255,255,0.07)',
                 color: 'white',
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderRadius: '12px',
-                padding: '14px 32px',
-                fontWeight: 700, fontSize: '1rem',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '14px',
+                padding: '15px 28px',
+                fontWeight: 600, fontSize: '1rem',
                 cursor: 'pointer',
-                transition: 'transform 0.2s'
+                transition: 'background 0.2s'
               }}
               onMouseEnter={e =>
-                e.target.style.transform = 'translateY(-2px)'
+                e.target.style.background =
+                  'rgba(255,255,255,0.12)'
               }
               onMouseLeave={e =>
-                e.target.style.transform = 'translateY(0)'
+                e.target.style.background =
+                  'rgba(255,255,255,0.07)'
               }
             >
-              📍 View Map
+              📍 View on Map
             </button>
           </div>
 
-          {/* Stats row */}
+          {/* Stats */}
           <div style={{
-            display: 'flex', gap: '32px',
-            justifyContent: 'center',
-            marginTop: '48px', flexWrap: 'wrap'
+            display: 'inline-flex', gap: '0',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '16px', overflow: 'hidden'
           }}>
             {[
-              { value: stats.listings + '+', label: 'Services Listed' },
-              { value: stats.locations + '+', label: 'Locations' },
-              { value: '4', label: 'Service Types' },
-            ].map(stat => (
-              <div key={stat.label} style={{
-                textAlign: 'center'
+              { v: stats.listings + '+', l: 'Services' },
+              { v: stats.locations + '+', l: 'Locations' },
+              { v: '4', l: 'Categories' },
+              { v: '100%', l: 'GB Coverage' },
+            ].map((s, i, arr) => (
+              <div key={s.l} style={{
+                padding: '16px 28px', textAlign: 'center',
+                borderRight: i < arr.length - 1
+                  ? '1px solid rgba(255,255,255,0.08)'
+                  : 'none'
               }}>
                 <div style={{
-                  fontSize: '1.8rem', fontWeight: 800,
+                  fontSize: '1.4rem', fontWeight: 800,
                   color: 'white', lineHeight: 1
                 }}>
-                  {stat.value}
+                  {s.v}
                 </div>
                 <div style={{
-                  fontSize: '0.8rem',
-                  color: 'rgba(255,255,255,0.65)',
-                  marginTop: '4px'
+                  fontSize: '0.72rem',
+                  color: 'rgba(255,255,255,0.45)',
+                  marginTop: '4px', fontWeight: 500
                 }}>
-                  {stat.label}
+                  {s.l}
                 </div>
               </div>
             ))}
@@ -220,123 +233,159 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ============ FEATURES ============ */}
+      {/* ══════════════════════════════════════
+          SERVICE CATEGORIES
+      ══════════════════════════════════════ */}
       <div style={{
-        maxWidth: '1000px', margin: '0 auto',
-        padding: '64px 16px'
+        background: '#0d1220',
+        padding: '80px 16px'
       }}>
-        <div style={{textAlign: 'center', marginBottom: '40px'}}>
-          <h2 style={{
-            margin: '0 0 10px', fontSize: '1.7rem',
-            fontWeight: 800, color: 'var(--text-primary)',
-            letterSpacing: '-0.02em'
-          }}>
-            Everything You Need
-          </h2>
-          <p style={{
-            margin: 0, color: 'var(--text-secondary)',
-            fontSize: '0.95rem'
-          }}>
-            One platform for your entire GB journey
-          </p>
-        </div>
-
         <div style={{
-          display: 'grid',
-          gridTemplateColumns:
-            'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '16px'
+          maxWidth: '1000px', margin: '0 auto'
         }}>
-          {FEATURES.map(f => (
-            <div key={f.title}
-              onClick={() => navigate('/listings')}
-              style={{
-                padding: '24px',
-                background: 'var(--bg-card)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-color)',
-                boxShadow: 'var(--shadow-sm)',
-                cursor: 'pointer',
-                transition: 'transform 0.18s, box-shadow 0.18s'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform =
-                  'translateY(-4px)'
-                e.currentTarget.style.boxShadow =
-                  '0 8px 24px rgba(0,0,0,0.1)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform =
-                  'translateY(0)'
-                e.currentTarget.style.boxShadow =
-                  'var(--shadow-sm)'
-              }}
-            >
-              <div style={{
-                fontSize: '2rem', marginBottom: '12px'
-              }}>
-                {f.emoji}
+          <div style={{
+            textAlign: 'center', marginBottom: '48px'
+          }}>
+            <h2 style={{
+              margin: '0 0 12px',
+              fontSize: '1.9rem', fontWeight: 800,
+              color: 'white', letterSpacing: '-0.02em'
+            }}>
+              Everything You Need
+            </h2>
+            <p style={{
+              margin: 0,
+              color: 'rgba(255,255,255,0.45)',
+              fontSize: '1rem'
+            }}>
+              One platform for your entire GB journey
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '16px'
+          }}>
+            {FEATURES.map(f => (
+              <div key={f.title}
+                onClick={() => navigate('/listings')}
+                style={{
+                  padding: '28px 24px',
+                  background: 'rgba(255,255,255,0.04)',
+                  borderRadius: '20px',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  cursor: 'pointer',
+                  transition: 'all 0.22s'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background =
+                    'rgba(255,255,255,0.08)'
+                  e.currentTarget.style.transform =
+                    'translateY(-4px)'
+                  e.currentTarget.style.borderColor =
+                    f.color + '66'
+                  e.currentTarget.style.boxShadow =
+                    '0 16px 40px rgba(0,0,0,0.3)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background =
+                    'rgba(255,255,255,0.04)'
+                  e.currentTarget.style.transform =
+                    'translateY(0)'
+                  e.currentTarget.style.borderColor =
+                    'rgba(255,255,255,0.08)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                <div style={{
+                  width: 52, height: 52,
+                  borderRadius: '14px',
+                  background: f.color + '22',
+                  border: '1px solid ' + f.color + '44',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem', marginBottom: '16px'
+                }}>
+                  {f.emoji}
+                </div>
+                <h3 style={{
+                  margin: '0 0 8px', fontWeight: 700,
+                  fontSize: '1rem', color: 'white'
+                }}>
+                  {f.title}
+                </h3>
+                <p style={{
+                  margin: 0, fontSize: '0.85rem',
+                  color: 'rgba(255,255,255,0.45)',
+                  lineHeight: 1.6
+                }}>
+                  {f.desc}
+                </p>
               </div>
-              <h3 style={{
-                margin: '0 0 8px', fontWeight: 700,
-                fontSize: '1rem',
-                color: 'var(--text-primary)'
-              }}>
-                {f.title}
-              </h3>
-              <p style={{
-                margin: 0, fontSize: '0.85rem',
-                color: 'var(--text-secondary)',
-                lineHeight: 1.6
-              }}>
-                {f.desc}
-              </p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ============ FEATURED LISTINGS ============ */}
+      {/* ══════════════════════════════════════
+          FEATURED LISTINGS
+      ══════════════════════════════════════ */}
       {featuredListings.length > 0 && (
         <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '64px 16px'
+          background: '#080d18',
+          padding: '80px 16px'
         }}>
           <div style={{
             maxWidth: '1100px', margin: '0 auto'
           }}>
             <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              alignItems: 'center', marginBottom: '32px',
-              flexWrap: 'wrap', gap: '12px'
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-end',
+              marginBottom: '40px',
+              flexWrap: 'wrap', gap: '16px'
             }}>
               <div>
+                <p style={{
+                  margin: '0 0 8px', fontSize: '0.8rem',
+                  color: '#0ea5e9', fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase'
+                }}>
+                  ✦ Handpicked for you
+                </p>
                 <h2 style={{
-                  margin: '0 0 6px', fontSize: '1.7rem',
-                  fontWeight: 800,
-                  color: 'var(--text-primary)',
+                  margin: 0, fontSize: '1.9rem',
+                  fontWeight: 800, color: 'white',
                   letterSpacing: '-0.02em'
                 }}>
                   Featured Services
                 </h2>
-                <p style={{
-                  margin: 0,
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.9rem'
-                }}>
-                  Handpicked stays and experiences
-                </p>
               </div>
               <button
                 onClick={() => navigate('/listings')}
                 style={{
-                  background: 'var(--bg-card)',
-                  color: 'var(--accent)',
-                  border: '1px solid var(--border-color)',
+                  background: 'transparent',
+                  color: '#38bdf8',
+                  border: '1px solid rgba(56,189,248,0.3)',
                   borderRadius: '10px',
-                  padding: '10px 20px',
-                  cursor: 'pointer', fontWeight: 700,
-                  fontSize: '0.875rem'
+                  padding: '10px 22px',
+                  cursor: 'pointer', fontWeight: 600,
+                  fontSize: '0.875rem',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => {
+                  e.target.style.background =
+                    'rgba(56,189,248,0.08)'
+                  e.target.style.borderColor =
+                    'rgba(56,189,248,0.6)'
+                }}
+                onMouseLeave={e => {
+                  e.target.style.background = 'transparent'
+                  e.target.style.borderColor =
+                    'rgba(56,189,248,0.3)'
                 }}
               >
                 View All →
@@ -358,25 +407,27 @@ export default function Home() {
                       navigate(`/listing/${listing.id}`)
                     }
                     style={{
-                      background: 'var(--bg-card)',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-color)',
+                      background: 'rgba(255,255,255,0.04)',
+                      borderRadius: '20px',
+                      border: '1px solid rgba(255,255,255,0.08)',
                       overflow: 'hidden', cursor: 'pointer',
-                      boxShadow: 'var(--shadow-sm)',
-                      transition:
-                        'transform 0.18s, box-shadow 0.18s'
+                      transition: 'all 0.22s'
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.transform =
-                        'translateY(-4px)'
+                        'translateY(-6px)'
+                      e.currentTarget.style.borderColor =
+                        'rgba(14,165,233,0.4)'
                       e.currentTarget.style.boxShadow =
-                        '0 12px 32px rgba(0,0,0,0.1)'
+                        '0 20px 50px rgba(0,0,0,0.4)'
                     }}
                     onMouseLeave={e => {
                       e.currentTarget.style.transform =
                         'translateY(0)'
+                      e.currentTarget.style.borderColor =
+                        'rgba(255,255,255,0.08)'
                       e.currentTarget.style.boxShadow =
-                        'var(--shadow-sm)'
+                        'none'
                     }}
                   >
                     <div style={{position: 'relative'}}>
@@ -386,17 +437,23 @@ export default function Home() {
                         onError={e => {
                           e.target.onerror = null
                           e.target.src =
-                            'https://placehold.co/400x220/e5e7eb/9ca3af?text=GB+Tourism'
+                            'https://placehold.co/400x220/1e3a5f/7dd3fc?text=GB+Tourism'
                         }}
                         style={{
                           width: '100%', height: '200px',
                           objectFit: 'cover', display: 'block'
                         }}
                       />
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        background:
+                          'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)'
+                      }} />
                       <span style={{
                         position: 'absolute',
                         top: '12px', left: '12px',
-                        background: badge.bg, color: 'white',
+                        background: badge.bg + 'ee',
+                        color: 'white',
                         padding: '4px 10px',
                         borderRadius: '999px',
                         fontSize: '0.72rem', fontWeight: 700
@@ -408,6 +465,7 @@ export default function Home() {
                           position: 'absolute',
                           top: '12px', right: '12px',
                           background: 'rgba(0,0,0,0.6)',
+                          backdropFilter: 'blur(4px)',
                           color: 'white',
                           padding: '4px 10px',
                           borderRadius: '999px',
@@ -420,8 +478,7 @@ export default function Home() {
                     <div style={{padding: '16px'}}>
                       <h3 style={{
                         margin: '0 0 6px', fontWeight: 700,
-                        fontSize: '1rem',
-                        color: 'var(--text-primary)',
+                        fontSize: '1rem', color: 'white',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
@@ -429,9 +486,9 @@ export default function Home() {
                         {listing.title}
                       </h3>
                       <p style={{
-                        margin: '0 0 12px',
+                        margin: '0 0 14px',
                         fontSize: '0.85rem',
-                        color: 'var(--text-secondary)'
+                        color: 'rgba(255,255,255,0.45)'
                       }}>
                         📍 {listing.location}
                       </p>
@@ -440,29 +497,41 @@ export default function Home() {
                         justifyContent: 'space-between',
                         alignItems: 'center'
                       }}>
-                        <span style={{
-                          fontSize: '1.1rem', fontWeight: 800,
-                          color: 'var(--accent)'
-                        }}>
-                          PKR {listing.price_per_night
-                            ?.toLocaleString('en-PK')}
+                        <div>
+                          <span style={{
+                            fontSize: '1.1rem', fontWeight: 800,
+                            color: '#38bdf8'
+                          }}>
+                            PKR {listing.price_per_night
+                              ?.toLocaleString('en-PK')}
+                          </span>
                           <span style={{
                             fontSize: '0.78rem',
-                            fontWeight: 400,
-                            color: 'var(--text-muted)'
+                            color: 'rgba(255,255,255,0.35)'
                           }}>
                             {' '}/night
                           </span>
-                        </span>
-                        <span style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)'
-                        }}>
-                          {listing.review_count > 0
-                            ? `${listing.review_count} reviews`
-                            : 'No reviews'
-                          }
-                        </span>
+                        </div>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation()
+                            navigate('/listings')
+                          }}
+                          style={{
+                            background:
+                              'rgba(14,165,233,0.15)',
+                            color: '#38bdf8',
+                            border:
+                              '1px solid rgba(14,165,233,0.3)',
+                            borderRadius: '8px',
+                            padding: '6px 14px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: '0.8rem'
+                          }}
+                        >
+                          View →
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -473,195 +542,258 @@ export default function Home() {
         </div>
       )}
 
-      {/* ============ DESTINATIONS ============ */}
+      {/* ══════════════════════════════════════
+          DESTINATIONS
+      ══════════════════════════════════════ */}
       <div style={{
-        maxWidth: '1000px', margin: '0 auto',
-        padding: '64px 16px'
+        background: '#0d1220',
+        padding: '80px 16px'
       }}>
-        <div style={{textAlign: 'center', marginBottom: '40px'}}>
-          <h2 style={{
-            margin: '0 0 10px', fontSize: '1.7rem',
-            fontWeight: 800, color: 'var(--text-primary)',
-            letterSpacing: '-0.02em'
-          }}>
-            Popular Destinations
-          </h2>
-        <p style={{
-            margin: 0, color: 'var(--text-secondary)',
-            fontSize: '0.95rem'
-          }}>
-            Explore the most beautiful valleys in the world
-          </p>
-        </div>
-
         <div style={{
-          display: 'grid',
-          gridTemplateColumns:
-            'repeat(auto-fill, minmax(160px, 1fr))',
-          gap: '12px'
+          maxWidth: '1000px', margin: '0 auto'
         }}>
-          {DESTINATIONS.map(d => (
-            <div key={d.name}
-              onClick={() => navigate('/listings')}
-              style={{
-                padding: '20px 16px',
-                background: 'var(--bg-card)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-color)',
-                textAlign: 'center', cursor: 'pointer',
-                transition: 'all 0.18s',
-                boxShadow: 'var(--shadow-sm)'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform =
-                  'translateY(-3px)'
-                e.currentTarget.style.borderColor =
-                  'var(--accent)'
-                e.currentTarget.style.boxShadow =
-                  '0 8px 20px rgba(14,165,233,0.15)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform =
-                  'translateY(0)'
-                e.currentTarget.style.borderColor =
-                  'var(--border-color)'
-                e.currentTarget.style.boxShadow =
-                  'var(--shadow-sm)'
-              }}
-            >
-              <div style={{
-                fontSize: '1.8rem', marginBottom: '8px'
-              }}>
-                {d.emoji}
+          <div style={{
+            textAlign: 'center', marginBottom: '48px'
+          }}>
+            <p style={{
+              margin: '0 0 10px', fontSize: '0.8rem',
+              color: '#0ea5e9', fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase'
+            }}>
+              ✦ Explore GB
+            </p>
+            <h2 style={{
+              margin: '0 0 12px', fontSize: '1.9rem',
+              fontWeight: 800, color: 'white',
+              letterSpacing: '-0.02em'
+            }}>
+              Popular Destinations
+            </h2>
+            <p style={{
+              margin: 0,
+              color: 'rgba(255,255,255,0.4)',
+              fontSize: '0.95rem'
+            }}>
+              The most breathtaking valleys on Earth
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(auto-fill, minmax(155px, 1fr))',
+            gap: '12px'
+          }}>
+            {DESTINATIONS.map(d => (
+              <div key={d.name}
+                onClick={() => navigate('/listings')}
+                style={{
+                  padding: '22px 16px',
+                  background: 'rgba(255,255,255,0.04)',
+                  borderRadius: '18px',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  textAlign: 'center', cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background =
+                    'rgba(14,165,233,0.1)'
+                  e.currentTarget.style.borderColor =
+                    'rgba(14,165,233,0.3)'
+                  e.currentTarget.style.transform =
+                    'translateY(-4px)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background =
+                    'rgba(255,255,255,0.04)'
+                  e.currentTarget.style.borderColor =
+                    'rgba(255,255,255,0.07)'
+                  e.currentTarget.style.transform =
+                    'translateY(0)'
+                }}
+              >
+                <div style={{
+                  fontSize: '1.8rem', marginBottom: '10px'
+                }}>
+                  {d.emoji}
+                </div>
+                <div style={{
+                  fontWeight: 700, fontSize: '0.875rem',
+                  color: 'white', marginBottom: '5px'
+                }}>
+                  {d.name}
+                </div>
+                <div style={{
+                  fontSize: '0.72rem',
+                  color: 'rgba(255,255,255,0.4)',
+                  lineHeight: 1.4
+                }}>
+                  {d.desc}
+                </div>
               </div>
-              <div style={{
-                fontWeight: 700, fontSize: '0.9rem',
-                color: 'var(--text-primary)',
-                marginBottom: '4px'
-              }}>
-                {d.name}
-              </div>
-              <div style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-                lineHeight: 1.4
-              }}>
-                {d.desc}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ============ CTA BANNER ============ */}
+      {/* ══════════════════════════════════════
+          CTA SECTION
+      ══════════════════════════════════════ */}
       <div style={{
         background:
-          'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
-        padding: '64px 16px', textAlign: 'center'
+          'linear-gradient(135deg, #0c1a35 0%, #0f2d5a 50%, #0369a1 100%)',
+        padding: '80px 16px', textAlign: 'center',
+        position: 'relative', overflow: 'hidden'
       }}>
-        <h2 style={{
-          color: 'white', margin: '0 0 12px',
-          fontSize: '1.8rem', fontWeight: 800,
-          letterSpacing: '-0.02em'
-        }}>
-          Ready to Explore GB?
-        </h2>
-        <p style={{
-          color: 'rgba(255,255,255,0.8)',
-          margin: '0 0 32px', fontSize: '1rem'
-        }}>
-          Join thousands of travelers discovering
-          Gilgit-Baltistan
-        </p>
         <div style={{
-          display: 'flex', gap: '12px',
-          justifyContent: 'center', flexWrap: 'wrap'
-        }}>
-          <button
-            onClick={() => navigate('/register')}
-            style={{
-              background: 'white', color: '#1e3a5f',
-              border: 'none', borderRadius: '12px',
-              padding: '14px 32px',
-              fontWeight: 800, fontSize: '1rem',
-              cursor: 'pointer'
-            }}
-          >
-            Get Started Free →
-          </button>
-          <button
-            onClick={() => navigate('/listings')}
-            style={{
-              background: 'rgba(255,255,255,0.15)',
-              color: 'white',
-              border: '2px solid rgba(255,255,255,0.3)',
-              borderRadius: '12px',
-              padding: '14px 32px',
-              fontWeight: 700, fontSize: '1rem',
-              cursor: 'pointer'
-            }}
-          >
-            Browse Without Account
-          </button>
+          position: 'absolute', inset: 0,
+          background:
+            'radial-gradient(ellipse at center, rgba(14,165,233,0.15) 0%, transparent 70%)',
+          pointerEvents: 'none'
+        }} />
+        <div style={{position: 'relative', zIndex: 1}}>
+          <div style={{
+            display: 'inline-block',
+            background: 'rgba(14,165,233,0.15)',
+            border: '1px solid rgba(14,165,233,0.3)',
+            borderRadius: '999px',
+            padding: '7px 20px', marginBottom: '24px',
+            fontSize: '0.82rem', fontWeight: 700,
+            color: '#7dd3fc'
+          }}>
+            🚀 Start Your Journey Today
+          </div>
+          <h2 style={{
+            color: 'white', margin: '0 0 14px',
+            fontSize: 'clamp(1.6rem, 4vw, 2.4rem)',
+            fontWeight: 800, letterSpacing: '-0.02em'
+          }}>
+            Ready to Explore GB?
+          </h2>
+          <p style={{
+            color: 'rgba(255,255,255,0.55)',
+            margin: '0 auto 36px',
+            fontSize: '1rem', maxWidth: '420px'
+          }}>
+            Join travelers discovering the world's most
+            spectacular mountain destination
+          </p>
+          <div style={{
+            display: 'flex', gap: '14px',
+            justifyContent: 'center', flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => navigate('/register')}
+              style={{
+                background:
+                  'linear-gradient(135deg, #0ea5e9, #6366f1)',
+                color: 'white', border: 'none',
+                borderRadius: '14px',
+                padding: '15px 36px',
+                fontWeight: 800, fontSize: '1rem',
+                cursor: 'pointer',
+                boxShadow:
+                  '0 8px 32px rgba(14,165,233,0.4)',
+                transition: 'transform 0.2s'
+              }}
+              onMouseEnter={e =>
+                e.target.style.transform = 'translateY(-2px)'
+              }
+              onMouseLeave={e =>
+                e.target.style.transform = 'translateY(0)'
+              }
+            >
+              Create Free Account →
+            </button>
+            <button
+              onClick={() => navigate('/listings')}
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                color: 'rgba(255,255,255,0.85)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '14px',
+                padding: '15px 28px',
+                fontWeight: 600, fontSize: '1rem',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e =>
+                e.target.style.background =
+                  'rgba(255,255,255,0.12)'
+              }
+              onMouseLeave={e =>
+                e.target.style.background =
+                  'rgba(255,255,255,0.07)'
+              }
+            >
+              Browse Without Signing Up
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ============ FOOTER ============ */}
+      {/* ══════════════════════════════════════
+          FOOTER
+      ══════════════════════════════════════ */}
       <div style={{
-        background: '#0f2340',
-        padding: '32px 16px', textAlign: 'center'
+        background: '#060b14',
+        padding: '40px 16px',
+        borderTop: '1px solid rgba(255,255,255,0.06)'
       }}>
         <div style={{
-          fontSize: '1.3rem', fontWeight: 800,
-          color: 'white', marginBottom: '8px'
+          maxWidth: '900px', margin: '0 auto',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center', flexWrap: 'wrap',
+          gap: '20px'
         }}>
-          🏔️ GB Tourism
+          <div>
+            <div style={{
+              fontSize: '1.2rem', fontWeight: 800,
+              color: 'white', marginBottom: '4px'
+            }}>
+              🏔️ GB Tourism
+            </div>
+            <p style={{
+              color: 'rgba(255,255,255,0.3)',
+              margin: 0, fontSize: '0.8rem'
+            }}>
+              © 2026 GB Tourism. Built for Gilgit-Baltistan.
+            </p>
+          </div>
+          <div style={{
+            display: 'flex', gap: '24px', flexWrap: 'wrap'
+          }}>
+            {[
+              { label: 'Explore', path: '/listings' },
+              { label: 'Map View', path: '/map' },
+              { label: 'Register', path: '/register' },
+              { label: 'Login', path: '/login' },
+            ].map(l => (
+              <span key={l.path}
+                onClick={() => navigate(l.path)}
+                style={{
+                  color: 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer', fontSize: '0.875rem',
+                  fontWeight: 500,
+                  transition: 'color 0.15s'
+                }}
+                onMouseEnter={e =>
+                  e.target.style.color = 'white'
+                }
+                onMouseLeave={e =>
+                  e.target.style.color =
+                    'rgba(255,255,255,0.4)'
+                }
+              >
+                {l.label}
+              </span>
+            ))}
+          </div>
         </div>
-        <p style={{
-          color: 'rgba(255,255,255,0.5)',
-          margin: '0 0 16px', fontSize: '0.85rem'
-        }}>
-          Your complete travel companion for Gilgit-Baltistan
-        </p>
-        <div style={{
-          display: 'flex', gap: '20px',
-          justifyContent: 'center', flexWrap: 'wrap'
-        }}>
-          {[
-            { label: 'Explore', path: '/listings' },
-            { label: 'Map View', path: '/map' },
-            { label: 'Register', path: '/register' },
-            { label: 'Login', path: '/login' },
-          ].map(l => (
-            <span key={l.path}
-              onClick={() => navigate(l.path)}
-              style={{
-                color: 'rgba(255,255,255,0.6)',
-                cursor: 'pointer', fontSize: '0.85rem',
-                fontWeight: 500,
-                transition: 'color 0.15s'
-              }}
-              onMouseEnter={e =>
-                e.target.style.color = 'white'
-              }
-              onMouseLeave={e =>
-                e.target.style.color =
-                  'rgba(255,255,255,0.6)'
-              }
-            >
-              {l.label}
-            </span>
-          ))}
-        </div>
-        <p style={{
-          color: 'rgba(255,255,255,0.3)',
-          margin: '16px 0 0', fontSize: '0.75rem'
-        }}>
-          © 2025 GB Tourism. Built for Gilgit-Baltistan.
-        </p>
       </div>
 
     </div>
   )
 }
-
