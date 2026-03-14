@@ -1,319 +1,719 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
-import { logout } from '../utils/auth'
-import { getUser } from '../utils/role'
+import { getRole } from '../utils/role'
 
-function Profile() {
+export default function Profile() {
+  const [user, setUser] = useState(null)
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const [fullName, setFullName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState('')
+  const [showDelete, setShowDelete] = useState(false)
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [listingsCount, setListingsCount] = useState(0)
-  const [totalBookings, setTotalBookings] = useState(0)
+  const role = getRole() || 'user'
 
-  const user = getUser()
-  const fullName = user?.full_name || ''
-  const email = user?.email || ''
-  const role = user?.role || 'user'
-  const createdAt = user?.created_at || null
-
-  // Compute initials for avatar
-  const initials = fullName ? fullName.trim().charAt(0).toUpperCase() : 'U'
-
-  // Format "Member since ..."
-  let memberSince = ''
-  if (createdAt) {
-    const date = new Date(createdAt)
-    if (!Number.isNaN(date.getTime())) {
-      memberSince = `Member since ${date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-      })}`
-    }
-  }
-
-  const isProvider = role === 'provider'
-
-  // Provider stats
   useEffect(() => {
-    if (!isProvider) {
-      return
-    }
-    let cancelled = false
+    fetchProfile()
+    fetchStats()
+  }, [])
 
-    const loadStats = async () => {
-      try {
-        const [listingsRes, revenueRes] = await Promise.all([
-          api.get('/listings/me'),
-          api.get('/bookings/provider/revenue'),
-        ])
-        if (cancelled) return
-        setListingsCount(Array.isArray(listingsRes.data) ? listingsRes.data.length : 0)
-        setTotalBookings(revenueRes.data?.total_bookings ?? 0)
-      } catch (err) {
-        console.error('Failed to load provider stats', {
-          message: err.message,
-          status: err.response?.status,
-          data: err.response?.data,
-        })
-      }
-    }
-
-    loadStats()
-
-    return () => {
-      cancelled = true
-    }
-  }, [isProvider])
-
-  const handleDeleteAccount = async () => {
-    if (
-      !window.confirm(
-        'Are you absolutely sure? This action is permanent and cannot be undone.\n\n' +
-          'All your data will be deleted, and you will be logged out.',
-      )
-    ) {
-      return
-    }
-
-    setLoading(true)
-    setError('')
+  async function fetchProfile() {
     try {
-      await api.delete('/users/me')
-      await logout(navigate)
-      alert('Your account has been deleted.')
-    } catch (err) {
-      console.error('Delete account failed:', {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-      })
-      const msg =
-        err.response?.data?.detail ||
-        'Failed to delete account. Please try again later.'
-      setError(msg)
+      const res = await api.get('/users/me')
+      setUser(res.data)
+      setFullName(res.data.full_name)
+    } catch (e) {
+      console.error(e)
     } finally {
       setLoading(false)
     }
   }
 
-  const getRoleBadge = () => {
-    if (role === 'provider') {
-      return {
-        label: 'Service Provider',
-        style: {
-          backgroundColor: '#dbeafe',
-          color: '#1e40af',
-        },
+  async function fetchStats() {
+    try {
+      if (role === 'provider') {
+        const [listRes, bookRes] = await Promise.all([
+          api.get('/listings/me'),
+          api.get('/bookings/provider/revenue'),
+        ])
+        setStats({
+          listings: listRes.data.length,
+          revenue: bookRes.data.total_revenue || 0,
+        })
+      } else if (role === 'user') {
+        const res = await api.get('/bookings/me')
+        setStats({ bookings: res.data.length })
       }
-    }
-    if (role === 'admin') {
-      return {
-        label: 'Admin',
-        style: {
-          backgroundColor: '#fee2e2',
-          color: '#991b1b',
-        },
-      }
-    }
-    return {
-      label: 'Traveler',
-      style: {
-        backgroundColor: '#d1fae5',
-        color: '#065f46',
-      },
+    } catch (e) {
+      console.error(e)
     }
   }
 
-  const roleBadge = getRoleBadge()
+  async function handleSave() {
+    if (!fullName.trim()) return
+    setSaving(true)
+    setSaveMsg('')
+    try {
+      await api.put('/users/me', { full_name: fullName })
+      setUser((prev) => ({ ...prev, full_name: fullName }))
+      const stored = JSON.parse(
+        localStorage.getItem('user') || '{}',
+      )
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          ...stored,
+          full_name: fullName,
+        }),
+      )
+      setSaveMsg('✅ Name updated!')
+      setEditing(false)
+    } catch (e) {
+      setSaveMsg('❌ Update failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDeleteAccount() {
+    try {
+      await api.delete('/users/me')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      navigate('/register')
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  function getInitials(name) {
+    if (!name) return '?'
+    return name
+      .split(' ')
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  function getRoleLabel() {
+    switch (role) {
+      case 'admin':
+        return {
+          label: 'Administrator',
+          emoji: '🔑',
+          color: '#7c3aed',
+        }
+      case 'provider':
+        return {
+          label: 'Service Provider',
+          emoji: '🏨',
+          color: '#0369a1',
+        }
+      default:
+        return {
+          label: 'Traveler',
+          emoji: '🧳',
+          color: '#16a34a',
+        }
+    }
+  }
+
+  if (loading)
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: 'var(--bg-primary)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-secondary)',
+        }}
+      >
+        Loading profile...
+      </div>
+    )
+
+  const roleInfo = getRoleLabel()
 
   return (
     <div
-      className="page-container"
-      style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}
+      style={{
+        minHeight: '100vh',
+        background: 'var(--bg-primary)',
+        padding: '0 0 48px',
+      }}
     >
+      {/* Hero banner */}
       <div
         style={{
-          maxWidth: '600px',
-          margin: '40px auto',
-          padding: '20px',
-          backgroundColor: 'var(--bg-card)',
-          borderRadius: '8px',
-          boxShadow: 'var(--shadow-sm)',
-          border: '1px solid var(--border-color)',
+          background:
+            'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
+          padding: '40px 16px 80px',
         }}
       >
-      {/* Section 1 - User info */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <div
           style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            backgroundColor: 'var(--accent)',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '28px',
-            fontWeight: 600,
+            maxWidth: '680px',
+            margin: '0 auto',
+            textAlign: 'center',
           }}
         >
-          {initials}
+          <h1
+            style={{
+              color: 'white',
+              margin: '0 0 6px',
+              fontSize: '1.5rem',
+              fontWeight: 800,
+            }}
+          >
+            My Profile
+          </h1>
+          <p
+            style={{
+              color: 'rgba(255,255,255,0.75)',
+              margin: 0,
+              fontSize: '0.875rem',
+            }}
+          >
+            Manage your GB Tourism account
+          </p>
         </div>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1
+      </div>
+
+      <div
+        style={{
+          maxWidth: '680px',
+          margin: '-56px auto 0',
+          padding: '0 16px',
+        }}
+      >
+        {/* Avatar + name card */}
+        <div
+          style={{
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-md)',
+            padding: '28px 24px',
+            marginBottom: '16px',
+            textAlign: 'center',
+          }}
+        >
+          {/* Avatar circle */}
+          <div
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background:
+                'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+              color: 'white',
+              fontSize: '1.8rem',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 14px',
+              boxShadow: '0 4px 16px rgba(14,165,233,0.3)',
+            }}
+          >
+            {getInitials(user?.full_name)}
+          </div>
+
+          {/* Name */}
+          {editing ? (
+            <div style={{ marginBottom: '12px' }}>
+              <input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                style={{
+                  padding: '10px 14px',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  borderRadius: '8px',
+                  border: '2px solid var(--accent)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  width: '100%',
+                  maxWidth: '280px',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                }}
+              />
+            </div>
+          ) : (
+            <h2
               style={{
-                margin: 0,
+                margin: '0 0 6px',
                 fontSize: '1.4rem',
+                fontWeight: 800,
                 color: 'var(--text-primary)',
               }}
             >
-              {fullName || '(Unknown User)'}
-            </h1>
-            <span
-              style={{
-                display: 'inline-block',
-                padding: '3px 10px',
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                ...roleBadge.style,
-              }}
-            >
-              {roleBadge.label}
-            </span>
-          </div>
+              {user?.full_name}
+            </h2>
+          )}
+
+          {/* Email */}
           <p
             style={{
-              margin: '4px 0',
+              margin: '0 0 12px',
               fontSize: '0.9rem',
               color: 'var(--text-secondary)',
             }}
           >
-            {email || '(unknown email)'}
+            {user?.email}
           </p>
-          {memberSince && (
-            <p
+
+          {/* Role badge */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 14px',
+              borderRadius: '999px',
+              background: roleInfo.color + '18',
+              border: '1px solid ' + roleInfo.color + '40',
+              marginBottom: '20px',
+            }}
+          >
+            <span>{roleInfo.emoji}</span>
+            <span
               style={{
-                margin: 0,
-                fontSize: '0.8rem',
-                color: 'var(--text-secondary)',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                color: roleInfo.color,
               }}
             >
-              {memberSince}
+              {roleInfo.label}
+            </span>
+          </div>
+
+          {/* Edit / Save buttons */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '10px',
+              justifyContent: 'center',
+            }}
+          >
+            {editing ? (
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{
+                    padding: '9px 24px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background:
+                      'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                    color: 'white',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    opacity: saving ? 0.7 : 1,
+                  }}
+                >
+                  {saving ? 'Saving...' : '✓ Save'}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditing(false)
+                    setFullName(user?.full_name)
+                    setSaveMsg('')
+                  }}
+                  style={{
+                    padding: '9px 24px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-secondary)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setEditing(true)}
+                style={{
+                  padding: '9px 24px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-secondary)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                }}
+              >
+                ✏️ Edit Name
+              </button>
+            )}
+          </div>
+
+          {saveMsg && (
+            <p
+              style={{
+                marginTop: '10px',
+                fontSize: '0.875rem',
+                color: saveMsg.startsWith('✅')
+                  ? 'var(--success)'
+                  : 'var(--danger)',
+              }}
+            >
+              {saveMsg}
             </p>
           )}
         </div>
-      </div>
 
-      {/* Section 2 - Provider stats */}
-      {isProvider && (
+        {/* Stats card */}
+        {stats && (
+          <div
+            style={{
+              background: 'var(--bg-card)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              boxShadow: 'var(--shadow-sm)',
+              padding: '20px 24px',
+              marginBottom: '16px',
+            }}
+          >
+            <h3
+              style={{
+                margin: '0 0 16px',
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+              }}
+            >
+              📊 Your Activity
+            </h3>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  'repeat(auto-fit, minmax(120px, 1fr))',
+                gap: '12px',
+              }}
+            >
+              {role === 'provider' && (
+                <>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '16px',
+                      background: 'var(--bg-secondary)',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '1.6rem',
+                        fontWeight: 800,
+                        color: 'var(--accent)',
+                      }}
+                    >
+                      {stats.listings}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.78rem',
+                        color: 'var(--text-secondary)',
+                        marginTop: '4px',
+                      }}
+                    >
+                      My Services
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '16px',
+                      background: 'var(--bg-secondary)',
+                      borderRadius: 'var(--radius-sm)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '1.6rem',
+                        fontWeight: 800,
+                        color: '#10b981',
+                      }}
+                    >
+                      PKR{' '}
+                      {stats.revenue?.toLocaleString('en-PK')}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.78rem',
+                        color: 'var(--text-secondary)',
+                        marginTop: '4px',
+                      }}
+                    >
+                      Total Revenue
+                    </div>
+                  </div>
+                </>
+              )}
+              {role === 'user' && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '16px',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '1.6rem',
+                      fontWeight: 800,
+                      color: 'var(--accent)',
+                    }}
+                  >
+                    {stats.bookings}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.78rem',
+                      color: 'var(--text-secondary)',
+                      marginTop: '4px',
+                    }}
+                  >
+                    Total Bookings
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Quick links card */}
         <div
           style={{
-            marginTop: '24px',
-            display: 'flex',
-            gap: '16px',
-            flexWrap: 'wrap',
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-sm)',
+            overflow: 'hidden',
+            marginBottom: '16px',
           }}
         >
           <div
-              style={{
-                flex: '1 1 120px',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '16px',
-                textAlign: 'center',
-              }}
+            style={{
+              padding: '14px 20px',
+              borderBottom: '1px solid var(--border-color)',
+            }}
           >
-            <div
+            <h3
               style={{
-                fontSize: '1.5rem',
+                margin: 0,
+                fontSize: '0.95rem',
                 fontWeight: 700,
                 color: 'var(--text-primary)',
               }}
             >
-              {listingsCount}
-            </div>
-            <div
-              style={{
-                marginTop: '4px',
-                fontSize: '0.8rem',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              My Stays
-            </div>
+              🔗 Quick Links
+            </h3>
           </div>
+          {[
+            role === 'user' && {
+              label: 'My Bookings',
+              emoji: '📅',
+              path: '/my-bookings',
+            },
+            role === 'provider' && {
+              label: 'My Services',
+              emoji: '🏨',
+              path: '/my-listings',
+            },
+            role === 'provider' && {
+              label: 'Analytics',
+              emoji: '📊',
+              path: '/my-analytics',
+            },
+            role !== 'admin' && {
+              label: 'Recommendations',
+              emoji: '✨',
+              path: '/recommendations',
+            },
+            {
+              label: 'Explore Map',
+              emoji: '📍',
+              path: '/map',
+            },
+          ]
+            .filter(Boolean)
+            .map((link, i, arr) => (
+              <div
+                key={link.path}
+                onClick={() => navigate(link.path)}
+                style={{
+                  padding: '14px 20px',
+                  borderBottom:
+                    i < arr.length - 1
+                      ? '1px solid var(--border-color)'
+                      : 'none',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background =
+                    'var(--bg-secondary)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background =
+                    'transparent')
+                }
+              >
+                <span
+                  style={{
+                    fontSize: '0.9rem',
+                    color: 'var(--text-primary)',
+                    fontWeight: 500,
+                  }}
+                >
+                  {link.emoji} {link.label}
+                </span>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  →
+                </span>
+              </div>
+            ))}
+        </div>
+
+        {/* Danger zone */}
+        <div
+          style={{
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--danger)',
+            boxShadow: 'var(--shadow-sm)',
+            overflow: 'hidden',
+          }}
+        >
           <div
-              style={{
-                flex: '1 1 120px',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '16px',
-                textAlign: 'center',
-              }}
+            style={{
+              padding: '14px 20px',
+              borderBottom: '1px solid var(--danger)',
+              background: 'var(--danger-bg)',
+            }}
           >
-            <div
+            <h3
               style={{
-                fontSize: '1.5rem',
+                margin: 0,
+                fontSize: '0.95rem',
                 fontWeight: 700,
-                color: 'var(--text-primary)',
+                color: 'var(--danger)',
               }}
             >
-              {totalBookings}
-            </div>
-            <div
+              ⚠️ Danger Zone
+            </h3>
+          </div>
+          <div style={{ padding: '16px 20px' }}>
+            <p
               style={{
-                marginTop: '4px',
-                fontSize: '0.8rem',
+                margin: '0 0 14px',
+                fontSize: '0.875rem',
                 color: 'var(--text-secondary)',
               }}
             >
-              Total Bookings
-            </div>
+              Permanently delete your account and all associated
+              data. This action cannot be undone.
+            </p>
+            {!showDelete ? (
+              <button
+                onClick={() => setShowDelete(true)}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--danger)',
+                  background: 'transparent',
+                  color: 'var(--danger)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                }}
+              >
+                Delete My Account
+              </button>
+            ) : (
+              <div
+                style={{
+                  padding: '16px',
+                  background: 'var(--danger-bg)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--danger)',
+                }}
+              >
+                <p
+                  style={{
+                    margin: '0 0 12px',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    color: 'var(--danger)',
+                  }}
+                >
+                  Are you sure? This cannot be undone.
+                </p>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '10px',
+                  }}
+                >
+                  <button
+                    onClick={handleDeleteAccount}
+                    style={{
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'var(--danger)',
+                      color: 'white',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    Yes, Delete
+                  </button>
+                  <button
+                    onClick={() => setShowDelete(false)}
+                    style={{
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-secondary)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Section 3 - Danger zone */}
-      <hr style={{ margin: '24px 0', borderColor: 'var(--border-color)' }} />
-
-      <h2 style={{ marginBottom: '8px', color: '#ef4444', fontSize: '1rem' }}>
-        Danger Zone
-      </h2>
-      <p style={{ marginBottom: '12px', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
-        Deleting your account is permanent. You must remove your stays and
-        cancel active bookings before you can delete your account.
-      </p>
-      <button
-        type="button"
-        onClick={handleDeleteAccount}
-        disabled={loading}
-        style={{
-          padding: '10px 16px',
-          borderRadius: '6px',
-          border: 'none',
-          backgroundColor: 'var(--danger)',
-          color: '#ffffff',
-          cursor: loading ? 'default' : 'pointer',
-          opacity: loading ? 0.7 : 1,
-          fontSize: '0.95rem',
-        }}
-      >
-        {loading ? 'Deleting account...' : 'Delete Account'}
-      </button>
-      {error && (
-        <p style={{ marginTop: '12px', color: 'var(--danger)', fontSize: '0.9rem' }}>
-          {error}
-        </p>
-      )}
       </div>
     </div>
   )
 }
-
-export default Profile
-
 
