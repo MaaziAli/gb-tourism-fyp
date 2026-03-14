@@ -2,8 +2,10 @@
 User account management routes.
 """
 from datetime import date
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -23,6 +25,28 @@ def get_me(
 ):
     """Return the current authenticated user."""
     return current_user
+
+
+class UserUpdate(BaseModel):
+  full_name: Optional[str] = None
+
+
+@router.put("/me")
+def update_profile(
+    body: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if body.full_name:
+        current_user.full_name = body.full_name.strip()
+        db.commit()
+        db.refresh(current_user)
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "role": current_user.role,
+    }
 
 
 @router.delete("/me", status_code=204)
