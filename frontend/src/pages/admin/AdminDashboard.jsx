@@ -1469,17 +1469,21 @@ function AdminDashboard() {
                         border: '1px solid var(--border-color)',
                         borderRadius: 'var(--radius-md)',
                         padding: isMobile ? '12px' : '20px',
-                        borderTop: '3px solid ' + card.color,
+                        borderTop: isMobile
+                          ? '1px solid var(--border-color)'
+                          : '3px solid ' + card.color,
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: isMobile ? '1.2rem' : '1.5rem',
-                          marginBottom: isMobile ? '4px' : '8px',
-                        }}
-                      >
-                        {card.icon}
-                      </div>
+                      {!isMobile && (
+                        <div
+                          style={{
+                            fontSize: '1.5rem',
+                            marginBottom: '8px',
+                          }}
+                        >
+                          {card.icon}
+                        </div>
+                      )}
                       <div
                         style={{
                           fontSize: isMobile ? '0.95rem' : '1.3rem',

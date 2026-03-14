@@ -238,6 +238,13 @@ export default function MapView() {
       marker.addTo(map)
       markersRef.current.push(marker)
     })
+
+    // Force map to recalculate size
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize()
+      }
+    }, 50)
   }
 
   useEffect(() => {
@@ -248,6 +255,14 @@ export default function MapView() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      setTimeout(() => {
+        mapInstanceRef.current.invalidateSize()
+      }, 100)
+    }
+  }, [isMobile])
 
   const filteredListings = filter
     ? listings.filter((l) => l.service_type === filter)
@@ -341,30 +356,32 @@ export default function MapView() {
         </div>
       </div>
 
-      {/* Map + Sidebar layout */}
-        <div
+      <div
           style={{
             flex: 1,
             maxWidth: '1200px',
             width: '100%',
             margin: '0 auto',
-            padding: '16px',
+            padding: isMobile ? '12px' : '16px',
             display: 'flex',
             flexDirection: isMobile ? 'column' : 'row',
             gap: '16px',
+            alignItems: 'flex-start',
           }}
         >
-          {/* Map — full width on mobile */}
+          {/* Map container */}
           <div
             style={{
-              flex: 1,
+              flex: isMobile ? 'none' : 1,
               borderRadius: 'var(--radius-md)',
               overflow: 'hidden',
               border: '1px solid var(--border-color)',
               boxShadow: 'var(--shadow-md)',
-              height: isMobile ? '320px' : '600px',
-              minHeight: isMobile ? '320px' : '600px',
+              height: isMobile ? '350px' : '600px',
+              minHeight: isMobile ? '350px' : '600px',
+              maxHeight: isMobile ? '350px' : '600px',
               position: 'relative',
+              width: isMobile ? '100%' : 'auto',
             }}
           >
             {loading && (
@@ -397,26 +414,21 @@ export default function MapView() {
               style={{
                 width: '100%',
                 height: '100%',
-                minHeight: isMobile ? '320px' : '600px',
+                minHeight: isMobile ? '350px' : '600px',
               }}
             />
           </div>
 
-          {/* Sidebar listing list */}
+          {/* Sidebar */}
           <div
             style={{
               width: isMobile ? '100%' : '300px',
               flexShrink: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              overflowY: isMobile ? 'visible' : 'auto',
-              maxHeight: isMobile ? 'none' : '650px',
             }}
           >
             <p
               style={{
-                margin: '0 0 4px',
+                margin: '0 0 10px',
                 fontWeight: 700,
                 color: 'var(--text-primary)',
                 fontSize: '0.9rem',
@@ -432,7 +444,7 @@ export default function MapView() {
                   gap: '12px',
                   overflowX: 'auto',
                   paddingBottom: '8px',
-                  scrollbarWidth: 'none',
+                  WebkitOverflowScrolling: 'touch',
                 }}
               >
                 {filteredListings.map((listing) => (
@@ -448,7 +460,7 @@ export default function MapView() {
                       overflow: 'hidden',
                       cursor: 'pointer',
                       flexShrink: 0,
-                      width: '200px',
+                      width: '180px',
                       boxShadow: 'var(--shadow-sm)',
                     }}
                   >
@@ -457,17 +469,17 @@ export default function MapView() {
                         listing.image_url
                           ? 'http://127.0.0.1:8000/uploads/' +
                               listing.image_url
-                          : 'https://placehold.co/200x100/e5e7eb/9ca3af?text=GB'
+                          : 'https://placehold.co/180x90/e5e7eb/9ca3af?text=GB'
                       }
                       alt={listing.title}
                       onError={(e) => {
                         e.target.onerror = null
                         e.target.src =
-                          'https://placehold.co/200x100/e5e7eb/9ca3af?text=GB'
+                          'https://placehold.co/180x90/e5e7eb/9ca3af?text=GB'
                       }}
                       style={{
                         width: '100%',
-                        height: '90px',
+                        height: '85px',
                         objectFit: 'cover',
                         display: 'block',
                       }}
@@ -476,7 +488,103 @@ export default function MapView() {
                       <div
                         style={{
                           fontWeight: 700,
-                          fontSize: '0.8rem',
+                          fontSize: '0.78rem',
+                          color: 'var(--text-primary)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          marginBottom: '2px',
+                        }}
+                      >
+                        {listing.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.7rem',
+                          color: 'var(--text-secondary)',
+                          marginBottom: '3px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        📍 {listing.location}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: 'var(--accent)',
+                        }}
+                      >
+                        PKR{' '}
+                        {listing.price_per_night?.toLocaleString(
+                          'en-PK',
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  overflowY: 'auto',
+                  maxHeight: '650px',
+                }}
+              >
+                {filteredListings.map((listing) => (
+                  <div
+                    key={listing.id}
+                    onClick={() =>
+                      navigate(`/listing/${listing.id}`)
+                    }
+                    style={{
+                      background:
+                        selected?.id === listing.id
+                          ? 'var(--accent-light)'
+                          : 'var(--bg-card)',
+                      border:
+                        selected?.id === listing.id
+                          ? '2px solid var(--accent)'
+                          : '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '10px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      gap: '10px',
+                      alignItems: 'flex-start',
+                    }}
+                  >
+                    <img
+                      src={
+                        listing.image_url
+                          ? 'http://127.0.0.1:8000/uploads/' +
+                              listing.image_url
+                          : 'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
+                      }
+                      alt={listing.title}
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.src =
+                          'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
+                      }}
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: '6px',
+                        objectFit: 'cover',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '0.825rem',
                           color: 'var(--text-primary)',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
@@ -489,7 +597,7 @@ export default function MapView() {
                       </div>
                       <div
                         style={{
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           color: 'var(--text-secondary)',
                           marginBottom: '2px',
                         }}
@@ -498,7 +606,7 @@ export default function MapView() {
                       </div>
                       <div
                         style={{
-                          fontSize: '0.78rem',
+                          fontSize: '0.8rem',
                           fontWeight: 700,
                           color: 'var(--accent)',
                         }}
@@ -513,92 +621,6 @@ export default function MapView() {
                   </div>
                 ))}
               </div>
-            ) : (
-              filteredListings.map((listing) => (
-                <div
-                  key={listing.id}
-                  onClick={() =>
-                    navigate(`/listing/${listing.id}`)
-                  }
-                  style={{
-                    background:
-                      selected?.id === listing.id
-                        ? 'var(--accent-light)'
-                        : 'var(--bg-card)',
-                    border:
-                      selected?.id === listing.id
-                        ? '2px solid var(--accent)'
-                        : '1px solid var(--border-color)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '10px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    gap: '10px',
-                    alignItems: 'flex-start',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  <img
-                    src={
-                      listing.image_url
-                        ? 'http://127.0.0.1:8000/uploads/' +
-                            listing.image_url
-                        : 'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
-                    }
-                    alt={listing.title}
-                    onError={(e) => {
-                      e.target.onerror = null
-                      e.target.src =
-                        'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
-                    }}
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: '6px',
-                      objectFit: 'cover',
-                      flexShrink: 0,
-                    }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: '0.825rem',
-                        color: 'var(--text-primary)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        marginBottom: '2px',
-                      }}
-                    >
-                      {getServiceEmoji(listing.service_type)}{' '}
-                      {listing.title}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.75rem',
-                        color: 'var(--text-secondary)',
-                        marginBottom: '2px',
-                      }}
-                    >
-                      📍 {listing.location}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        color: 'var(--accent)',
-                      }}
-                    >
-                      PKR{' '}
-                      {listing.price_per_night?.toLocaleString(
-                        'en-PK',
-                      )}
-                      /night
-                    </div>
-                  </div>
-                </div>
-              ))
             )}
           </div>
         </div>
