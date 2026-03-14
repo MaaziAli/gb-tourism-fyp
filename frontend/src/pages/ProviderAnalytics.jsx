@@ -175,9 +175,11 @@ export default function ProviderAnalytics() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '16px',
-            marginBottom: '32px',
+            gridTemplateColumns: isMobile
+              ? 'repeat(2, 1fr)'
+              : 'repeat(3, 1fr)',
+            gap: isMobile ? '10px' : '16px',
+            marginBottom: '24px',
           }}
         >
           {statCards.map((s, i) => (
@@ -187,23 +189,23 @@ export default function ProviderAnalytics() {
                 background: 'var(--bg-card)',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-color)',
-                padding: '20px 24px',
+                padding: isMobile ? '14px 12px' : '20px 24px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '16px',
+                gap: isMobile ? '12px' : '16px',
                 boxShadow: 'var(--shadow-sm)',
               }}
             >
               <div
                 style={{
-                  width: 48,
-                  height: 48,
+                  width: isMobile ? 40 : 48,
+                  height: isMobile ? 40 : 48,
                   borderRadius: 'var(--radius-sm)',
                   background: `${s.color}20`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.5rem',
+                  fontSize: isMobile ? '1.3rem' : '1.8rem',
                   flexShrink: 0,
                 }}
               >
@@ -224,7 +226,7 @@ export default function ProviderAnalytics() {
                 </div>
                 <div
                   style={{
-                    fontSize: '1.4rem',
+                    fontSize: isMobile ? '1.1rem' : '1.5rem',
                     fontWeight: 800,
                     color: 'var(--text-primary)',
                   }}

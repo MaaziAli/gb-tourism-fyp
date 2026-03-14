@@ -1513,6 +1513,180 @@ function AdminDashboard() {
                   >
                     No payments yet
                   </div>
+                ) : isMobile ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                    }}
+                  >
+                    {payments.payments.map((p) => (
+                      <div
+                        key={p.id}
+                        style={{
+                          background: 'var(--bg-card)',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border-color)',
+                          padding: '14px 16px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontFamily: 'monospace',
+                            fontSize: '0.72rem',
+                            color: 'var(--text-muted)',
+                            marginBottom: '6px',
+                          }}
+                        >
+                          🔖 {p.transaction_id}
+                        </div>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
+                            color: 'var(--text-primary)',
+                            marginBottom: '2px',
+                          }}
+                        >
+                          {p.listing_title}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-secondary)',
+                            marginBottom: '10px',
+                          }}
+                        >
+                          👤 {p.traveler_name} · {p.traveler_email}
+                        </div>
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns:
+                              '1fr 1fr 1fr',
+                            gap: '8px',
+                            marginBottom: '10px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              borderRadius: '8px',
+                              padding: '8px 10px',
+                              textAlign: 'center',
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: '0.65rem',
+                                color: 'var(--text-muted)',
+                                marginBottom: '3px',
+                              }}
+                            >
+                              Amount
+                            </div>
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                fontSize: '0.82rem',
+                                color: 'var(--accent)',
+                              }}
+                            >
+                              PKR{' '}
+                              {p.amount?.toLocaleString('en-PK')}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              background: '#dcfce7',
+                              borderRadius: '8px',
+                              padding: '8px 10px',
+                              textAlign: 'center',
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: '0.65rem',
+                                color: '#16a34a',
+                                marginBottom: '3px',
+                              }}
+                            >
+                              Commission
+                            </div>
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                fontSize: '0.82rem',
+                                color: '#16a34a',
+                              }}
+                            >
+                              PKR{' '}
+                              {p.platform_commission?.toLocaleString(
+                                'en-PK',
+                              )}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              borderRadius: '8px',
+                              padding: '8px 10px',
+                              textAlign: 'center',
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: '0.65rem',
+                                color: 'var(--text-muted)',
+                                marginBottom: '3px',
+                              }}
+                            >
+                              Provider
+                            </div>
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                fontSize: '0.82rem',
+                                color: 'var(--text-primary)',
+                              }}
+                            >
+                              PKR{' '}
+                              {p.provider_amount?.toLocaleString(
+                                'en-PK',
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            background:
+                              p.payment_method === 'card'
+                                ? '#eff6ff'
+                                : '#f0fdf4',
+                            color:
+                              p.payment_method === 'card'
+                                ? '#2563eb'
+                                : '#16a34a',
+                            padding: '3px 10px',
+                            borderRadius: '999px',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {p.payment_method === 'jazzcash'
+                            ? '📱 JazzCash'
+                            : p.payment_method === 'easypaisa'
+                              ? '💚 EasyPaisa'
+                              : '💳 ' +
+                                (p.card_last4
+                                  ? '•••• ' + p.card_last4
+                                  : 'Card')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div
                     style={{
@@ -1526,8 +1700,8 @@ function AdminDashboard() {
                       style={{
                         display: 'grid',
                         gridTemplateColumns:
-                          '2fr 1.5fr 1fr 1fr 1fr 0.8fr',
-                        padding: '10px 20px',
+                          '1.5fr 1.5fr 1fr 1fr 1fr 0.8fr',
+                        padding: '12px 20px',
                         borderBottom:
                           '1px solid var(--border-color)',
                         fontSize: '0.72rem',
@@ -1537,28 +1711,27 @@ function AdminDashboard() {
                         letterSpacing: '0.05em',
                       }}
                     >
-                      <span>Service</span>
+                      <span>Transaction</span>
                       <span>Traveler</span>
                       <span>Amount</span>
                       <span>Commission</span>
                       <span>Provider Gets</span>
                       <span>Method</span>
                     </div>
-
                     {payments.payments.map((p, i) => (
                       <div
                         key={p.id}
                         style={{
                           display: 'grid',
                           gridTemplateColumns:
-                            '2fr 1.5fr 1fr 1fr 1fr 0.8fr',
-                          padding: '14px 20px',
+                            '1.5fr 1.5fr 1fr 1fr 1fr 0.8fr',
+                          padding: '12px 20px',
                           borderBottom:
                             i < payments.payments.length - 1
                               ? '1px solid var(--border-color)'
                               : 'none',
                           alignItems: 'center',
-                          fontSize: '0.85rem',
+                          fontSize: '0.82rem',
                         }}
                       >
                         <div>
@@ -1566,25 +1739,27 @@ function AdminDashboard() {
                             style={{
                               fontWeight: 600,
                               color: 'var(--text-primary)',
+                              fontSize: '0.78rem',
+                              fontFamily: 'monospace',
                             }}
                           >
-                            {p.listing_title}
+                            {p.transaction_id}
                           </div>
                           <div
                             style={{
                               fontSize: '0.72rem',
                               color: 'var(--text-muted)',
-                              fontFamily: 'monospace',
+                              marginTop: '2px',
                             }}
                           >
-                            {p.transaction_id}
+                            {p.listing_title}
                           </div>
                         </div>
                         <div>
                           <div
                             style={{
                               color: 'var(--text-primary)',
-                              fontWeight: 500,
+                              fontWeight: 600,
                             }}
                           >
                             {p.traveler_name}
@@ -1598,16 +1773,16 @@ function AdminDashboard() {
                             {p.traveler_email}
                           </div>
                         </div>
-                        <span
+                        <div
                           style={{
                             fontWeight: 700,
-                            color: 'var(--text-primary)',
+                            color: 'var(--accent)',
                           }}
                         >
                           PKR{' '}
                           {p.amount?.toLocaleString('en-PK')}
-                        </span>
-                        <span
+                        </div>
+                        <div
                           style={{
                             fontWeight: 700,
                             color: '#16a34a',
@@ -1617,8 +1792,8 @@ function AdminDashboard() {
                           {p.platform_commission?.toLocaleString(
                             'en-PK',
                           )}
-                        </span>
-                        <span
+                        </div>
+                        <div
                           style={{
                             color: 'var(--text-secondary)',
                           }}
@@ -1627,21 +1802,28 @@ function AdminDashboard() {
                           {p.provider_amount?.toLocaleString(
                             'en-PK',
                           )}
-                        </span>
+                        </div>
                         <span
                           style={{
-                            fontSize: '0.8rem',
-                            color: 'var(--text-secondary)',
+                            background:
+                              p.payment_method === 'card'
+                                ? '#eff6ff'
+                                : '#f0fdf4',
+                            color:
+                              p.payment_method === 'card'
+                                ? '#2563eb'
+                                : '#16a34a',
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
                           }}
                         >
-                          {p.payment_method === 'card'
-                            ? '💳 ' +
-                              (p.card_last4
-                                ? '••' + p.card_last4
-                                : 'Card')
-                            : p.payment_method === 'jazzcash'
-                              ? '📱 JazzCash'
-                              : '💚 EasyPaisa'}
+                          {p.payment_method === 'jazzcash'
+                            ? '📱 Jazz'
+                            : p.payment_method === 'easypaisa'
+                              ? '💚 Easy'
+                              : '💳 Card'}
                         </span>
                       </div>
                     ))}
