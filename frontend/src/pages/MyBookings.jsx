@@ -309,251 +309,493 @@ export default function MyBookings() {
               const isCancelling = cancellingId === b.id
 
               return (
-                <div key={b.id} style={{
-                  background: 'var(--bg-card)',
-                  borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--shadow-sm)',
-                  overflow: 'hidden',
-                  opacity: isActive ? 1 : 0.75,
-                  transition: 'box-shadow 0.2s'
-                }}>
+                <div
+                  key={b.id}
+                  style={{
+                    background: 'var(--bg-card)',
+                    borderRadius: 'var(--radius-lg)',
+                    border: '1px solid var(--border-color)',
+                    boxShadow: 'var(--shadow-sm)',
+                    overflow: 'hidden',
+                    opacity: isActive ? 1 : 0.75,
+                  }}
+                >
                   {/* Status bar at top */}
-                  <div style={{
-                    height: '4px',
-                    background: isActive
-                      ? upcoming
-                        ? 'linear-gradient(90deg, #0ea5e9, #6366f1)'
-                        : 'linear-gradient(90deg, #16a34a, #0ea5e9)'
-                      : '#e5e7eb'
-                  }} />
+                  <div
+                    style={{
+                      height: '4px',
+                      background: isActive
+                        ? upcoming
+                          ? 'linear-gradient(90deg, #0ea5e9, #6366f1)'
+                          : 'linear-gradient(90deg, #16a34a, #0ea5e9)'
+                        : '#e5e7eb',
+                    }}
+                  />
 
-                  <div style={{
-                    display: 'flex', gap: '0',
-                    alignItems: 'stretch'
-                  }}>
-                    {/* Listing image */}
-                    <div
-                      onClick={() =>
-                        navigate(`/listing/${b.listing_id}`)
-                      }
-                      style={{
-                        width: isMobile ? 80 : 110, flexShrink: 0,
-                        cursor: 'pointer', overflow: 'hidden'
-                      }}
-                    >
-                      <img
-                        src={b.image_url
-                          ? 'http://127.0.0.1:8000/uploads/'
-                            + b.image_url
-                          : 'https://placehold.co/110x110/e5e7eb/9ca3af?text=GB'
+                  {isMobile ? (
+                    <>
+                      <div
+                        onClick={() =>
+                          navigate(`/listing/${b.listing_id}`)
                         }
-                        alt={b.listing_title}
-                        onError={e => {
-                          e.target.onerror = null
-                          e.target.src =
-                            'https://placehold.co/110x110/e5e7eb/9ca3af?text=GB'
-                        }}
-                        style={{
-                          width: '100%', height: '100%',
-                          minHeight: isMobile ? 80 : 110,
-                          objectFit: 'cover', display: 'block'
-                        }}
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div style={{
-                      flex: 1, padding: '16px 18px',
-                      display: 'flex', flexDirection: 'column',
-                      justifyContent: 'space-between'
-                    }}>
-                      <div>
-                        {/* Title row */}
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          marginBottom: '6px', gap: '8px'
-                        }}>
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <img
+                          src={
+                            b.image_url
+                              ? 'http://127.0.0.1:8000/uploads/' +
+                                  b.image_url
+                              : 'https://placehold.co/400x140/e5e7eb/9ca3af?text=GB'
+                          }
+                          alt={b.listing_title}
+                          onError={(e) => {
+                            e.target.onerror = null
+                            e.target.src =
+                              'https://placehold.co/400x140/e5e7eb/9ca3af?text=GB'
+                          }}
+                          style={{
+                            width: '100%',
+                            height: '140px',
+                            objectFit: 'cover',
+                            display: 'block',
+                          }}
+                        />
+                      </div>
+                      <div style={{ padding: '14px 16px' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            marginBottom: '6px',
+                            gap: '8px',
+                          }}
+                        >
                           <h3
                             onClick={() =>
-                              navigate(
-                                `/listing/${b.listing_id}`
-                              )
+                              navigate(`/listing/${b.listing_id}`)
                             }
                             style={{
-                              margin: 0, fontWeight: 700,
-                              fontSize: '1rem',
+                              margin: 0,
+                              fontWeight: 700,
+                              fontSize: '0.95rem',
                               color: 'var(--text-primary)',
                               cursor: 'pointer',
-                              flex: 1
+                              flex: 1,
                             }}
                           >
                             {b.listing_title}
                           </h3>
-                          {/* Status badge */}
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '3px 10px',
-                            borderRadius: '999px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            flexShrink: 0,
-                            background: isActive
-                              ? upcoming
-                                ? 'var(--accent-light)'
-                                : '#dcfce7'
-                              : 'var(--danger-bg)',
-                            color: isActive
-                              ? upcoming
-                                ? 'var(--accent)'
-                                : '#16a34a'
-                              : 'var(--danger)'
-                          }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '3px 10px',
+                              borderRadius: '999px',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              flexShrink: 0,
+                              background: isActive
+                                ? upcoming
+                                  ? 'var(--accent-light)'
+                                  : '#dcfce7'
+                                : 'var(--danger-bg)',
+                              color: isActive
+                                ? upcoming
+                                  ? 'var(--accent)'
+                                  : '#16a34a'
+                                : 'var(--danger)',
+                            }}
+                          >
                             {isActive
                               ? upcoming
                                 ? '⏳ Upcoming'
-                                : '✅ Completed'
-                              : '❌ Cancelled'
-                            }
+                                : '✅ Done'
+                              : '❌ Cancelled'}
                           </span>
                         </div>
-
-                        {/* Location */}
-                        <p style={{
-                          margin: '0 0 6px',
-                          fontSize: '0.85rem',
-                          color: 'var(--text-secondary)'
-                        }}>
+                        <p
+                          style={{
+                            margin: '0 0 6px',
+                            fontSize: '0.82rem',
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
                           📍 {b.location}
                         </p>
-
-                        {/* Room type badge */}
                         {b.room_type_name && (
-                          <div style={{
-                            display: 'inline-block',
-                            marginBottom: '8px',
-                            background: 'var(--accent-light)',
-                            color: 'var(--accent)',
-                            padding: '2px 10px',
-                            borderRadius: '999px',
-                            fontSize: '0.78rem',
-                            fontWeight: 600
-                          }}>
+                          <div
+                            style={{
+                              display: 'inline-block',
+                              marginBottom: '8px',
+                              background: 'var(--accent-light)',
+                              color: 'var(--accent)',
+                              padding: '2px 10px',
+                              borderRadius: '999px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                            }}
+                          >
                             🛏️ {b.room_type_name}
                           </div>
                         )}
-
-                        {/* Dates row */}
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: isMobile ? 'column' : 'row',
-                          gap: isMobile ? '4px' : '16px',
-                          flexWrap: 'wrap',
-                          fontSize: '0.82rem',
-                          color: 'var(--text-secondary)'
-                        }}>
-                          <span>
-                            📅 {formatDate(b.check_in)}
-                          </span>
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-secondary)',
+                            marginBottom: '10px',
+                            display: 'flex',
+                            gap: '6px',
+                            flexWrap: 'wrap',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <span>📅 {formatDate(b.check_in)}</span>
                           <span>→</span>
-                          <span>
-                            🏁 {formatDate(b.check_out)}
-                          </span>
+                          <span>🏁 {formatDate(b.check_out)}</span>
                           {nights > 0 && (
-                            <span style={{
-                              color: 'var(--text-muted)'
-                            }}>
+                            <span
+                              style={{ color: 'var(--text-muted)' }}
+                            >
                               · {nights} night
                               {nights > 1 ? 's' : ''}
                             </span>
                           )}
                         </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '8px',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              color: 'var(--accent)',
+                              fontSize: '1rem',
+                            }}
+                          >
+                            PKR{' '}
+                            {b.total_price?.toLocaleString('en-PK')}
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 400,
+                                color: 'var(--text-muted)',
+                                marginLeft: '4px',
+                              }}
+                            >
+                              total
+                            </span>
+                          </span>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {isActive &&
+                              b.payment_status !== 'paid' && (
+                                <button
+                                  onClick={() =>
+                                    navigate('/payment/' + b.id)
+                                  }
+                                  style={{
+                                    padding: '7px 14px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background:
+                                      'linear-gradient(135deg, #16a34a, #15803d)',
+                                    color: 'white',
+                                    fontWeight: 700,
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  💳 Pay
+                                </button>
+                              )}
+                            {isActive &&
+                              b.payment_status === 'paid' && (
+                                <span
+                                  style={{
+                                    padding: '7px 12px',
+                                    borderRadius: '8px',
+                                    background: '#dcfce7',
+                                    color: '#16a34a',
+                                    fontWeight: 700,
+                                    fontSize: '0.8rem',
+                                  }}
+                                >
+                                  ✅ Paid
+                                </span>
+                              )}
+                            {isActive && upcoming && (
+                              <button
+                                onClick={() => cancelBooking(b.id)}
+                                disabled={isCancelling}
+                                style={{
+                                  padding: '7px 14px',
+                                  borderRadius: '8px',
+                                  border: '1px solid var(--danger)',
+                                  background: 'var(--danger-bg)',
+                                  color: 'var(--danger)',
+                                  fontWeight: 600,
+                                  fontSize: '0.8rem',
+                                  cursor: 'pointer',
+                                  opacity: isCancelling ? 0.6 : 1,
+                                }}
+                              >
+                                {isCancelling ? '...' : 'Cancel'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
-
-                      {/* Bottom row */}
-                      <div style={{
+                    </>
+                  ) : (
+                    <div
+                      style={{
                         display: 'flex',
-                        flexDirection: isMobile ? 'column' : 'row',
-                        justifyContent: 'space-between',
-                        alignItems: isMobile ? 'stretch' : 'center',
-                        marginTop: '12px',
-                        flexWrap: 'wrap', gap: '8px'
-                      }}>
-                        <span style={{
-                          fontWeight: 800,
-                          color: 'var(--accent)',
-                          fontSize: '1.05rem'
-                        }}>
-                          PKR {b.total_price
-                            ?.toLocaleString('en-PK')}
-                          <span style={{
-                            fontSize: '0.75rem',
-                            fontWeight: 400,
-                            color: 'var(--text-muted)',
-                            marginLeft: '4px'
-                          }}>
-                            total
-                          </span>
-                        </span>
-
-                        {isActive && b.payment_status !== 'paid' && (
-                          <button
-                            onClick={() =>
-                              navigate('/payment/' + b.id)
-                            }
+                        gap: '0',
+                        alignItems: 'stretch',
+                      }}
+                    >
+                      <div
+                        onClick={() =>
+                          navigate(`/listing/${b.listing_id}`)
+                        }
+                        style={{
+                          width: 110,
+                          flexShrink: 0,
+                          cursor: 'pointer',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <img
+                          src={
+                            b.image_url
+                              ? 'http://127.0.0.1:8000/uploads/' +
+                                  b.image_url
+                              : 'https://placehold.co/110x110/e5e7eb/9ca3af?text=GB'
+                          }
+                          alt={b.listing_title}
+                          onError={(e) => {
+                            e.target.onerror = null
+                            e.target.src =
+                              'https://placehold.co/110x110/e5e7eb/9ca3af?text=GB'
+                          }}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            minHeight: 110,
+                            objectFit: 'cover',
+                            display: 'block',
+                          }}
+                        />
+                      </div>
+                      <div
+                        style={{
+                          flex: 1,
+                          padding: '16px 18px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <div>
+                          <div
                             style={{
-                              padding: '7px 16px',
-                              borderRadius: '8px', border: 'none',
-                              background:
-                                'linear-gradient(135deg, #16a34a, #15803d)',
-                              color: 'white', fontWeight: 700,
-                              fontSize: '0.82rem', cursor: 'pointer'
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              marginBottom: '6px',
+                              gap: '8px',
                             }}
                           >
-                            💳 Pay Now
-                          </button>
-                        )}
-                        {isActive && b.payment_status === 'paid' && (
-                          <span style={{
-                            padding: '7px 16px',
-                            borderRadius: '8px',
-                            background: '#dcfce7',
-                            color: '#16a34a',
-                            fontWeight: 700, fontSize: '0.82rem'
-                          }}>
-                            ✅ Paid
-                          </span>
-                        )}
-                        {isActive && upcoming && (
-                          <button
-                            onClick={() =>
-                              cancelBooking(b.id)
-                            }
-                            disabled={isCancelling}
+                            <h3
+                              onClick={() =>
+                                navigate(`/listing/${b.listing_id}`)
+                              }
+                              style={{
+                                margin: 0,
+                                fontWeight: 700,
+                                fontSize: '1rem',
+                                color: 'var(--text-primary)',
+                                cursor: 'pointer',
+                                flex: 1,
+                              }}
+                            >
+                              {b.listing_title}
+                            </h3>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '3px 10px',
+                                borderRadius: '999px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                flexShrink: 0,
+                                background: isActive
+                                  ? upcoming
+                                    ? 'var(--accent-light)'
+                                    : '#dcfce7'
+                                  : 'var(--danger-bg)',
+                                color: isActive
+                                  ? upcoming
+                                    ? 'var(--accent)'
+                                    : '#16a34a'
+                                  : 'var(--danger)',
+                              }}
+                            >
+                              {isActive
+                                ? upcoming
+                                  ? '⏳ Upcoming'
+                                  : '✅ Completed'
+                                : '❌ Cancelled'}
+                            </span>
+                          </div>
+                          <p
                             style={{
-                              padding: '7px 16px',
-                              borderRadius: '8px',
-                              border:
-                                '1px solid var(--danger)',
-                              background: 'var(--danger-bg)',
-                              color: 'var(--danger)',
-                              fontWeight: 600,
+                              margin: '0 0 6px',
+                              fontSize: '0.85rem',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            📍 {b.location}
+                          </p>
+                          {b.room_type_name && (
+                            <div
+                              style={{
+                                display: 'inline-block',
+                                marginBottom: '8px',
+                                background: 'var(--accent-light)',
+                                color: 'var(--accent)',
+                                padding: '2px 10px',
+                                borderRadius: '999px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                              }}
+                            >
+                              🛏️ {b.room_type_name}
+                            </div>
+                          )}
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '16px',
+                              flexWrap: 'wrap',
                               fontSize: '0.82rem',
-                              cursor: 'pointer',
-                              opacity: isCancelling ? 0.6 : 1
+                              color: 'var(--text-secondary)',
                             }}
                           >
-                            {isCancelling
-                              ? 'Cancelling...'
-                              : 'Cancel Booking'
-                            }
-                          </button>
-                        )}
+                            <span>📅 {formatDate(b.check_in)}</span>
+                            <span>→</span>
+                            <span>🏁 {formatDate(b.check_out)}</span>
+                            {nights > 0 && (
+                              <span
+                                style={{
+                                  color: 'var(--text-muted)',
+                                }}
+                              >
+                                · {nights} night
+                                {nights > 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginTop: '12px',
+                            flexWrap: 'wrap',
+                            gap: '8px',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontWeight: 800,
+                              color: 'var(--accent)',
+                              fontSize: '1.05rem',
+                            }}
+                          >
+                            PKR{' '}
+                            {b.total_price?.toLocaleString(
+                              'en-PK',
+                            )}
+                            <span
+                              style={{
+                                fontSize: '0.75rem',
+                                fontWeight: 400,
+                                color: 'var(--text-muted)',
+                                marginLeft: '4px',
+                              }}
+                            >
+                              total
+                            </span>
+                          </span>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {isActive &&
+                              b.payment_status !== 'paid' && (
+                                <button
+                                  onClick={() =>
+                                    navigate('/payment/' + b.id)
+                                  }
+                                  style={{
+                                    padding: '7px 16px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background:
+                                      'linear-gradient(135deg, #16a34a, #15803d)',
+                                    color: 'white',
+                                    fontWeight: 700,
+                                    fontSize: '0.82rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  💳 Pay Now
+                                </button>
+                              )}
+                            {isActive &&
+                              b.payment_status === 'paid' && (
+                                <span
+                                  style={{
+                                    padding: '7px 16px',
+                                    borderRadius: '8px',
+                                    background: '#dcfce7',
+                                    color: '#16a34a',
+                                    fontWeight: 700,
+                                    fontSize: '0.82rem',
+                                  }}
+                                >
+                                  ✅ Paid
+                                </span>
+                              )}
+                            {isActive && upcoming && (
+                              <button
+                                onClick={() => cancelBooking(b.id)}
+                                disabled={isCancelling}
+                                style={{
+                                  padding: '7px 16px',
+                                  borderRadius: '8px',
+                                  border: '1px solid var(--danger)',
+                                  background: 'var(--danger-bg)',
+                                  color: 'var(--danger)',
+                                  fontWeight: 600,
+                                  fontSize: '0.82rem',
+                                  cursor: 'pointer',
+                                  opacity: isCancelling ? 0.6 : 1,
+                                }}
+                              >
+                                {isCancelling
+                                  ? 'Cancelling...'
+                                  : 'Cancel Booking'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )
             })}

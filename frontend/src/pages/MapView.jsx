@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
+import useWindowSize from '../hooks/useWindowSize'
 
 // GB region coordinates
 const GB_CENTER = [35.8884, 74.4584]
@@ -71,6 +72,7 @@ function getServiceEmoji(type) {
 }
 
 export default function MapView() {
+  const { isMobile } = useWindowSize()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
@@ -306,7 +308,14 @@ export default function MapView() {
               {filteredListings.length} services across Gilgit-Baltistan
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+              justifyContent: isMobile ? 'flex-start' : 'flex-end',
+            }}
+          >
             {SERVICE_TYPES.map((t) => (
               <button
                 key={t.value}
@@ -332,154 +341,266 @@ export default function MapView() {
         </div>
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          maxWidth: '1200px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '16px',
-          gap: '16px',
-        }}
-      >
+      {/* Map + Sidebar layout */}
         <div
           style={{
             flex: 1,
-            borderRadius: 'var(--radius-md)',
-            overflow: 'hidden',
-            border: '1px solid var(--border-color)',
-            boxShadow: 'var(--shadow-md)',
-            minHeight: '600px',
-            position: 'relative',
-          }}
-        >
-          {loading && (
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1000,
-                background: 'var(--bg-card)',
-                flexDirection: 'column',
-                gap: '12px',
-              }}
-            >
-              <div style={{ fontSize: '2.5rem' }}>🗺️</div>
-              <p
-                style={{
-                  color: 'var(--text-secondary)',
-                  margin: 0,
-                }}
-              >
-                Loading map...
-              </p>
-            </div>
-          )}
-          <div
-            ref={mapRef}
-            style={{ width: '100%', height: '100%', minHeight: '600px' }}
-          />
-        </div>
-
-        <div
-          style={{
-            width: '300px',
-            flexShrink: 0,
+            maxWidth: '1200px',
+            width: '100%',
+            margin: '0 auto',
+            padding: '16px',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            overflowY: 'auto',
-            maxHeight: '650px',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: '16px',
           }}
         >
-          <p
+          {/* Map — full width on mobile */}
+          <div
             style={{
-              margin: '0 0 4px',
-              fontWeight: 700,
-              color: 'var(--text-primary)',
-              fontSize: '0.9rem',
+              flex: 1,
+              borderRadius: 'var(--radius-md)',
+              overflow: 'hidden',
+              border: '1px solid var(--border-color)',
+              boxShadow: 'var(--shadow-md)',
+              height: isMobile ? '320px' : '600px',
+              minHeight: isMobile ? '320px' : '600px',
+              position: 'relative',
             }}
           >
-            {filteredListings.length} results
-          </p>
-          {filteredListings.map((listing) => (
+            {loading && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1000,
+                  background: 'var(--bg-card)',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ fontSize: '2.5rem' }}>🗺️</div>
+                <p
+                  style={{
+                    color: 'var(--text-secondary)',
+                    margin: 0,
+                  }}
+                >
+                  Loading map...
+                </p>
+              </div>
+            )}
             <div
-              key={listing.id}
-              onClick={() => navigate(`/listing/${listing.id}`)}
+              ref={mapRef}
               style={{
-                background:
-                  selected?.id === listing.id
-                    ? 'var(--accent-light)'
-                    : 'var(--bg-card)',
-                border:
-                  selected?.id === listing.id
-                    ? '2px solid var(--accent)'
-                    : '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                gap: '10px',
-                alignItems: 'flex-start',
-                transition: 'all 0.15s',
+                width: '100%',
+                height: '100%',
+                minHeight: isMobile ? '320px' : '600px',
+              }}
+            />
+          </div>
+
+          {/* Sidebar listing list */}
+          <div
+            style={{
+              width: isMobile ? '100%' : '300px',
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              overflowY: isMobile ? 'visible' : 'auto',
+              maxHeight: isMobile ? 'none' : '650px',
+            }}
+          >
+            <p
+              style={{
+                margin: '0 0 4px',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                fontSize: '0.9rem',
               }}
             >
-              <img
-                src={getImageUrl(listing.image_url)}
-                alt={listing.title}
-                onError={(e) => {
-                  e.target.onerror = null
-                  e.target.src =
-                    'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
-                }}
+              {filteredListings.length} results
+            </p>
+
+            {isMobile ? (
+              <div
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '6px',
-                  objectFit: 'cover',
-                  flexShrink: 0,
+                  display: 'flex',
+                  gap: '12px',
+                  overflowX: 'auto',
+                  paddingBottom: '8px',
+                  scrollbarWidth: 'none',
                 }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: '0.825rem',
-                    color: 'var(--text-primary)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    marginBottom: '2px',
-                  }}
-                >
-                  {getServiceEmoji(listing.service_type)} {listing.title}
-                </div>
-                <div
-                  style={{
-                    fontSize: '0.75rem',
-                    color: 'var(--text-secondary)',
-                    marginBottom: '2px',
-                  }}
-                >
-                  📍 {listing.location}
-                </div>
-                <div
-                  style={{
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    color: 'var(--accent)',
-                  }}
-                >
-                  PKR {listing.price_per_night?.toLocaleString('en-PK')}
-                  /night
-                </div>
+              >
+                {filteredListings.map((listing) => (
+                  <div
+                    key={listing.id}
+                    onClick={() =>
+                      navigate(`/listing/${listing.id}`)
+                    }
+                    style={{
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-sm)',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      width: '200px',
+                      boxShadow: 'var(--shadow-sm)',
+                    }}
+                  >
+                    <img
+                      src={
+                        listing.image_url
+                          ? 'http://127.0.0.1:8000/uploads/' +
+                              listing.image_url
+                          : 'https://placehold.co/200x100/e5e7eb/9ca3af?text=GB'
+                      }
+                      alt={listing.title}
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.src =
+                          'https://placehold.co/200x100/e5e7eb/9ca3af?text=GB'
+                      }}
+                      style={{
+                        width: '100%',
+                        height: '90px',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                    <div style={{ padding: '8px 10px' }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          color: 'var(--text-primary)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          marginBottom: '2px',
+                        }}
+                      >
+                        {getServiceEmoji(listing.service_type)}{' '}
+                        {listing.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.72rem',
+                          color: 'var(--text-secondary)',
+                          marginBottom: '2px',
+                        }}
+                      >
+                        📍 {listing.location}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: 'var(--accent)',
+                        }}
+                      >
+                        PKR{' '}
+                        {listing.price_per_night?.toLocaleString(
+                          'en-PK',
+                        )}
+                        /night
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
+            ) : (
+              filteredListings.map((listing) => (
+                <div
+                  key={listing.id}
+                  onClick={() =>
+                    navigate(`/listing/${listing.id}`)
+                  }
+                  style={{
+                    background:
+                      selected?.id === listing.id
+                        ? 'var(--accent-light)'
+                        : 'var(--bg-card)',
+                    border:
+                      selected?.id === listing.id
+                        ? '2px solid var(--accent)'
+                        : '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    gap: '10px',
+                    alignItems: 'flex-start',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <img
+                    src={
+                      listing.image_url
+                        ? 'http://127.0.0.1:8000/uploads/' +
+                            listing.image_url
+                        : 'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
+                    }
+                    alt={listing.title}
+                    onError={(e) => {
+                      e.target.onerror = null
+                      e.target.src =
+                        'https://placehold.co/64x64/e5e7eb/9ca3af?text=GB'
+                    }}
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '6px',
+                      objectFit: 'cover',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        fontSize: '0.825rem',
+                        color: 'var(--text-primary)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        marginBottom: '2px',
+                      }}
+                    >
+                      {getServiceEmoji(listing.service_type)}{' '}
+                      {listing.title}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-secondary)',
+                        marginBottom: '2px',
+                      }}
+                    >
+                      📍 {listing.location}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        color: 'var(--accent)',
+                      }}
+                    >
+                      PKR{' '}
+                      {listing.price_per_night?.toLocaleString(
+                        'en-PK',
+                      )}
+                      /night
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

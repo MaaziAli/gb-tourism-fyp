@@ -1417,9 +1417,10 @@ function AdminDashboard() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns:
-                      'repeat(auto-fit, minmax(180px, 1fr))',
-                    gap: '14px',
+                    gridTemplateColumns: isMobile
+                      ? 'repeat(2, 1fr)'
+                      : 'repeat(4, 1fr)',
+                    gap: isMobile ? '10px' : '16px',
                     marginBottom: '24px',
                   }}
                 >
@@ -1460,41 +1461,42 @@ function AdminDashboard() {
                       color: '#7c3aed',
                       icon: '🔢',
                     },
-                  ].map((s) => (
+                  ].map((card) => (
                     <div
-                      key={s.label}
+                      key={card.label}
                       style={{
                         background: 'var(--bg-card)',
-                        borderRadius: 'var(--radius-md)',
                         border: '1px solid var(--border-color)',
-                        padding: '16px 20px',
+                        borderRadius: 'var(--radius-md)',
+                        padding: isMobile ? '12px' : '20px',
+                        borderTop: '3px solid ' + card.color,
                       }}
                     >
                       <div
                         style={{
-                          fontSize: '1.4rem',
-                          marginBottom: '6px',
+                          fontSize: isMobile ? '1.2rem' : '1.5rem',
+                          marginBottom: isMobile ? '4px' : '8px',
                         }}
                       >
-                        {s.icon}
+                        {card.icon}
                       </div>
                       <div
                         style={{
-                          fontSize: '1.2rem',
+                          fontSize: isMobile ? '0.95rem' : '1.3rem',
                           fontWeight: 800,
-                          color: s.color,
+                          color: card.color,
+                          marginBottom: '4px',
                         }}
                       >
-                        {s.value}
+                        {card.value}
                       </div>
                       <div
                         style={{
-                          fontSize: '0.78rem',
-                          color: 'var(--text-secondary)',
-                          marginTop: '3px',
+                          fontSize: isMobile ? '0.68rem' : '0.78rem',
+                          color: 'var(--text-muted)',
                         }}
                       >
-                        {s.label}
+                        {card.label}
                       </div>
                     </div>
                   ))}
