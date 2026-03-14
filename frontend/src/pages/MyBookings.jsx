@@ -255,20 +255,18 @@ export default function MyBookings() {
                           📍 {b.location}
                         </p>
                         {b.room_type_name && (
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              marginTop: '6px',
-                              background: 'var(--accent-light)',
-                              color: 'var(--accent)',
-                              padding: '3px 12px',
-                              borderRadius: '999px',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                            }}
-                          >
-                            🛏️ {b.room_type_name}
-                          </span>
+                          <div style={{
+                            display: 'inline-block',
+                            marginTop: '4px',
+                            background: '#eff6ff',
+                            color: '#2563eb',
+                            padding: '2px 10px',
+                            borderRadius: '999px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600
+                          }}>
+                            Room: {b.room_type_name}
+                          </div>
                         )}
                       </div>
                       <span style={statusStyle(b.status)}>

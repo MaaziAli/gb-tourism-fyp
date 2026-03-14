@@ -179,7 +179,7 @@ export default function ListingDetail() {
     { bg: '#f3f4f6', color: '#374151', label: listing.service_type }
 
   return (
-    <div className="page-container">
+    <div className="page-container" data-owner-id={listing?.owner_id}>
       {/* Back link */}
       <button onClick={() => navigate(-1)} style={{
         background:'none', border:'none', 
@@ -502,12 +502,7 @@ export default function ListingDetail() {
                 </div>
               </div>
             )}
-            <BookNowButton
-              listing={listing}
-              selectedRoom={selectedRoom}
-              navigate={navigate}
-              id={id}
-            />
+            <BookButton listingId={id} selectedRoom={selectedRoom} />
             {isOwner && (
               <button className="btn-primary"
                 style={{width:'100%',justifyContent:'center',
@@ -683,50 +678,50 @@ export default function ListingDetail() {
   )
 }
 
-function BookNowButton({ listing, selectedRoom, navigate, id }) {
-  const stored = typeof window !== 'undefined'
-    ? localStorage.getItem('user')
-    : null
-  if (!stored || !listing) return null
-
-  let user = null
-  try {
-    user = JSON.parse(stored)
-  } catch (e) {
-    return null
+function BookButton({ listingId, selectedRoom }) {
+  const raw = localStorage.getItem('user')
+  if (!raw) {
+    return (
+      <a href="/login" style={{
+        display: 'block', textAlign: 'center',
+        background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+        color: 'white', padding: '13px',
+        borderRadius: '10px', textDecoration: 'none',
+        fontWeight: 700, fontSize: '1rem', marginTop: '12px'
+      }}>
+        Login to Book
+      </a>
+    )
   }
 
-  if (user?.role === 'admin') return null
-  if (user?.id === listing.owner_id) return null
+  let user
+  try { user = JSON.parse(raw) }
+  catch(e) { return null }
+
+  if (user.role === 'admin') return null
+
+  const card = document.querySelector('[data-owner-id]')
+  const ownerId = card ? parseInt(card.dataset.ownerId) : null
+  if (ownerId && user.id === ownerId) return null
+
+  const params = selectedRoom
+    ? '?room_type_id=' + selectedRoom.id
+      + '&room_name=' + encodeURIComponent(selectedRoom.name)
+    : ''
 
   return (
-    <button
-      onClick={() => {
-        const params = selectedRoom
-          ? `?room_type_id=${selectedRoom.id}&room_name=${encodeURIComponent(
-              selectedRoom.name,
-            )}`
-          : ''
-        navigate(`/booking/${id}${params}`)
-      }}
+    <a href={'/booking/' + listingId + params}
       style={{
-        width: '100%',
-        padding: '13px',
-        fontSize: '1rem',
-        fontWeight: 700,
-        marginTop: '12px',
+        display: 'block', textAlign: 'center',
         background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
-        color: 'white',
-        border: 'none',
-        borderRadius: '10px',
-        cursor: 'pointer',
-        display: 'block',
-        textAlign: 'center',
+        color: 'white', padding: '13px',
+        borderRadius: '10px', textDecoration: 'none',
+        fontWeight: 700, fontSize: '1rem', marginTop: '12px'
       }}
     >
-      🗓️ Book Now
-      {selectedRoom ? ` — ${selectedRoom.name}` : ''}
-    </button>
+      Book Now
+      {selectedRoom ? ' - ' + selectedRoom.name : ''}
+    </a>
   )
 }
 
