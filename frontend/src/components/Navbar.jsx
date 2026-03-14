@@ -119,6 +119,14 @@ function Navbar() {
           )}
           {!loggedIn && (
             <>
+              <NavLink
+                to="/home"
+                className={({ isActive }) =>
+                  'nav-link' + (isActive ? ' active' : '')
+                }
+              >
+                🏠 Home
+              </NavLink>
               <Link
                 to="/login"
                 className={`nav-link${
