@@ -14,16 +14,22 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const formData = new FormData()
+      const formData = new URLSearchParams()
       formData.append('username', email)
       formData.append('password', password)
-      const res = await api.post(
-        '/auth/login', formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      )
+      const res = await api.post('/auth/login', formData)
       localStorage.setItem('token', res.data.access_token)
-      localStorage.setItem('user', JSON.stringify(res.data.user))
-      const role = res.data.user?.role
+
+      let me = null
+      try {
+        const meRes = await api.get('/users/me')
+        me = meRes.data
+        localStorage.setItem('user', JSON.stringify(meRes.data))
+      } catch {
+        // If /users/me fails, continue with token-only auth
+      }
+
+      const role = me?.role
       if (role === 'admin') navigate('/admin')
       else if (role === 'provider') navigate('/my-listings')
       else navigate('/')
