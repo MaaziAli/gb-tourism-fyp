@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
+import useWindowSize from '../hooks/useWindowSize'
 
 export default function BookingForm() {
   const { listingId } = useParams()
   const navigate = useNavigate()
+  const { isMobile } = useWindowSize()
   const [searchParams] = useSearchParams()
   const roomTypeId = searchParams.get('room_type_id')
   const roomTypeName = searchParams.get('room_name')
@@ -285,8 +287,9 @@ export default function BookingForm() {
       <div style={{
         maxWidth: '760px', margin: '-56px auto 0',
         padding: '0 16px',
-        display: 'grid',
-        gridTemplateColumns: '1fr 340px',
+        display: isMobile ? 'flex' : 'grid',
+        flexDirection: isMobile ? 'column' : undefined,
+        gridTemplateColumns: isMobile ? undefined : '1fr 340px',
         gap: '20px', alignItems: 'start'
       }}>
 
@@ -466,7 +469,11 @@ export default function BookingForm() {
         </div>
 
         {/* RIGHT — Summary + Submit */}
-        <div style={{position: 'sticky', top: '20px'}}>
+        <div style={{
+          position: isMobile ? 'relative' : 'sticky',
+          top: isMobile ? 'auto' : '20px',
+          order: isMobile ? -1 : 0
+        }}>
           <div style={{
             background: 'var(--bg-card)',
             borderRadius: 'var(--radius-lg)',

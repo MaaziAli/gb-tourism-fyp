@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
+import useWindowSize from '../hooks/useWindowSize'
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([])
@@ -9,6 +10,7 @@ export default function MyBookings() {
   const [cancellingId, setCancellingId] = useState(null)
   const [filter, setFilter] = useState('all')
   const navigate = useNavigate()
+  const { isMobile } = useWindowSize()
 
   useEffect(() => { fetchBookings() }, [])
 
@@ -336,7 +338,7 @@ export default function MyBookings() {
                         navigate(`/listing/${b.listing_id}`)
                       }
                       style={{
-                        width: 110, flexShrink: 0,
+                        width: isMobile ? 80 : 110, flexShrink: 0,
                         cursor: 'pointer', overflow: 'hidden'
                       }}
                     >
@@ -354,7 +356,7 @@ export default function MyBookings() {
                         }}
                         style={{
                           width: '100%', height: '100%',
-                          minHeight: 110,
+                          minHeight: isMobile ? 80 : 110,
                           objectFit: 'cover', display: 'block'
                         }}
                       />
@@ -445,7 +447,9 @@ export default function MyBookings() {
 
                         {/* Dates row */}
                         <div style={{
-                          display: 'flex', gap: '16px',
+                          display: 'flex',
+                          flexDirection: isMobile ? 'column' : 'row',
+                          gap: isMobile ? '4px' : '16px',
                           flexWrap: 'wrap',
                           fontSize: '0.82rem',
                           color: 'var(--text-secondary)'
@@ -471,8 +475,9 @@ export default function MyBookings() {
                       {/* Bottom row */}
                       <div style={{
                         display: 'flex',
+                        flexDirection: isMobile ? 'column' : 'row',
                         justifyContent: 'space-between',
-                        alignItems: 'center',
+                        alignItems: isMobile ? 'stretch' : 'center',
                         marginTop: '12px',
                         flexWrap: 'wrap', gap: '8px'
                       }}>

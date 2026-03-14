@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getRole } from '../utils/role'
+import useWindowSize from '../hooks/useWindowSize'
 
 export default function Profile() {
   const [user, setUser] = useState(null)
@@ -14,6 +15,7 @@ export default function Profile() {
   const [showDelete, setShowDelete] = useState(false)
   const navigate = useNavigate()
   const role = getRole() || 'user'
+  const { isMobile } = useWindowSize()
 
   useEffect(() => {
     fetchProfile()
@@ -158,7 +160,7 @@ export default function Profile() {
       >
         <div
           style={{
-            maxWidth: '680px',
+            maxWidth: isMobile ? '100%' : '680px',
             margin: '0 auto',
             textAlign: 'center',
           }}
@@ -187,9 +189,9 @@ export default function Profile() {
 
       <div
         style={{
-          maxWidth: '680px',
+          maxWidth: isMobile ? '100%' : '680px',
           margin: '-56px auto 0',
-          padding: '0 16px',
+          padding: isMobile ? '0 12px' : '0 16px',
         }}
       >
         {/* Avatar + name card */}

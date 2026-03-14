@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
+import useWindowSize from '../hooks/useWindowSize'
 
 function getServiceBadge(type) {
   switch(type) {
@@ -41,6 +42,7 @@ export default function Home() {
   const [featuredListings, setFeaturedListings] = useState([])
   const [stats, setStats] = useState({ listings: 0, locations: 0 })
   const navigate = useNavigate()
+  const { isMobile } = useWindowSize()
 
   useEffect(() => {
     api.get('/listings').then(res => {
@@ -65,7 +67,7 @@ export default function Home() {
       <div style={{
         background:
           'linear-gradient(160deg, #0a0f1e 0%, #0f2340 40%, #0c3460 70%, #0ea5e9 100%)',
-        padding: '72px 16px 120px',
+        padding: isMobile ? '48px 16px 72px' : '72px 16px 120px',
         position: 'relative', overflow: 'hidden'
       }}>
         {/* Glowing orbs */}
@@ -138,7 +140,10 @@ export default function Home() {
 
           {/* CTA buttons */}
           <div style={{
-            display: 'flex', gap: '14px',
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'stretch' : 'center',
+            gap: '14px',
             justifyContent: 'center', flexWrap: 'wrap',
             marginBottom: '56px'
           }}>
@@ -200,7 +205,8 @@ export default function Home() {
             display: 'inline-flex', gap: '0',
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '16px', overflow: 'hidden'
+            borderRadius: '16px',
+            overflow: isMobile ? 'auto' : 'hidden'
           }}>
             {[
               { v: stats.listings + '+', l: 'Services' },
@@ -264,8 +270,8 @@ export default function Home() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(220px, 1fr))',
+            gridTemplateColumns: isMobile
+              ? '1fr 1fr' : 'repeat(auto-fit, minmax(220px, 1fr))',
             gap: '16px'
           }}>
             {FEATURES.map(f => (
@@ -622,8 +628,8 @@ export default function Home() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fill, minmax(155px, 1fr))',
+            gridTemplateColumns: isMobile
+              ? '1fr 1fr' : 'repeat(auto-fill, minmax(155px, 1fr))',
             gap: '12px'
           }}>
             {DESTINATIONS.map(d => (
@@ -785,11 +791,13 @@ export default function Home() {
         <div style={{
           maxWidth: '900px', margin: '0 auto',
           display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
           justifyContent: 'space-between',
           alignItems: 'center', flexWrap: 'wrap',
-          gap: '20px'
+          gap: isMobile ? '16px' : '20px',
+          textAlign: isMobile ? 'center' : 'left'
         }}>
-          <div>
+          <div style={{ textAlign: isMobile ? 'center' : 'left' }}>
             <div style={{
               fontSize: '1.2rem', fontWeight: 800,
               color: 'var(--text-primary)', marginBottom: '4px'

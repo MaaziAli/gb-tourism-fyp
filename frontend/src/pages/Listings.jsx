@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
+import useWindowSize from '../hooks/useWindowSize'
 
 const SERVICE_TYPES = [
   { value: '', label: 'All Types' },
@@ -40,6 +41,7 @@ export default function Listings() {
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const { isMobile } = useWindowSize()
 
   const [search, setSearch] = useState('')
   const [serviceType, setServiceType] = useState('')
@@ -134,7 +136,7 @@ export default function Listings() {
       {/* Hero */}
       <div style={{
         background: 'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
-        padding: '36px 16px 28px'
+        padding: isMobile ? '28px 12px 20px' : '36px 16px 28px'
       }}>
         <div style={{maxWidth: '800px', margin: '0 auto'}}>
           <h1 style={{
@@ -334,12 +336,17 @@ export default function Listings() {
 
       {/* Results */}
       <div style={{
-        maxWidth:'1100px', margin:'0 auto', padding:'24px 16px'
+        maxWidth:'1100px', margin:'0 auto',
+        padding: isMobile ? '16px 12px' : '24px 16px'
       }}>
         {!loading && (
           <div style={{
-            display:'flex', justifyContent:'space-between',
-            alignItems:'center', marginBottom:'20px'
+            display:'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? '10px' : '0',
+            justifyContent:'space-between',
+            alignItems: isMobile ? 'stretch' : 'center',
+            marginBottom:'20px'
           }}>
             <p style={{
               margin:0, color:'var(--text-secondary)',

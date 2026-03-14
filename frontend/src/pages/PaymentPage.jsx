@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate,
          useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
+import useWindowSize from '../hooks/useWindowSize'
 
 export default function PaymentPage() {
   const { bookingId } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { isMobile } = useWindowSize()
 
   const [booking, setBooking] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -308,8 +310,9 @@ export default function PaymentPage() {
         maxWidth: '720px',
         margin: '-48px auto 0',
         padding: '0 16px',
-        display: 'grid',
-        gridTemplateColumns: '1fr 300px',
+        display: isMobile ? 'flex' : 'grid',
+        flexDirection: isMobile ? 'column-reverse' : undefined,
+        gridTemplateColumns: isMobile ? undefined : '1fr 300px',
         gap: '20px', alignItems: 'start'
       }}>
 
@@ -332,7 +335,8 @@ export default function PaymentPage() {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
+              gridTemplateColumns: isMobile
+                ? '1fr' : 'repeat(3, 1fr)',
               gap: '10px', marginBottom: '20px'
             }}>
               {[
