@@ -1,116 +1,288 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import api from '../api/axios'
 
-function Login() {
-  const navigate = useNavigate()
+export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    setLoading(true)
     try {
-      const formData = new URLSearchParams()
+      const formData = new FormData()
       formData.append('username', email)
       formData.append('password', password)
-
-      const { data } = await api.post('/auth/login', formData)
-      localStorage.setItem('token', data.access_token)
-      // Fetch current user profile for client-side authorization
-      try {
-        const meRes = await api.get('/users/me')
-        localStorage.setItem('user', JSON.stringify(meRes.data))
-      } catch {
-        // If /users/me fails, continue with token-only auth
-      }
-      navigate('/')
-    } catch (err) {
-      const msg = err.response?.data?.detail ?? err.message ?? 'Login failed'
-      setError(Array.isArray(msg) ? msg.map((m) => m.msg ?? JSON.stringify(m)).join(', ') : String(msg))
+      const res = await api.post(
+        '/auth/login', formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      )
+      localStorage.setItem('token', res.data.access_token)
+      localStorage.setItem('user', JSON.stringify(res.data.user))
+      const role = res.data.user?.role
+      if (role === 'admin') navigate('/admin')
+      else if (role === 'provider') navigate('/my-listings')
+      else navigate('/')
+    } catch(e) {
+      setError(
+        e.response?.data?.detail || 'Invalid email or password'
+      )
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <div className="page-container">
-      <div
-        style={{
-          maxWidth: '400px',
-          margin: '40px auto',
-          backgroundColor: 'var(--bg-card)',
-          padding: '24px',
-          borderRadius: '8px',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <h1 style={{ marginBottom: '24px', color: 'var(--text-primary)' }}>Login</h1>
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg-primary)',
+      display: 'flex', alignItems: 'center',
+      justifyContent: 'center', padding: '20px'
+    }}>
+      <div style={{
+        width: '100%', maxWidth: '420px',
+        background: 'var(--bg-card)',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border-color)',
+        boxShadow: 'var(--shadow-md)',
+        overflow: 'hidden'
+      }}>
+
+        {/* Gradient header */}
+        <div style={{
+          background:
+            'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
+          padding: '36px 24px', textAlign: 'center'
+        }}>
+          <div style={{
+            fontSize: '3rem', marginBottom: '10px'
+          }}>
+            🏔️
+          </div>
+          <h1 style={{
+            color: 'white', margin: '0 0 6px',
+            fontSize: '1.6rem', fontWeight: 800,
+            letterSpacing: '-0.02em'
+          }}>
+            Welcome Back
+          </h1>
+          <p style={{
+            color: 'rgba(255,255,255,0.8)',
+            margin: 0, fontSize: '0.9rem'
+          }}>
+            Sign in to GB Tourism
+          </p>
+        </div>
+
+        {/* Form area */}
+        <div style={{padding: '28px 24px'}}>
+
+          {error && (
+            <div style={{
+              background: 'var(--danger-bg)',
+              color: 'var(--danger)',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              marginBottom: '18px',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            {/* Email */}
+            <div style={{marginBottom: '16px'}}>
+              <label style={{
+                display: 'block', fontSize: '0.85rem',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: '6px'
+              }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                autoFocus
+                style={{
+                  width: '100%', padding: '12px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.95rem',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={e =>
+                  e.target.style.borderColor = 'var(--accent)'
+                }
+                onBlur={e =>
+                  e.target.style.borderColor =
+                    'var(--border-color)'
+                }
+              />
+            </div>
+
+            {/* Password */}
+            <div style={{marginBottom: '22px'}}>
+              <label style={{
+                display: 'block', fontSize: '0.85rem',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                marginBottom: '6px'
+              }}>
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+                style={{
+                  width: '100%', padding: '12px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.95rem',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={e =>
+                  e.target.style.borderColor = 'var(--accent)'
+                }
+                onBlur={e =>
+                  e.target.style.borderColor =
+                    'var(--border-color)'
+                }
+              />
+            </div>
+
+            {/* Submit button */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%', padding: '13px',
+                borderRadius: '10px', border: 'none',
+                background:
+                  'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                color: 'white', fontWeight: 700,
+                fontSize: '1rem', cursor: 'pointer',
+                opacity: loading ? 0.75 : 1,
+                transition: 'opacity 0.2s, transform 0.1s',
+                letterSpacing: '0.01em'
+              }}
+              onMouseEnter={e => {
+                if (!loading)
+                  e.target.style.transform = 'translateY(-1px)'
+              }}
+              onMouseLeave={e => {
+                e.target.style.transform = 'translateY(0)'
+              }}
+            >
+              {loading ? '⏳ Signing in...' : 'Sign In →'}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            gap: '12px', margin: '20px 0'
+          }}>
+            <div style={{
+              flex: 1, height: '1px',
+              background: 'var(--border-color)'
+            }} />
+            <span style={{
+              fontSize: '0.78rem',
+              color: 'var(--text-muted)'
+            }}>
+              New to GB Tourism?
+            </span>
+            <div style={{
+              flex: 1, height: '1px',
+              background: 'var(--border-color)'
+            }} />
+          </div>
+
+          {/* Register link */}
+          <Link to="/register" style={{
+            display: 'block', textAlign: 'center',
+            padding: '12px',
+            borderRadius: '10px',
+            border: '2px solid var(--border-color)',
+            color: 'var(--text-primary)',
+            textDecoration: 'none',
+            fontWeight: 700, fontSize: '0.95rem',
+            transition: 'border-color 0.2s, color 0.2s'
           }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="email" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              style={{
-                padding: '8px',
-                fontSize: '0.95rem',
-                borderRadius: '6px',
-                border: '1px solid var(--border-color)',
-                width: '100%',
-                backgroundColor: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-              }}
-            />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label htmlFor="password" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{
-                padding: '8px',
-                fontSize: '0.95rem',
-                borderRadius: '6px',
-                border: '1px solid var(--border-color)',
-                width: '100%',
-                backgroundColor: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-              }}
-            />
-          </div>
-          {error && <p style={{ color: 'var(--danger)', fontSize: '0.9rem' }}>{error}</p>}
-          <button
-            type="submit"
-            style={{
-              marginTop: '4px',
-              padding: '10px 16px',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: 'var(--accent)',
-              color: '#ffffff',
-              cursor: 'pointer',
-              fontSize: '1rem',
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor =
+                'var(--accent)'
+              e.currentTarget.style.color = 'var(--accent)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor =
+                'var(--border-color)'
+              e.currentTarget.style.color =
+                'var(--text-primary)'
             }}
           >
-            Login
-          </button>
-        </form>
+            Create an Account
+          </Link>
+
+          {/* Demo credentials hint */}
+          <div style={{
+            marginTop: '20px', padding: '12px 14px',
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)'
+          }}>
+            <p style={{
+              margin: '0 0 6px', fontSize: '0.78rem',
+              fontWeight: 700, color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Demo Accounts
+            </p>
+            <div style={{
+              fontSize: '0.78rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.8
+            }}>
+              <div>
+                👤 Traveler: use any registered account
+              </div>
+              <div>
+                🏨 Provider: register as Service Provider
+              </div>
+              <div>
+                🔑 Admin: admin@gbtourism.com /
+                Admin@12345
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   )
 }
-
-export default Login
