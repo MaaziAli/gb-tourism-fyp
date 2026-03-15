@@ -156,7 +156,6 @@ export default function ListingDetail() {
 
       try {
         const imgRes = await api.get(`/listing-images/${id}`)
-        console.log('Images loaded:', imgRes.data)
         setExtraImages(imgRes.data || [])
       } catch (e) {
         console.error('Image load error:', e)
@@ -596,35 +595,23 @@ export default function ListingDetail() {
                       borderRadius: '8px',
                       overflow: 'hidden',
                       cursor: 'pointer',
-                      aspectRatio: '4/3',
+                      height: '120px',
+                      background: 'var(--bg-secondary)',
                     }}
                   >
                     <img
-                      src={
-                        img.filename
-                          ? `http://127.0.0.1:8000/uploads/${img.filename}`
-                          : img.url
-                            ? `http://127.0.0.1:8000${img.url}`
-                            : 'https://placehold.co/300x200/e5e7eb/9ca3af?text=Photo'
-                      }
-                      alt="Photo"
+                      src={`http://127.0.0.1:8000/uploads/${img.filename}`}
+                      alt={img.caption || 'Room photo'}
                       onError={(e) => {
                         e.target.onerror = null
                         e.target.src =
-                          'https://placehold.co/300x200/e5e7eb/9ca3af?text=Photo'
+                          'https://placehold.co/300x120/e5e7eb/9ca3af?text=Photo'
                       }}
                       style={{
                         width: '100%',
-                        height: '100%',
+                        height: '120px',
                         objectFit: 'cover',
                         display: 'block',
-                        transition: 'transform 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'scale(1.05)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'scale(1)'
                       }}
                     />
                   </div>
