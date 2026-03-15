@@ -39,6 +39,8 @@ function App() {
           <Route path="/listings" element={<Listings />} />
           <Route path="/home" element={<Home />} />
           <Route path="/map" element={<MapView />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/events/:id" element={<EventDetail />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

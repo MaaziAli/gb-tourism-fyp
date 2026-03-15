@@ -3,7 +3,7 @@ import uuid
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,7 @@ from app.models.ticket_type import TicketType
 from app.models.user import User
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
@@ -68,16 +68,21 @@ class EventUpdate(BaseModel):
     status: Optional[str] = None
 
 
-def event_to_dict(event: Event, db: Session, include_tickets: bool = False):
-    organizer = event.organizer
-    tickets = (
-        db.query(TicketType).filter(TicketType.event_id == event.id).all()
-        if include_tickets
-        else []
-    )
+def event_to_dict(event, db, include_tickets=False):
+    try:
+        organizer = event.organizer
+    except Exception:
+        organizer = None
+
+    tickets = []
+    if include_tickets:
+        tickets = (
+            db.query(TicketType).filter(TicketType.event_id == event.id).all()
+        )
+
     total_sold = sum(t.sold_count for t in tickets)
-    paid = [t.price for t in tickets if not t.is_free]
-    min_price = min(paid) if paid else 0
+    prices = [t.price for t in tickets if not t.is_free and t.price > 0]
+    min_price = min(prices) if prices else 0
 
     return {
         "id": event.id,
@@ -91,10 +96,12 @@ def event_to_dict(event: Event, db: Session, include_tickets: bool = False):
         "end_time": event.end_time,
         "image_url": event.image_url,
         "total_capacity": event.total_capacity,
-        "is_free": event.is_free,
+        "is_free": bool(event.is_free),
         "status": event.status,
-        "is_featured": event.is_featured,
-        "created_at": event.created_at.isoformat() if event.created_at else "",
+        "is_featured": bool(event.is_featured),
+        "created_at": event.created_at.isoformat()
+        if event.created_at
+        else None,
         "organizer_id": event.organizer_id,
         "organizer_name": organizer.full_name if organizer else "Unknown",
         "tickets_sold": total_sold,
@@ -108,8 +115,8 @@ def event_to_dict(event: Event, db: Session, include_tickets: bool = False):
                 "price": t.price,
                 "capacity": t.capacity,
                 "sold_count": t.sold_count,
-                "is_free": t.is_free,
-                "is_active": t.is_active,
+                "is_free": bool(t.is_free),
+                "is_active": bool(t.is_active),
                 "available": max(0, t.capacity - t.sold_count),
             }
             for t in tickets
@@ -117,6 +124,9 @@ def event_to_dict(event: Event, db: Session, include_tickets: bool = False):
         if include_tickets
         else [],
     }
+
+
+# ─── ALL STATIC ROUTES FIRST ───
 
 
 @router.get("/categories")
@@ -149,45 +159,31 @@ def get_my_events(
     return [event_to_dict(e, db, include_tickets=True) for e in events]
 
 
-def _list_public_events(
-    db: Session,
-    category: Optional[str],
-    location: Optional[str],
-    is_free: Optional[bool],
-    status: str,
-):
-    query = db.query(Event).filter(Event.status == status)
-    if category:
-        query = query.filter(Event.category == category)
-    if location:
-        query = query.filter(Event.location.ilike(f"%{location}%"))
-    if is_free is not None:
-        query = query.filter(Event.is_free == is_free)
-    events = query.order_by(Event.event_date.asc()).all()
-    return [event_to_dict(e, db) for e in events]
-
-
 @router.get("/")
-def get_events(
-    category: Optional[str] = None,
-    location: Optional[str] = None,
-    is_free: Optional[bool] = None,
-    status: str = "active",
-    db: Session = Depends(get_db),
-):
-    return _list_public_events(db, category, location, is_free, status)
+def get_events(db: Session = Depends(get_db)):
+    """Public endpoint - no auth required"""
+    try:
+        events = (
+            db.query(Event)
+            .filter(Event.status == "active")
+            .order_by(Event.event_date.asc())
+            .all()
+        )
+        return [event_to_dict(e, db) for e in events]
+    except Exception as ex:
+        raise HTTPException(500, f"Error fetching events: {str(ex)}")
 
 
-@router.get("", include_in_schema=False)
-def get_events_no_trailing_slash(
-    category: Optional[str] = None,
-    location: Optional[str] = None,
-    is_free: Optional[bool] = None,
-    status: str = "active",
-    db: Session = Depends(get_db),
-):
-    """Same as GET /events/ — public, no auth."""
-    return _list_public_events(db, category, location, is_free, status)
+# ─── DYNAMIC ROUTE (single-segment id) — register before sub-routes that
+#     share the same prefix are not an issue; static paths already matched ───
+
+
+@router.get("/{event_id}")
+def get_event(event_id: int, db: Session = Depends(get_db)):
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(404, "Event not found")
+    return event_to_dict(event, db, include_tickets=True)
 
 
 @router.post("/")
@@ -196,11 +192,8 @@ def create_event(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("provider", "admin"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only providers can create events",
-        )
+    if current_user.role not in ["provider", "admin"]:
+        raise HTTPException(403, "Only providers can create events")
 
     event = Event(
         organizer_id=current_user.id,
@@ -227,7 +220,7 @@ def create_event(
                 description=tt.description,
                 price=tt.price,
                 capacity=tt.capacity,
-                is_free=tt.is_free or tt.price == 0,
+                is_free=bool(tt.is_free) or tt.price == 0,
             )
             db.add(ticket)
     else:
@@ -245,25 +238,6 @@ def create_event(
     return event_to_dict(event, db, include_tickets=True)
 
 
-@router.delete("/ticket-types/{tt_id}")
-def delete_ticket_type(
-    tt_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    tt = db.query(TicketType).filter(TicketType.id == tt_id).first()
-    if not tt:
-        raise HTTPException(status_code=404, detail="Not found")
-    event = db.query(Event).filter(Event.id == tt.event_id).first()
-    if not event or (
-        event.organizer_id != current_user.id and current_user.role != "admin"
-    ):
-        raise HTTPException(status_code=403, detail="Not allowed")
-    db.delete(tt)
-    db.commit()
-    return {"ok": True}
-
-
 @router.post("/{event_id}/upload-image")
 async def upload_event_image(
     event_id: int,
@@ -273,17 +247,17 @@ async def upload_event_image(
 ):
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(404, "Not found")
     if event.organizer_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not allowed")
+        raise HTTPException(403, "Not allowed")
 
     ext = Path(file.filename or "").suffix.lower()
-    if ext not in {".jpg", ".jpeg", ".png", ".webp"}:
-        raise HTTPException(status_code=400, detail="Invalid file type")
+    if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+        raise HTTPException(400, "Invalid file type")
 
     filename = f"event_{uuid.uuid4()}{ext}"
     dest = UPLOAD_DIR / filename
-    with dest.open("wb") as f:
+    with open(dest, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
     event.image_url = filename
@@ -300,17 +274,33 @@ def update_event(
 ):
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(404, "Not found")
     if event.organizer_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not allowed")
+        raise HTTPException(403, "Not allowed")
 
-    data = body.model_dump(exclude_none=True)
-    for field, value in data.items():
+    for field, value in body.model_dump(exclude_none=True).items():
         setattr(event, field, value)
 
     db.commit()
     db.refresh(event)
     return event_to_dict(event, db, include_tickets=True)
+
+
+@router.delete("/ticket-types/{tt_id}")
+def delete_ticket_type(
+    tt_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    tt = db.query(TicketType).filter(TicketType.id == tt_id).first()
+    if not tt:
+        raise HTTPException(404, "Not found")
+    event = db.query(Event).filter(Event.id == tt.event_id).first()
+    if event.organizer_id != current_user.id:
+        raise HTTPException(403, "Not allowed")
+    db.delete(tt)
+    db.commit()
+    return {"ok": True}
 
 
 @router.delete("/{event_id}")
@@ -321,9 +311,9 @@ def delete_event(
 ):
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(404, "Not found")
     if event.organizer_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not allowed")
+        raise HTTPException(403, "Not allowed")
 
     db.query(TicketType).filter(TicketType.event_id == event_id).delete()
     db.delete(event)
@@ -340,9 +330,9 @@ def add_ticket_type(
 ):
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
-        raise HTTPException(status_code=404, detail="Not found")
-    if event.organizer_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not allowed")
+        raise HTTPException(404, "Not found")
+    if event.organizer_id != current_user.id:
+        raise HTTPException(403, "Not allowed")
 
     ticket = TicketType(
         event_id=event_id,
@@ -350,7 +340,7 @@ def add_ticket_type(
         description=body.description,
         price=body.price,
         capacity=body.capacity,
-        is_free=body.is_free or body.price == 0,
+        is_free=bool(body.is_free) or body.price == 0,
     )
     db.add(ticket)
     db.commit()
@@ -371,19 +361,10 @@ def toggle_feature(
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admins only")
+        raise HTTPException(403, "Admins only")
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
-        raise HTTPException(status_code=404, detail="Not found")
-    event.is_featured = not bool(event.is_featured)
+        raise HTTPException(404, "Not found")
+    event.is_featured = not event.is_featured
     db.commit()
     return {"is_featured": event.is_featured}
-
-
-# GET /{event_id} MUST be registered last so /featured, /my-events, /categories match first
-@router.get("/{event_id}")
-def get_event(event_id: int, db: Session = Depends(get_db)):
-    event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    return event_to_dict(event, db, include_tickets=True)
