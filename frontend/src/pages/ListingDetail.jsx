@@ -484,7 +484,13 @@ export default function ListingDetail() {
               )?.toLocaleString('en-PK')}
               <span style={{fontSize: '1rem', fontWeight: 400,
                              color: 'var(--text-secondary)'}}>
-                {' '}{listing.service_type === 'restaurant' ? '/person' : '/night'}
+                {listing.service_type === 'restaurant'
+                  ? ' /person'
+                  : listing.service_type === 'tour' ||
+                    listing.service_type === 'activity'
+                  ? ' /person'
+                  : ' /night'
+                }
               </span>
             </div>
             {summary?.total_reviews > 0 && (

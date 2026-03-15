@@ -8,6 +8,9 @@ function AddListing() {
   const [description, setDescription] = useState('')
   const [pricePerNight, setPricePerNight] = useState('')
   const [serviceType, setServiceType] = useState('hotel')
+  const [cuisineType, setCuisineType] = useState('')
+  const [openingHours, setOpeningHours] = useState('')
+  const [diningAmenities, setDiningAmenities] = useState([])
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [message, setMessage] = useState('')
@@ -41,6 +44,9 @@ function AddListing() {
       setDescription('')
       setPricePerNight('')
       setServiceType('hotel')
+      setCuisineType('')
+      setOpeningHours('')
+      setDiningAmenities([])
       setImageFile(null)
       setImagePreview(null)
     } catch (err) {
@@ -276,7 +282,9 @@ function AddListing() {
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your listing, amenities, highlights..."
+              placeholder={serviceType === 'restaurant'
+                ? 'Describe your restaurant, cuisine, ambiance...'
+                : 'Describe your service...'}
               style={{
                 width: '100%',
                 padding: '10px 12px',
@@ -370,6 +378,159 @@ function AddListing() {
               <option value="restaurant">🍽️ Restaurant</option>
             </select>
           </div>
+
+          {serviceType === 'restaurant' && (
+            <div style={{
+              background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--accent)',
+              padding: '20px', marginBottom: '16px'
+            }}>
+              <h3 style={{
+                margin: '0 0 16px', fontSize: '0.95rem',
+                fontWeight: 700, color: 'var(--accent)'
+              }}>
+                🍽️ Restaurant Details
+              </h3>
+
+              <div style={{marginBottom: '14px'}}>
+                <label style={{
+                  display: 'block', fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px'
+                }}>
+                  Cuisine Type
+                </label>
+                <select
+                  value={cuisineType}
+                  onChange={e => setCuisineType(e.target.value)}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  <option value="">Select cuisine...</option>
+                  <option value="Pakistani">🇵🇰 Pakistani</option>
+                  <option value="Chinese">🥢 Chinese</option>
+                  <option value="Continental">🍝 Continental</option>
+                  <option value="BBQ">🔥 BBQ & Grill</option>
+                  <option value="Desi">🍛 Desi</option>
+                  <option value="Mixed">🌍 Mixed/International</option>
+                  <option value="Cafe">☕ Cafe & Snacks</option>
+                  <option value="Seafood">🦞 Seafood</option>
+                </select>
+              </div>
+
+              <div style={{marginBottom: '14px'}}>
+                <label style={{
+                  display: 'block', fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px'
+                }}>
+                  Opening Hours
+                </label>
+                <input
+                  type="text"
+                  value={openingHours}
+                  onChange={e => setOpeningHours(e.target.value)}
+                  placeholder="e.g. 12:00 PM - 11:00 PM"
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.9rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block', fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '10px'
+                }}>
+                  Dining Packages & Amenities Available
+                  <span style={{
+                    fontWeight: 400, fontSize: '0.78rem',
+                    color: 'var(--text-muted)',
+                    marginLeft: '6px'
+                  }}>
+                    (select all that apply)
+                  </span>
+                </label>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '8px'
+                }}>
+                  {[
+                    { key: 'dine_in', label: '🍽️ Dine-In' },
+                    { key: 'high_tea', label: '☕ High Tea' },
+                    { key: 'buffet', label: '🍱 Buffet' },
+                    { key: 'bbq', label: '🔥 BBQ Night' },
+                    { key: 'full_board', label: '🥗 Full Board' },
+                    { key: 'half_board', label: '🥘 Half Board' },
+                    { key: 'pool', label: '🏊 Pool Access' },
+                    { key: 'sports', label: '🎾 Sports' },
+                    { key: 'private_dining', label: '🕯️ Private' },
+                  ].map(item => (
+                    <label key={item.key} style={{
+                      display: 'flex', alignItems: 'center',
+                      gap: '8px', cursor: 'pointer',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: diningAmenities.includes(item.key)
+                        ? '2px solid var(--accent)'
+                        : '1px solid var(--border-color)',
+                      background: diningAmenities.includes(item.key)
+                        ? 'var(--accent-light)'
+                        : 'var(--bg-card)',
+                      fontSize: '0.82rem',
+                      color: diningAmenities.includes(item.key)
+                        ? 'var(--accent)'
+                        : 'var(--text-primary)',
+                      fontWeight: diningAmenities.includes(item.key)
+                        ? 700 : 400
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={diningAmenities.includes(item.key)}
+                        onChange={() => {
+                          setDiningAmenities(prev =>
+                            prev.includes(item.key)
+                              ? prev.filter(a => a !== item.key)
+                              : [...prev, item.key]
+                          )
+                        }}
+                        style={{display: 'none'}}
+                      />
+                      {diningAmenities.includes(item.key)
+                        ? '✓ ' : ''
+                      }{item.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <p style={{
+                margin: '12px 0 0', fontSize: '0.75rem',
+                color: 'var(--text-muted)'
+              }}>
+                💡 After creating the listing, go to Edit to
+                add pricing for each package
+              </p>
+            </div>
+          )}
 
           <div style={{ marginBottom: '20px' }}>
             <label

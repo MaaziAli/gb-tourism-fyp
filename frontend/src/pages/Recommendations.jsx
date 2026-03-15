@@ -389,17 +389,24 @@ export default function Recommendations() {
                             fontSize: '0.78rem',
                             color: 'var(--text-muted)'
                           }}>
-                            {' '}/night
+                            {' '}{item.service_type === 'restaurant' ||
+                            item.service_type === 'tour' ||
+                            item.service_type === 'activity'
+                              ? '/person'
+                              : '/night'}
                           </span>
                         </div>
                         <button
                           onClick={e => {
                             e.stopPropagation()
-                            navigate(`/booking/${item.id}`)
+                            navigate(item.service_type === 'restaurant'
+                              ? `/listing/${item.id}`
+                              : `/booking/${item.id}`)
                           }}
                           style={{
-                            background:
-                              'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                            background: item.service_type === 'restaurant'
+                              ? 'linear-gradient(135deg, #e11d48, #f97316)'
+                              : 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
                             color: 'white', border: 'none',
                             borderRadius: '8px',
                             padding: '8px 16px',
@@ -407,7 +414,9 @@ export default function Recommendations() {
                             fontSize: '0.82rem'
                           }}
                         >
-                          Book Now
+                          {item.service_type === 'restaurant'
+                            ? '🍽️ Reserve'
+                            : 'Book Now'}
                         </button>
                       </div>
                     </div>

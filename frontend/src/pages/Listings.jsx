@@ -620,17 +620,26 @@ export default function Listings() {
                           <button
                             onClick={e => {
                               e.stopPropagation()
-                              navigate(`/booking/${listing.id}`)
+                              if (listing.service_type === 'restaurant') {
+                                navigate(`/listing/${listing.id}`)
+                              } else {
+                                navigate(`/booking/${listing.id}`)
+                              }
                             }}
                             style={{
                               flex: 1, padding: '9px',
                               borderRadius: '8px', border: 'none',
-                              background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                              background: listing.service_type === 'restaurant'
+                                ? 'linear-gradient(135deg, #e11d48, #f97316)'
+                                : 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
                               color: 'white', cursor: 'pointer',
                               fontWeight: 700, fontSize: '0.85rem'
                             }}
                           >
-                            Book Now
+                            {listing.service_type === 'restaurant'
+                              ? '🍽️ Reserve Table'
+                              : 'Book Now'
+                            }
                           </button>
                         )
                       })()}
