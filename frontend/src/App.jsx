@@ -26,6 +26,8 @@ import MyTrips from './pages/MyTrips'
 import MyReservations from './pages/MyReservations'
 import Events from './pages/Events'
 import EventDetail from './pages/EventDetail'
+import EventTickets from './pages/EventTickets'
+import MyTickets from './pages/MyTickets'
 import CreateEvent from './pages/CreateEvent'
 import MyEvents from './pages/MyEvents'
 
@@ -41,6 +43,22 @@ function App() {
           <Route path="/map" element={<MapView />} />
           <Route path="/events" element={<Events />} />
           <Route path="/events/:id" element={<EventDetail />} />
+          <Route
+            path="/events/:id/tickets"
+            element={
+              <PrivateRoute>
+                <EventTickets />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/my-tickets"
+            element={
+              <PrivateRoute>
+                <MyTickets />
+              </PrivateRoute>
+            }
+          />
           <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

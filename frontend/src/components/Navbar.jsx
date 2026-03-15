@@ -192,6 +192,15 @@ function Navbar() {
                 </Link>
                 {role === 'user' && (
                   <>
+                    <NavLink
+                      to="/my-tickets"
+                      className={({ isActive: navActive }) =>
+                        'nav-link' + (navActive ? ' active' : '')
+                      }
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      🎟️ My Tickets
+                    </NavLink>
                     <Link
                       to="/trip-planner"
                       className={`nav-link${

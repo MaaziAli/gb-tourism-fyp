@@ -557,6 +557,11 @@ export default function Profile() {
               path: '/my-trips',
             },
             role === 'user' && {
+              label: 'My Tickets',
+              emoji: '🎟️',
+              path: '/my-tickets',
+            },
+            role === 'user' && {
               label: 'Browse Events',
               emoji: '🎪',
               path: '/events',
