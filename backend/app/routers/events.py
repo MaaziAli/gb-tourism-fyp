@@ -149,13 +149,12 @@ def get_my_events(
     return [event_to_dict(e, db, include_tickets=True) for e in events]
 
 
-@router.get("/")
-def get_events(
-    category: Optional[str] = None,
-    location: Optional[str] = None,
-    is_free: Optional[bool] = None,
-    status: str = "active",
-    db: Session = Depends(get_db),
+def _list_public_events(
+    db: Session,
+    category: Optional[str],
+    location: Optional[str],
+    is_free: Optional[bool],
+    status: str,
 ):
     query = db.query(Event).filter(Event.status == status)
     if category:
@@ -166,6 +165,29 @@ def get_events(
         query = query.filter(Event.is_free == is_free)
     events = query.order_by(Event.event_date.asc()).all()
     return [event_to_dict(e, db) for e in events]
+
+
+@router.get("/")
+def get_events(
+    category: Optional[str] = None,
+    location: Optional[str] = None,
+    is_free: Optional[bool] = None,
+    status: str = "active",
+    db: Session = Depends(get_db),
+):
+    return _list_public_events(db, category, location, is_free, status)
+
+
+@router.get("", include_in_schema=False)
+def get_events_no_trailing_slash(
+    category: Optional[str] = None,
+    location: Optional[str] = None,
+    is_free: Optional[bool] = None,
+    status: str = "active",
+    db: Session = Depends(get_db),
+):
+    """Same as GET /events/ — public, no auth."""
+    return _list_public_events(db, category, location, is_free, status)
 
 
 @router.post("/")
@@ -240,14 +262,6 @@ def delete_ticket_type(
     db.delete(tt)
     db.commit()
     return {"ok": True}
-
-
-@router.get("/{event_id}")
-def get_event(event_id: int, db: Session = Depends(get_db)):
-    event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    return event_to_dict(event, db, include_tickets=True)
 
 
 @router.post("/{event_id}/upload-image")
@@ -364,3 +378,12 @@ def toggle_feature(
     event.is_featured = not bool(event.is_featured)
     db.commit()
     return {"is_featured": event.is_featured}
+
+
+# GET /{event_id} MUST be registered last so /featured, /my-events, /categories match first
+@router.get("/{event_id}")
+def get_event(event_id: int, db: Session = Depends(get_db)):
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return event_to_dict(event, db, include_tickets=True)

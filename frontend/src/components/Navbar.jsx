@@ -25,7 +25,7 @@ function Navbar() {
     <nav className="navbar">
       <div className="navbar-inner" style={{ position: 'relative' }}>
         <Link to="/" className="navbar-logo">
-          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'white' }}>
+          <span style={{ fontWeight: 800, fontSize: isMobile ? '1rem' : '1.1rem', color: 'white' }}>
             {isMobile ? '🏔️ GB' : '🏔️ GB Tourism'}
           </span>
           {!isMobile && <span className="logo-badge">GB</span>}
@@ -53,7 +53,7 @@ function Navbar() {
             style={{
               display: 'flex',
               flexDirection: isMobile ? 'column' : 'row',
-              gap: isMobile ? '4px' : '8px',
+              gap: '4px',
               position: isMobile ? 'absolute' : 'relative',
               top: isMobile ? '60px' : 'auto',
               left: isMobile ? 0 : 'auto',
@@ -67,8 +67,20 @@ function Navbar() {
               width: isMobile ? '100%' : 'auto',
               boxSizing: isMobile ? 'border-box' : 'content-box',
               alignItems: isMobile ? 'stretch' : 'center',
+              ...(!isMobile
+                ? {
+                    overflowX: 'auto',
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                    WebkitOverflowScrolling: 'touch',
+                    maxWidth: 'calc(100vw - 300px)',
+                    paddingBottom: '2px',
+                    flex: 1,
+                    minWidth: 0,
+                  }
+                : {}),
             }}
-            className={!isMobile ? 'nav-links' : ''}
+            className={!isMobile ? 'nav-links nav-links-scroll' : ''}
           >
             <NavLink
               to="/"
@@ -265,7 +277,7 @@ function Navbar() {
           </div>
         )}
         {!isMobile && (
-          <div className="nav-links">
+          <div className="nav-links nav-links-end">
             <NotificationBell />
             <button
               type="button"
@@ -302,6 +314,7 @@ function Navbar() {
                 type="button"
                 onClick={handleLogout}
                 className="nav-logout"
+                style={{ padding: '6px 12px', fontSize: '0.82rem' }}
               >
                 Logout
               </button>

@@ -148,26 +148,25 @@ body {
   gap: 4px;
 }
 
+.nav-links-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .nav-link {
   color: rgba(255,255,255,0.85);
   text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 500;
-  padding: 7px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 10px;
   border-radius: 8px;
   transition: var(--transition);
   white-space: nowrap;
 }
 
-.nav-link:hover {
+.nav-link:hover,
+.nav-link.active {
   background: rgba(255,255,255,0.15);
   color: white;
-}
-
-.nav-link.active {
-  background: rgba(255,255,255,0.2);
-  color: white;
-  font-weight: 600;
 }
 
 .theme-toggle {
@@ -190,10 +189,10 @@ body {
   background: rgba(255,255,255,0.15);
   border: 1px solid rgba(255,255,255,0.3);
   color: white;
-  padding: 7px 16px;
+  padding: 6px 12px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.82rem;
   font-weight: 600;
   transition: var(--transition);
   margin-left: 4px;

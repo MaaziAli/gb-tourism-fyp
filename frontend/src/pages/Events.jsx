@@ -54,9 +54,11 @@ export default function Events() {
     setLoading(true)
     try {
       const res = await api.get('/events/')
-      setEvents(res.data)
+      console.log('Events loaded:', res.data)
+      setEvents(Array.isArray(res.data) ? res.data : [])
     } catch (e) {
-      console.error(e)
+      console.error('Events error:', e)
+      setEvents([])
     } finally {
       setLoading(false)
     }
