@@ -556,6 +556,31 @@ export default function Profile() {
               emoji: '📋',
               path: '/my-trips',
             },
+            role === 'user' && {
+              label: 'Browse Events',
+              emoji: '🎪',
+              path: '/events',
+            },
+            role === 'provider' && {
+              label: 'My Events',
+              emoji: '🎪',
+              path: '/my-events',
+            },
+            role === 'provider' && {
+              label: 'Create Event',
+              emoji: '➕',
+              path: '/create-event',
+            },
+            role === 'admin' && {
+              label: 'My Events',
+              emoji: '🎪',
+              path: '/my-events',
+            },
+            role === 'admin' && {
+              label: 'Create Event',
+              emoji: '➕',
+              path: '/create-event',
+            },
             role === 'provider' && {
               label: 'My Services',
               emoji: '🏨',

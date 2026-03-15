@@ -24,6 +24,10 @@ import ProviderPayments from './pages/ProviderPayments'
 import TripPlanner from './pages/TripPlanner'
 import MyTrips from './pages/MyTrips'
 import MyReservations from './pages/MyReservations'
+import Events from './pages/Events'
+import EventDetail from './pages/EventDetail'
+import CreateEvent from './pages/CreateEvent'
+import MyEvents from './pages/MyEvents'
 
 function App() {
   return (
@@ -139,6 +143,22 @@ function App() {
             element={
               <ProviderRoute>
                 <ProviderAnalytics />
+              </ProviderRoute>
+            }
+          />
+          <Route
+            path="/create-event"
+            element={
+              <ProviderRoute>
+                <CreateEvent />
+              </ProviderRoute>
+            }
+          />
+          <Route
+            path="/my-events"
+            element={
+              <ProviderRoute>
+                <MyEvents />
               </ProviderRoute>
             }
           />

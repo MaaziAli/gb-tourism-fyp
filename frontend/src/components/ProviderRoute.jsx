@@ -9,7 +9,7 @@ function ProviderRoute({ children }) {
     return <Navigate to="/login" replace />
   }
 
-  if (role !== 'provider') {
+  if (role !== 'provider' && role !== 'admin') {
     return <Navigate to="/" replace />
   }
 

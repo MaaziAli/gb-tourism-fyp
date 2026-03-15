@@ -18,6 +18,8 @@ from app.models import payment as _pay_model  # noqa
 from app.models import trip_plan as _tp_model  # noqa
 from app.models import dining_package as _dp_model  # noqa
 from app.models import table_reservation as _tr_model  # noqa
+from app.models import event as _event_model  # noqa
+from app.models import ticket_type as _tt_event_model  # noqa
 from app.routers import (
     auth,
     bookings,
@@ -32,6 +34,7 @@ from app.routers import (
     payments as pay_router,
     trip_planner as tp_router,
     dining as dining_router,
+    events as events_router,
 )
 
 
@@ -75,6 +78,7 @@ def create_app() -> FastAPI:
     app.include_router(pay_router.router)
     app.include_router(tp_router.router)
     app.include_router(dining_router.router)
+    app.include_router(events_router.router)
 
     # Static files for uploaded images
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

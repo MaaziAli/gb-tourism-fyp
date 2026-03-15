@@ -88,6 +88,16 @@ function Navbar() {
             >
               📍 Map
             </NavLink>
+            <NavLink
+              to="/events"
+              end
+              className={({ isActive }) =>
+                'nav-link' + (isActive ? ' active' : '')
+              }
+              onClick={() => setMenuOpen(false)}
+            >
+              🎪 Events
+            </NavLink>
             {loggedIn && role !== 'admin' && (
               <Link
                 to="/recommendations"
@@ -108,7 +118,7 @@ function Navbar() {
                 ⚙️ Admin
               </Link>
             )}
-            {loggedIn && role === 'provider' && (
+            {loggedIn && (role === 'provider' || role === 'admin') && (
               <>
                 <Link
                   to="/add-listing"
@@ -128,6 +138,24 @@ function Navbar() {
                 >
                   My Services
                 </Link>
+                <NavLink
+                  to="/my-events"
+                  className={({ isActive: navActive }) =>
+                    'nav-link' + (navActive ? ' active' : '')
+                  }
+                  onClick={() => setMenuOpen(false)}
+                >
+                  🎪 My Events
+                </NavLink>
+                <NavLink
+                  to="/create-event"
+                  className={({ isActive: navActive }) =>
+                    'nav-link' + (navActive ? ' active' : '')
+                  }
+                  onClick={() => setMenuOpen(false)}
+                >
+                  + Create Event
+                </NavLink>
                 <Link
                   to="/my-analytics"
                   className={`nav-link${
