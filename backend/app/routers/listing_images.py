@@ -18,7 +18,8 @@ from app.models.listing import Listing
 from app.models.listing_image import ListingImage
 
 
-UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+# Same as listings router + main static mount: backend/uploads/
+UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(prefix="/listing-images", tags=["Listing Images"])

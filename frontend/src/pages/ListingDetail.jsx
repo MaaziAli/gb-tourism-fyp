@@ -156,8 +156,10 @@ export default function ListingDetail() {
 
       try {
         const imgRes = await api.get(`/listing-images/${id}`)
+        console.log('Images loaded:', imgRes.data)
         setExtraImages(imgRes.data || [])
       } catch (e) {
+        console.error('Image load error:', e)
         setExtraImages([])
       }
 
@@ -598,7 +600,13 @@ export default function ListingDetail() {
                     }}
                   >
                     <img
-                      src={getImageUrl(img.filename)}
+                      src={
+                        img.filename
+                          ? `http://127.0.0.1:8000/uploads/${img.filename}`
+                          : img.url
+                            ? `http://127.0.0.1:8000${img.url}`
+                            : 'https://placehold.co/300x200/e5e7eb/9ca3af?text=Photo'
+                      }
                       alt="Photo"
                       onError={(e) => {
                         e.target.onerror = null
@@ -1967,7 +1975,13 @@ export default function ListingDetail() {
           }}
         >
           <img
-            src={getImageUrl(activeImage.filename)}
+            src={
+              activeImage.filename
+                ? `http://127.0.0.1:8000/uploads/${activeImage.filename}`
+                : activeImage.url
+                  ? `http://127.0.0.1:8000${activeImage.url}`
+                  : 'https://placehold.co/800x600/e5e7eb/9ca3af?text=Photo'
+            }
             alt="Photo"
             onClick={(e) => e.stopPropagation()}
             style={{
