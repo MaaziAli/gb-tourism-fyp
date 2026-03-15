@@ -537,6 +537,11 @@ export default function Profile() {
               path: '/my-bookings',
             },
             role === 'user' && {
+              label: 'My Reservations',
+              emoji: '🍽️',
+              path: '/my-reservations',
+            },
+            role === 'user' && {
               label: 'Payment History',
               emoji: '💳',
               path: '/my-spending',

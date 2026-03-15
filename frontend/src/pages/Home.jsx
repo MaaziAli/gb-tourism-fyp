@@ -10,6 +10,7 @@ function getServiceBadge(type) {
     case 'tour': return { bg: '#16a34a', label: '🏔️ Tour' }
     case 'transport': return { bg: '#d97706', label: '🚐 Transport' }
     case 'activity': return { bg: '#7c3aed', label: '🎯 Activity' }
+    case 'restaurant': return { bg: '#e11d48', label: '🍽️ Restaurant' }
     default: return { bg: '#0ea5e9', label: type }
   }
 }

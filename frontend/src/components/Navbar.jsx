@@ -170,6 +170,15 @@ function Navbar() {
                     >
                       📋 My Trips
                     </Link>
+                    <Link
+                      to="/my-reservations"
+                      className={`nav-link${
+                        isActive('/my-reservations') ? ' active' : ''
+                      }`}
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      🍽️ Reservations
+                    </Link>
                   </>
                 )}
                 <Link

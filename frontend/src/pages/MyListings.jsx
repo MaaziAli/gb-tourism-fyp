@@ -328,7 +328,8 @@ export default function MyListings() {
                             {listing.service_type === 'tour' && '🏔️ Tour'}
                             {listing.service_type === 'transport' && '🚐 Transport'}
                             {listing.service_type === 'activity' && '🎯 Activity'}
-                            {!['hotel', 'tour', 'transport', 'activity'].includes(
+                            {listing.service_type === 'restaurant' && '🍽️ Restaurant'}
+                            {!['hotel', 'tour', 'transport', 'activity', 'restaurant'].includes(
                               listing.service_type,
                             ) && listing.service_type?.toUpperCase()}
                           </span>

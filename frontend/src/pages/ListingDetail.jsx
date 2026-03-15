@@ -23,6 +23,16 @@ export default function ListingDetail() {
   const [activeImage, setActiveImage] = useState(null)
   const [roomTypes, setRoomTypes] = useState([])
   const [selectedRoom, setSelectedRoom] = useState(null)
+  const [diningPackages, setDiningPackages] = useState([])
+  const [selectedPackage, setSelectedPackage] = useState(null)
+  const [showReservation, setShowReservation] = useState(false)
+  const [resDate, setResDate] = useState('')
+  const [resTime, setResTime] = useState('')
+  const [resPersons, setResPersons] = useState(2)
+  const [resSpecial, setResSpecial] = useState('')
+  const [resLoading, setResLoading] = useState(false)
+  const [resSuccess, setResSuccess] = useState(false)
+  const [resError, setResError] = useState('')
 
   const currentUser = getUser()
   const isOwner = listing && currentUser && 
@@ -65,6 +75,15 @@ export default function ListingDetail() {
         setSelectedRoom(null)
       }
 
+      if (lRes.data.service_type === 'restaurant') {
+        try {
+          const pkgRes = await api.get(`/dining/packages/${id}`)
+          setDiningPackages(pkgRes.data || [])
+        } catch (e) {
+          setDiningPackages([])
+        }
+      }
+
       // Booking/review eligibility check
       if (isLoggedIn() && currentUser) {
         try {
@@ -104,6 +123,37 @@ export default function ListingDetail() {
       console.error(e)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function makeReservation() {
+    if (!resDate) {
+      setResError('Please select a date')
+      return
+    }
+    if (!resTime) {
+      setResError('Please select a time')
+      return
+    }
+    setResLoading(true)
+    setResError('')
+    try {
+      await api.post('/dining/reserve', {
+        listing_id: parseInt(id),
+        package_id: selectedPackage?.id || null,
+        reservation_date: resDate,
+        reservation_time: resTime,
+        persons: resPersons,
+        special_requests: resSpecial || null
+      })
+      setResSuccess(true)
+      setShowReservation(false)
+    } catch (e) {
+      setResError(
+        e.response?.data?.detail || 'Reservation failed'
+      )
+    } finally {
+      setResLoading(false)
     }
   }
 
@@ -173,6 +223,7 @@ export default function ListingDetail() {
     tour: { bg: '#dcfce7', color: '#15803d', label: '🏔️ Tour' },
     transport: { bg: '#fef3c7', color: '#b45309', label: '🚐 Transport' },
     activity: { bg: '#f3e8ff', color: '#7e22ce', label: '🎯 Activity' },
+    restaurant: { bg: '#fce7f3', color: '#e11d48', label: '🍽️ Restaurant' },
   }
   const { bg: bgc, color: tc, label: serviceLabel } =
     badgeStyles[listing.service_type] ||
@@ -433,7 +484,7 @@ export default function ListingDetail() {
               )?.toLocaleString('en-PK')}
               <span style={{fontSize: '1rem', fontWeight: 400,
                              color: 'var(--text-secondary)'}}>
-                {' '}/night
+                {' '}{listing.service_type === 'restaurant' ? '/person' : '/night'}
               </span>
             </div>
             {summary?.total_reviews > 0 && (
@@ -443,70 +494,380 @@ export default function ListingDetail() {
               </p>
             )}
 
-            {/* Room type selector */}
-            {roomTypes.length > 0 && (
-              <div style={{marginBottom: '16px'}}>
-                <label style={{
-                  display: 'block', fontSize: '0.8rem',
-                  fontWeight: 600, color: 'var(--text-secondary)',
-                  marginBottom: '8px'
-                }}>
-                  Select Room Type
-                </label>
-                <div style={{
-                  display: 'flex', flexDirection: 'column', gap: '8px'
-                }}>
-                  {roomTypes.map((room) => (
-                    <div key={room.id}
-                      onClick={() => setSelectedRoom(room)}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        border: selectedRoom?.id === room.id
-                          ? '2px solid var(--accent)'
-                          : '1px solid var(--border-color)',
-                        background: selectedRoom?.id === room.id
-                          ? 'var(--accent-light)'
-                          : 'var(--bg-secondary)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s'
-                      }}
-                    >
-                      <div style={{
-                        display: 'flex', justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <span style={{
-                          fontWeight: 700, fontSize: '0.875rem',
+            {listing.service_type === 'restaurant' ? (
+              <div>
+                {diningPackages.length > 0 && (
+                  <div style={{marginBottom: '16px'}}>
+                    <label style={{
+                      display: 'block', fontSize: '0.8rem',
+                      fontWeight: 700,
+                      color: 'var(--text-secondary)',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}>
+                      Select Package
+                    </label>
+                    <div style={{
+                      display: 'flex', flexDirection: 'column',
+                      gap: '8px'
+                    }}>
+                      <div
+                        onClick={() => setSelectedPackage(null)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: !selectedPackage
+                            ? '2px solid var(--accent)'
+                            : '1px solid var(--border-color)',
+                          background: !selectedPackage
+                            ? 'var(--accent-light)'
+                            : 'var(--bg-secondary)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{
+                          fontWeight: 600, fontSize: '0.85rem',
                           color: 'var(--text-primary)'
                         }}>
-                          {room.name}
-                        </span>
-                        <span style={{
-                          fontWeight: 700, fontSize: '0.875rem',
-                          color: 'var(--accent)'
+                          🍽️ Regular Dine-In
+                        </div>
+                        <div style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-secondary)'
                         }}>
-                          PKR {room.price_per_night?.toLocaleString('en-PK')}
-                        </span>
+                          Standard table booking
+                        </div>
                       </div>
-                      <div style={{
-                        fontSize: '0.75rem', color: 'var(--text-muted)',
-                        marginTop: '2px'
-                      }}>
-                        👥 {room.capacity} guests
-                        · 🏠 {room.total_rooms} room{room.total_rooms > 1 ? 's' : ''}
-                        {room.description && ` · ${room.description}`}
+                      {diningPackages.map(pkg => (
+                        <div key={pkg.id}
+                          onClick={() => setSelectedPackage(pkg)}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            border:
+                              selectedPackage?.id === pkg.id
+                                ? '2px solid var(--accent)'
+                                : '1px solid var(--border-color)',
+                            background:
+                              selectedPackage?.id === pkg.id
+                                ? 'var(--accent-light)'
+                                : 'var(--bg-secondary)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <div style={{
+                              fontWeight: 600, fontSize: '0.85rem',
+                              color: 'var(--text-primary)'
+                            }}>
+                              {pkg.package_label} — {pkg.name}
+                            </div>
+                            <div style={{
+                              fontWeight: 700, fontSize: '0.85rem',
+                              color: 'var(--accent)'
+                            }}>
+                              PKR {pkg.price_per_person?.toLocaleString('en-PK')}
+                              <span style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 400,
+                                color: 'var(--text-muted)'
+                              }}>
+                                /person
+                              </span>
+                            </div>
+                          </div>
+                          {pkg.description && (
+                            <div style={{
+                              fontSize: '0.72rem',
+                              color: 'var(--text-secondary)',
+                              marginTop: '2px'
+                            }}>
+                              {pkg.description}
+                            </div>
+                          )}
+                          <div style={{
+                            fontSize: '0.7rem',
+                            color: 'var(--text-muted)',
+                            marginTop: '2px'
+                          }}>
+                            {pkg.min_persons}-{pkg.max_persons} persons · {pkg.duration_hours}h
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {resSuccess ? (
+                  <div style={{
+                    background: '#dcfce7', color: '#16a34a',
+                    padding: '14px', borderRadius: '10px',
+                    textAlign: 'center', fontWeight: 700,
+                    fontSize: '0.9rem'
+                  }}>
+                    ✅ Table Reserved Successfully!
+                  </div>
+                ) : showReservation ? (
+                  <div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '10px', marginBottom: '10px'
+                    }}>
+                      <div>
+                        <label style={{
+                          display: 'block', fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                          marginBottom: '5px',
+                          textTransform: 'uppercase'
+                        }}>
+                          Date
+                        </label>
+                        <input type="date"
+                          value={resDate}
+                          min={new Date().toISOString().split('T')[0]}
+                          onChange={e => setResDate(e.target.value)}
+                          style={{
+                            width: '100%', padding: '9px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.85rem',
+                            boxSizing: 'border-box', outline: 'none',
+                            fontFamily: 'var(--font-primary)'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{
+                          display: 'block', fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                          marginBottom: '5px',
+                          textTransform: 'uppercase'
+                        }}>
+                          Time
+                        </label>
+                        <select
+                          value={resTime}
+                          onChange={e => setResTime(e.target.value)}
+                          style={{
+                            width: '100%', padding: '9px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.85rem',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <option value="">Select time</option>
+                          {['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'].map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div style={{marginBottom: '10px'}}>
+                      <label style={{
+                        display: 'block', fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '5px',
+                        textTransform: 'uppercase'
+                      }}>
+                        Number of Persons
+                      </label>
+                      <input type="number"
+                        value={resPersons} min={1} max={50}
+                        onChange={e => setResPersons(parseInt(e.target.value) || 1)}
+                        style={{
+                          width: '100%', padding: '9px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.875rem',
+                          boxSizing: 'border-box', outline: 'none'
+                        }}
+                      />
+                    </div>
+                    {selectedPackage && (
+                      <div style={{
+                        background: 'var(--accent-light)',
+                        borderRadius: '8px', padding: '10px 12px',
+                        marginBottom: '10px', fontSize: '0.82rem',
+                        color: 'var(--accent)', fontWeight: 700
+                      }}>
+                        Total: PKR {(selectedPackage.price_per_person * resPersons).toLocaleString('en-PK')}
+                        {' '}({resPersons} × PKR {selectedPackage.price_per_person?.toLocaleString('en-PK')})
+                      </div>
+                    )}
+                    <div style={{marginBottom: '10px'}}>
+                      <label style={{
+                        display: 'block', fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '5px',
+                        textTransform: 'uppercase'
+                      }}>
+                        Special Requests (optional)
+                      </label>
+                      <textarea
+                        value={resSpecial}
+                        onChange={e => setResSpecial(e.target.value)}
+                        placeholder="Allergies, seating preference..."
+                        rows={2}
+                        style={{
+                          width: '100%', padding: '9px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.82rem', resize: 'vertical',
+                          boxSizing: 'border-box', outline: 'none',
+                          fontFamily: 'var(--font-primary)'
+                        }}
+                      />
+                    </div>
+                    {resError && (
+                      <div style={{
+                        background: 'var(--danger-bg)',
+                        color: 'var(--danger)', padding: '8px 12px',
+                        borderRadius: '8px', marginBottom: '10px',
+                        fontSize: '0.82rem', fontWeight: 600
+                      }}>
+                        ⚠️ {resError}
+                      </div>
+                    )}
+                    <div style={{display: 'flex', gap: '8px'}}>
+                      <button
+                        onClick={makeReservation}
+                        disabled={resLoading}
+                        style={{
+                          flex: 1, padding: '12px',
+                          borderRadius: '10px', border: 'none',
+                          background: 'linear-gradient(135deg, #e11d48, #f43f5e)',
+                          color: 'white', fontWeight: 700,
+                          fontSize: '0.9rem', cursor: 'pointer',
+                          opacity: resLoading ? 0.7 : 1
+                        }}
+                      >
+                        {resLoading ? 'Reserving...' : '🍽️ Confirm Reservation'}
+                      </button>
+                      <button
+                        onClick={() => setShowReservation(false)}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer', fontWeight: 600
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const stored = localStorage.getItem('user')
+                      if (!stored) {
+                        navigate('/login')
+                        return
+                      }
+                      setShowReservation(true)
+                    }}
+                    style={{
+                      width: '100%', padding: '13px',
+                      borderRadius: '12px', border: 'none',
+                      background: 'linear-gradient(135deg, #e11d48, #f43f5e)',
+                      color: 'white', fontWeight: 800,
+                      fontSize: '1rem', cursor: 'pointer',
+                      marginTop: '8px'
+                    }}
+                  >
+                    🍽️ Reserve a Table
+                    {selectedPackage ? ` — ${selectedPackage.name}` : ''}
+                  </button>
+                )}
               </div>
+            ) : (
+              <>
+                {/* Room type selector */}
+                {roomTypes.length > 0 && (
+                  <div style={{marginBottom: '16px'}}>
+                    <label style={{
+                      display: 'block', fontSize: '0.8rem',
+                      fontWeight: 600, color: 'var(--text-secondary)',
+                      marginBottom: '8px'
+                    }}>
+                      Select Room Type
+                    </label>
+                    <div style={{
+                      display: 'flex', flexDirection: 'column', gap: '8px'
+                    }}>
+                      {roomTypes.map((room) => (
+                        <div key={room.id}
+                          onClick={() => setSelectedRoom(room)}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: selectedRoom?.id === room.id
+                              ? '2px solid var(--accent)'
+                              : '1px solid var(--border-color)',
+                            background: selectedRoom?.id === room.id
+                              ? 'var(--accent-light)'
+                              : 'var(--bg-secondary)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          <div style={{
+                            display: 'flex', justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <span style={{
+                              fontWeight: 700, fontSize: '0.875rem',
+                              color: 'var(--text-primary)'
+                            }}>
+                              {room.name}
+                            </span>
+                            <span style={{
+                              fontWeight: 700, fontSize: '0.875rem',
+                              color: 'var(--accent)'
+                            }}>
+                              PKR {room.price_per_night?.toLocaleString('en-PK')}
+                            </span>
+                          </div>
+                          <div style={{
+                            fontSize: '0.75rem', color: 'var(--text-muted)',
+                            marginTop: '2px'
+                          }}>
+                            👥 {room.capacity} guests
+                            · 🏠 {room.total_rooms} room{room.total_rooms > 1 ? 's' : ''}
+                            {room.description && ` · ${room.description}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <BookButton
+                  listingId={id}
+                  selectedRoom={selectedRoom}
+                  ownerId={listing?.owner_id}
+                />
+              </>
             )}
-            <BookButton
-              listingId={id}
-              selectedRoom={selectedRoom}
-              ownerId={listing?.owner_id}
-            />
             {isOwner && (
               <button className="btn-primary"
                 style={{width:'100%',justifyContent:'center',

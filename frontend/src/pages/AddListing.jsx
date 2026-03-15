@@ -367,6 +367,7 @@ function AddListing() {
               <option value="tour">🗺️ Tour Package</option>
               <option value="transport">🚗 Transport Service</option>
               <option value="activity">🧗 Activity</option>
+              <option value="restaurant">🍽️ Restaurant</option>
             </select>
           </div>
 

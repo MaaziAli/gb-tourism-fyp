@@ -30,6 +30,18 @@ function EditListing() {
   })
   const [roomMsg, setRoomMsg] = useState('')
   const [addingRoom, setAddingRoom] = useState(false)
+  const [diningPackages, setDiningPackages] = useState([])
+  const [newPkg, setNewPkg] = useState({
+    name: '',
+    description: '',
+    package_type: 'dine_in',
+    price_per_person: '',
+    min_persons: 1,
+    max_persons: 10,
+    duration_hours: 2
+  })
+  const [pkgMsg, setPkgMsg] = useState('')
+  const [addingPkg, setAddingPkg] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -83,6 +95,14 @@ function EditListing() {
       .catch((e) => {
         console.error('Failed to load room types', e)
       })
+  }, [listingId])
+
+  useEffect(() => {
+    if (!listingId) return
+    api
+      .get(`/dining/packages/${listingId}`)
+      .then((r) => setDiningPackages(r.data || []))
+      .catch(() => setDiningPackages([]))
   }, [listingId])
 
   async function uploadExtraImage(file) {
@@ -143,9 +163,52 @@ function EditListing() {
       setRoomMsg('✅ Room type added!')
     } catch (e) {
       console.error('Failed to add room type', e)
-      setRoomMsg('❌ Failed to add room type')
     } finally {
       setAddingRoom(false)
+    }
+  }
+
+  async function addDiningPackage() {
+    if (!newPkg.name || !newPkg.price_per_person) {
+      setPkgMsg('Name and price are required')
+      return
+    }
+    setAddingPkg(true)
+    setPkgMsg('')
+    try {
+      await api.post(`/dining/packages/${listingId}`, {
+        ...newPkg,
+        price_per_person: parseFloat(newPkg.price_per_person),
+        min_persons: parseInt(newPkg.min_persons, 10),
+        max_persons: parseInt(newPkg.max_persons, 10),
+        duration_hours: parseFloat(newPkg.duration_hours)
+      })
+      const pkgRes = await api.get(`/dining/packages/${listingId}`)
+      setDiningPackages(pkgRes.data || [])
+      setNewPkg({
+        name: '',
+        description: '',
+        package_type: 'dine_in',
+        price_per_person: '',
+        min_persons: 1,
+        max_persons: 10,
+        duration_hours: 2
+      })
+      setPkgMsg('✅ Package added!')
+    } catch (e) {
+      setPkgMsg('❌ Failed to add package')
+    } finally {
+      setAddingPkg(false)
+    }
+  }
+
+  async function deleteDiningPackage(pkgId) {
+    if (!window.confirm('Delete this package?')) return
+    try {
+      await api.delete(`/dining/packages/${pkgId}`)
+      setDiningPackages((prev) => prev.filter((p) => p.id !== pkgId))
+    } catch (e) {
+      console.error(e)
     }
   }
 
@@ -266,6 +329,308 @@ function EditListing() {
               }}
             />
           </div>
+
+          {(serviceType === 'restaurant') && (
+            <div style={{ marginBottom: '28px' }}>
+              <label style={{
+                display: 'block',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                marginBottom: '14px',
+                color: 'var(--text-primary)'
+              }}>
+                🍽️ Dining Packages & Amenities
+              </label>
+              <p style={{
+                margin: '0 0 14px',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)'
+              }}>
+                Add packages like High Tea, Buffet, Pool Access etc.
+              </p>
+
+              {diningPackages.length > 0 && (
+                <div style={{
+                  marginBottom: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  {diningPackages.map((pkg) => (
+                    <div
+                      key={pkg.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '12px 14px',
+                        background: 'var(--bg-secondary)',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-color)'
+                      }}
+                    >
+                      <div>
+                        <div style={{
+                          fontWeight: 700,
+                          color: 'var(--text-primary)',
+                          fontSize: '0.9rem'
+                        }}>
+                          {pkg.package_label} — {pkg.name}
+                        </div>
+                        <div style={{
+                          fontSize: '0.78rem',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          PKR {pkg.price_per_person?.toLocaleString('en-PK')}/person ·
+                          {pkg.min_persons}-{pkg.max_persons} persons
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteDiningPackage(pkg.id)}
+                        style={{
+                          background: 'var(--danger-bg)',
+                          color: 'var(--danger)',
+                          border: '1px solid var(--danger)',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{
+                padding: '16px',
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div style={{
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '12px'
+                }}>
+                  + Add Package
+                </div>
+
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                    marginBottom: '4px'
+                  }}>
+                    Package Type
+                  </label>
+                  <select
+                    value={newPkg.package_type}
+                    onChange={(e) => setNewPkg((p) => ({ ...p, package_type: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    <option value="dine_in">🍽️ Dine-In</option>
+                    <option value="high_tea">☕ High Tea</option>
+                    <option value="buffet">🍱 Buffet</option>
+                    <option value="bbq">🔥 BBQ Night</option>
+                    <option value="full_board">🥗 Full Board (3 meals)</option>
+                    <option value="half_board">🥘 Half Board (2 meals)</option>
+                    <option value="pool">🏊 Pool Access</option>
+                    <option value="sports">🎾 Sports & Activities</option>
+                    <option value="private_dining">🕯️ Private Dining</option>
+                  </select>
+                </div>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '10px',
+                  marginBottom: '10px'
+                }}>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: 'var(--text-secondary)',
+                      marginBottom: '4px'
+                    }}>
+                      Package Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sunset BBQ"
+                      value={newPkg.name}
+                      onChange={(e) => setNewPkg((p) => ({ ...p, name: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.875rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: 'var(--text-secondary)',
+                      marginBottom: '4px'
+                    }}>
+                      Price/Person (PKR) *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 2500"
+                      value={newPkg.price_per_person}
+                      onChange={(e) => setNewPkg((p) => ({ ...p, price_per_person: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.875rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: 'var(--text-secondary)',
+                      marginBottom: '4px'
+                    }}>
+                      Min Persons
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={newPkg.min_persons}
+                      onChange={(e) => setNewPkg((p) => ({ ...p, min_persons: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.875rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: 'var(--text-secondary)',
+                      marginBottom: '4px'
+                    }}>
+                      Max Persons
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={newPkg.max_persons}
+                      onChange={(e) => setNewPkg((p) => ({ ...p, max_persons: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.875rem',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                    marginBottom: '4px'
+                  }}>
+                    Description (optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Includes BBQ, drinks, dessert"
+                    value={newPkg.description}
+                    onChange={(e) => setNewPkg((p) => ({ ...p, description: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {pkgMsg && (
+                  <p style={{
+                    margin: '0 0 10px',
+                    fontSize: '0.85rem',
+                    color: pkgMsg.startsWith('✅') ? 'var(--success)' : 'var(--danger)'
+                  }}>
+                    {pkgMsg}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={addDiningPackage}
+                  disabled={addingPkg}
+                  style={{
+                    background: '#e11d48',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 18px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    opacity: addingPkg ? 0.7 : 1
+                  }}
+                >
+                  {addingPkg ? 'Adding...' : '+ Add Package'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Room Types Section */}
           <div style={{ marginBottom: '28px' }}>
@@ -701,6 +1066,7 @@ function EditListing() {
               <option value="tour">tour</option>
               <option value="transport">transport</option>
               <option value="activity">activity</option>
+              <option value="restaurant">🍽️ Restaurant</option>
             </select>
           </div>
 

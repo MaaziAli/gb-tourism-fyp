@@ -10,6 +10,7 @@ const SERVICE_TYPES = [
   { value: 'tour', label: '🏔️ Tour' },
   { value: 'transport', label: '🚐 Transport' },
   { value: 'activity', label: '🎯 Activity' },
+  { value: 'restaurant', label: '🍽️ Restaurant' },
 ]
 
 const SORT_OPTIONS = [
@@ -33,6 +34,7 @@ function getServiceBadge(type) {
     case 'tour': return { bg: '#16a34a', label: '🏔️ Tour' }
     case 'transport': return { bg: '#d97706', label: '🚐 Transport' }
     case 'activity': return { bg: '#7c3aed', label: '🎯 Activity' }
+    case 'restaurant': return { bg: '#e11d48', label: '🍽️ Restaurant' }
     default: return { bg: '#6b7280', label: type }
   }
 }

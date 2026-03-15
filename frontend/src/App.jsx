@@ -23,6 +23,7 @@ import PaymentHistory from './pages/PaymentHistory'
 import ProviderPayments from './pages/ProviderPayments'
 import TripPlanner from './pages/TripPlanner'
 import MyTrips from './pages/MyTrips'
+import MyReservations from './pages/MyReservations'
 
 function App() {
   return (
@@ -42,6 +43,14 @@ function App() {
             element={
               <PrivateRoute>
                 <MyBookings />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/my-reservations"
+            element={
+              <PrivateRoute>
+                <MyReservations />
               </PrivateRoute>
             }
           />
