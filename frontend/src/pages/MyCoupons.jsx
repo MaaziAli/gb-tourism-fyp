@@ -41,6 +41,8 @@ export default function MyCoupons() {
   const [validFrom, setValidFrom] = useState('')
   const [validUntil, setValidUntil] = useState('')
   const [isPublic, setIsPublic] = useState(true)
+  const [editingCoupon, setEditingCoupon] =
+    useState(null)
 
   useEffect(() => { fetchCoupons() }, [])
 
@@ -79,12 +81,41 @@ export default function MyCoupons() {
     setMaxDiscount(''); setMaxUses('')
     setMaxPerUser('1'); setValidFrom('')
     setValidUntil(''); setIsPublic(true)
+    setEditingCoupon(null)
   }
 
   function resetForm() {
     resetFormFields()
     setFormError('')
     setFormSuccess('')
+  }
+
+  function startEdit(coupon) {
+    setEditingCoupon(coupon)
+    setCode(coupon.code)
+    setTitle(coupon.title)
+    setDescription(coupon.description || '')
+    setCouponType(coupon.coupon_type || 'general')
+    setDiscountType(coupon.discount_type)
+    setDiscountValue(String(coupon.discount_value))
+    setMinAmount(String(
+      coupon.min_booking_amount ?? ''
+    ))
+    setMaxDiscount(String(
+      coupon.max_discount_amount ?? ''
+    ))
+    setMaxUses(String(coupon.max_uses ?? ''))
+    setMaxPerUser(
+      coupon.max_uses_per_user === 0
+        ? '0'
+        : String(coupon.max_uses_per_user ?? '1')
+    )
+    setValidFrom(coupon.valid_from || '')
+    setValidUntil(coupon.valid_until || '')
+    setIsPublic(coupon.is_public !== false)
+    setShowForm(true)
+    setFormError('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function generateCode() {
@@ -101,7 +132,7 @@ export default function MyCoupons() {
     setCode(base + num)
   }
 
-  async function handleCreate() {
+  async function handleSave() {
     if (!code.trim()) {
       setFormError('Coupon code is required')
       return
@@ -117,30 +148,50 @@ export default function MyCoupons() {
     }
     setFormError('')
     setCreating(true)
+
+    const mpu = maxPerUser === '0'
+      ? 0
+      : (parseInt(maxPerUser, 10) || 1)
+
+    const payload = {
+      title,
+      description,
+      coupon_type: couponType,
+      discount_type: discountType,
+      discount_value: parseFloat(discountValue),
+      min_booking_amount:
+        parseFloat(minAmount) || 0,
+      max_discount_amount:
+        parseFloat(maxDiscount) || null,
+      max_uses: parseInt(maxUses, 10) || null,
+      max_uses_per_user: mpu,
+      valid_from: validFrom || null,
+      valid_until: validUntil || null,
+      is_public: isPublic,
+    }
+
     try {
-      const res = await api.post('/coupons/', {
-        code: code.toUpperCase().trim(),
-        title, description,
-        coupon_type: couponType,
-        discount_type: discountType,
-        discount_value: parseFloat(discountValue),
-        min_booking_amount:
-          parseFloat(minAmount) || 0,
-        max_discount_amount:
-          parseFloat(maxDiscount) || null,
-        max_uses: parseInt(maxUses, 10) || null,
-        max_uses_per_user:
-          parseInt(maxPerUser, 10) || 1,
-        valid_from: validFrom || null,
-        valid_until: validUntil || null,
-        is_public: isPublic,
-      })
-      setCoupons(prev => [res.data, ...prev])
+      if (editingCoupon) {
+        const res = await api.put(
+          `/coupons/${editingCoupon.id}`,
+          payload
+        )
+        setCoupons(prev => prev.map(c =>
+          c.id === editingCoupon.id ? res.data : c
+        ))
+        setFormSuccess('Coupon updated!')
+      } else {
+        const res = await api.post('/coupons/', {
+          ...payload,
+          code: code.toUpperCase().trim(),
+        })
+        setCoupons(prev => [res.data, ...prev])
+        setFormSuccess(
+          `Coupon "${res.data.code}" created!`
+        )
+      }
       resetFormFields()
       setFormError('')
-      setFormSuccess(
-        `✅ Coupon "${res.data.code}" created!`
-      )
       setShowForm(false)
     } catch (e) {
       setFormError(apiErrorDetail(e))
@@ -224,6 +275,8 @@ export default function MyCoupons() {
           <button
             type="button"
             onClick={() => {
+              setEditingCoupon(null)
+              resetFormFields()
               setShowForm(true)
               setFormSuccess('')
               setFormError('')
@@ -280,12 +333,16 @@ export default function MyCoupons() {
                 fontWeight: 700,
                 color: 'var(--text-primary)',
               }}>
-                🎟️ Create New Coupon
+                {editingCoupon
+                  ? 'Edit Coupon'
+                  : 'Create New Coupon'
+                }
               </h3>
               <button
                 type="button"
                 onClick={() => {
                   setShowForm(false)
+                  setEditingCoupon(null)
                   resetForm()
                   setFormError('')
                 }}
@@ -380,7 +437,8 @@ export default function MyCoupons() {
                 }}>
                   <input type="text"
                     value={code}
-                    onChange={e => setCode(
+                    readOnly={!!editingCoupon}
+                    onChange={e => !editingCoupon && setCode(
                       e.target.value.toUpperCase()
                         .replace(/\s/g, '')
                     )}
@@ -395,25 +453,30 @@ export default function MyCoupons() {
                       fontFamily: 'monospace',
                       fontWeight: 700, outline: 'none',
                       boxSizing: 'border-box',
+                      opacity: editingCoupon ? 0.6 : 1,
+                      cursor: editingCoupon
+                        ? 'not-allowed' : 'text',
                     }}
                   />
-                  <button
-                    type="button"
-                    onClick={generateCode}
-                    title="Auto-generate code"
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
-                      background: 'var(--bg-secondary)',
-                      cursor: 'pointer',
-                      fontSize: '0.8rem',
-                      color: 'var(--text-secondary)',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    🎲 Auto
-                  </button>
+                  {!editingCoupon && (
+                    <button
+                      type="button"
+                      onClick={generateCode}
+                      title="Auto-generate code"
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-secondary)',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        color: 'var(--text-secondary)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Auto
+                    </button>
+                  )}
                 </div>
               </div>
               <div>
@@ -729,6 +792,64 @@ export default function MyCoupons() {
               </div>
             </div>
 
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{
+                display: 'block', fontWeight: 700,
+                fontSize: '0.82rem',
+                color: 'var(--text-secondary)',
+                marginBottom: '6px',
+              }}>
+                Uses per user
+              </label>
+              <div style={{
+                marginBottom: '8px',
+                display: 'flex', alignItems: 'center',
+                gap: '8px',
+              }}>
+                <input
+                  type="checkbox"
+                  id="unlimited_per_user"
+                  checked={maxPerUser === '0'}
+                  onChange={e => setMaxPerUser(
+                    e.target.checked ? '0' : '1'
+                  )}
+                  style={{ cursor: 'pointer' }}
+                />
+                <label
+                  htmlFor="unlimited_per_user"
+                  style={{
+                    fontSize: '0.82rem',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Unlimited uses per user
+                </label>
+              </div>
+              <input
+                type="number"
+                value={maxPerUser === '0' ? '' : maxPerUser}
+                disabled={maxPerUser === '0'}
+                min={1}
+                onChange={e =>
+                  setMaxPerUser(e.target.value)
+                }
+                placeholder={
+                  maxPerUser === '0' ? 'Unlimited' : '1'
+                }
+                style={{
+                  width: '100%', padding: '9px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.875rem', outline: 'none',
+                  boxSizing: 'border-box',
+                  opacity: maxPerUser === '0' ? 0.5 : 1,
+                }}
+              />
+            </div>
+
             <div style={{
               display: 'flex', alignItems: 'center',
               gap: '12px', marginBottom: '20px',
@@ -790,7 +911,7 @@ export default function MyCoupons() {
             }}>
               <button
                 type="button"
-                onClick={handleCreate}
+                onClick={handleSave}
                 disabled={creating}
                 style={{
                   flex: 2, padding: '12px',
@@ -803,14 +924,17 @@ export default function MyCoupons() {
                 }}
               >
                 {creating
-                  ? '⏳ Creating...'
-                  : '🎟️ Create Coupon'
+                  ? 'Saving...'
+                  : editingCoupon
+                    ? 'Save changes'
+                    : 'Create Coupon'
                 }
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setShowForm(false)
+                  setEditingCoupon(null)
                   resetForm()
                   setFormError('')
                 }}
@@ -868,7 +992,11 @@ export default function MyCoupons() {
             </p>
             <button
               type="button"
-              onClick={() => setShowForm(true)}
+              onClick={() => {
+                setEditingCoupon(null)
+                resetFormFields()
+                setShowForm(true)
+              }}
               style={{
                 background:
                   'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -1086,6 +1214,22 @@ export default function MyCoupons() {
                       alignItems: 'flex-start',
                       flexWrap: 'wrap',
                     }}>
+                      <button
+                        type="button"
+                        onClick={() => startEdit(c)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #f59e0b44',
+                          background: '#fef3c7',
+                          color: '#d97706',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                        }}
+                      >
+                        Edit
+                      </button>
                       <button
                         type="button"
                         onClick={() =>

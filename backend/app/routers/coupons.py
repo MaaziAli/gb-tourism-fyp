@@ -41,6 +41,7 @@ class CouponCreate(BaseModel):
     min_booking_amount: float = 0
     max_discount_amount: float | None = None
     max_uses: int | None = None
+    # 0 = unlimited uses per user
     max_uses_per_user: int = 1
     valid_from: str | None = None
     valid_until: str | None = None
@@ -70,7 +71,11 @@ def coupon_to_dict(coupon: Coupon, db: Session) -> dict:
         "max_discount_amount": coupon.max_discount_amount,
         "max_uses": coupon.max_uses,
         "used_count": usage_count,
-        "max_uses_per_user": coupon.max_uses_per_user or 1,
+        "max_uses_per_user": (
+            coupon.max_uses_per_user
+            if coupon.max_uses_per_user is not None
+            else 1
+        ),
         "valid_from": coupon.valid_from,
         "valid_until": coupon.valid_until,
         "is_active": bool(coupon.is_active),
@@ -314,7 +319,7 @@ def create_coupon(
         min_booking_amount=body.min_booking_amount or 0,
         max_discount_amount=body.max_discount_amount,
         max_uses=body.max_uses,
-        max_uses_per_user=body.max_uses_per_user or 1,
+        max_uses_per_user=body.max_uses_per_user,
         valid_from=body.valid_from,
         valid_until=body.valid_until,
         is_public=body.is_public,
@@ -326,6 +331,49 @@ def create_coupon(
         tier=body.tier or "standard",
     )
     db.add(coupon)
+    db.commit()
+    db.refresh(coupon)
+    return coupon_to_dict(coupon, db)
+
+
+class CouponUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    discount_type: str | None = None
+    discount_value: float | None = None
+    min_booking_amount: float | None = None
+    max_discount_amount: float | None = None
+    max_uses: int | None = None
+    max_uses_per_user: int | None = None
+    valid_from: str | None = None
+    valid_until: str | None = None
+    is_public: bool | None = None
+    coupon_type: str | None = None
+
+
+@router.put("/{coupon_id}")
+def update_coupon(
+    coupon_id: int,
+    body: CouponUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    coupon = db.query(Coupon).filter(Coupon.id == coupon_id).first()
+    if not coupon:
+        raise HTTPException(404, "Not found")
+    if (
+        coupon.created_by != current_user.id
+        and current_user.role != "admin"
+    ):
+        raise HTTPException(403, "Not allowed")
+
+    update_data = body.model_dump(exclude_none=True)
+    for field, value in update_data.items():
+        try:
+            setattr(coupon, field, value)
+        except Exception:
+            pass
+
     db.commit()
     db.refresh(coupon)
     return coupon_to_dict(coupon, db)

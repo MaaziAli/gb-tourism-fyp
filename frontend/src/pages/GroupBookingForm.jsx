@@ -428,6 +428,12 @@ export default function GroupBookingForm() {
                     .toLocaleString('en-PK')}`,
                   color: '#16a34a',
                 },
+                couponDiscount > 0 && {
+                  label: 'Coupon Discount',
+                  value: `-PKR ${couponDiscount
+                    .toLocaleString('en-PK')}`,
+                  color: '#16a34a',
+                },
                 {
                   label: 'Per Person',
                   value: `PKR ${success
@@ -467,7 +473,7 @@ export default function GroupBookingForm() {
                   fontWeight: 800,
                   color: 'var(--text-primary)',
                 }}>
-                  Total
+                  Total Paid
                 </span>
                 <span style={{
                   fontWeight: 800,
@@ -494,19 +500,39 @@ export default function GroupBookingForm() {
               )}
             </div>
 
-            {success.discount_applied > 0 && (
+            {(success.discount_applied > 0 ||
+              couponDiscount > 0) && (
               <div style={{
                 background: '#dcfce7',
-                borderRadius: '10px',
-                padding: '12px', textAlign: 'center',
-                marginBottom: '16px',
+                borderRadius: '10px', padding: '12px',
+                textAlign: 'center', marginBottom: '16px',
                 color: '#16a34a', fontWeight: 700,
               }}>
-                🎉 You saved PKR{' '}
-                {success.discount_applied
-                  .toLocaleString('en-PK')}
-                {' '}with group discount (
-                {success.discount_rate}% off)!
+                Total Savings: PKR{' '}
+                {(
+                  (success.discount_applied || 0) +
+                  couponDiscount
+                ).toLocaleString('en-PK')}
+                <div style={{
+                  fontSize: '0.75rem', fontWeight: 400,
+                  marginTop: '3px',
+                }}>
+                  {success.discount_applied > 0 && (
+                    <span>
+                      Group: PKR{' '}
+                      {success.discount_applied
+                        .toLocaleString('en-PK')}
+                    </span>
+                  )}
+                  {success.discount_applied > 0 &&
+                    couponDiscount > 0 && ' · '}
+                  {couponDiscount > 0 && (
+                    <span>
+                      Coupon: PKR{' '}
+                      {couponDiscount.toLocaleString('en-PK')}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 

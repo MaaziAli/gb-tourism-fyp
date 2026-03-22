@@ -38,10 +38,11 @@ def validate_coupon_logic(
     if coupon.max_uses and coupon.used_count >= coupon.max_uses:
         return False, "Coupon usage limit reached", 0
 
-    if booking_amount < coupon.min_booking_amount:
+    min_amt = coupon.min_booking_amount or 0
+    if booking_amount < min_amt:
         return (
             False,
-            f"Minimum booking amount is PKR {coupon.min_booking_amount:,.0f}",
+            f"Minimum booking amount is PKR {min_amt:,.0f}",
             0,
         )
 
@@ -49,17 +50,22 @@ def validate_coupon_logic(
         if listing_id is None or coupon.listing_id != listing_id:
             return False, "Coupon not valid for this service", 0
 
-    user_usage = (
-        db.query(CouponUsage)
-        .filter(
-            CouponUsage.coupon_id == coupon.id,
-            CouponUsage.user_id == user_id,
+    per_user = coupon.max_uses_per_user
+    if per_user is None:
+        per_user = 1
+    # 0 means unlimited uses per user
+    if per_user > 0:
+        user_usage = (
+            db.query(CouponUsage)
+            .filter(
+                CouponUsage.coupon_id == coupon.id,
+                CouponUsage.user_id == user_id,
+            )
+            .count()
         )
-        .count()
-    )
 
-    if user_usage >= coupon.max_uses_per_user:
-        return False, "You have already used this coupon", 0
+        if user_usage >= per_user:
+            return False, "You have already used this coupon", 0
 
     discount = calculate_discount(coupon, booking_amount)
     return True, "Coupon applied successfully!", discount

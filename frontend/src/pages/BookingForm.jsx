@@ -213,6 +213,28 @@ export default function BookingForm() {
                 }}>
                   PKR {(confirmedTotal ?? discountedTotal).toLocaleString('en-PK')} total
                 </span>
+                {couponDiscount > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '7px 0',
+                    marginTop: '6px',
+                    borderTop: '1px solid var(--border-color)',
+                    fontSize: '0.875rem',
+                  }}>
+                    <span style={{
+                      color: 'var(--text-secondary)',
+                    }}>
+                      Coupon Discount
+                    </span>
+                    <span style={{
+                      fontWeight: 600, color: '#16a34a',
+                    }}>
+                      - PKR {couponDiscount
+                        .toLocaleString('en-PK')}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             <div style={{
