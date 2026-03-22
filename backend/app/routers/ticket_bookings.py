@@ -273,3 +273,118 @@ def cancel_booking(
         tt.sold_count = max(0, tt.sold_count - booking.quantity)
     db.commit()
     return {"ok": True}
+
+
+@router.get("/provider-analytics")
+def get_provider_event_analytics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role not in [
+        "provider", "admin"
+    ]:
+        raise HTTPException(403, "Providers only")
+
+    # Get all provider events
+    events = db.query(Event).filter(
+        Event.organizer_id == current_user.id
+    ).all()
+
+    event_ids = [e.id for e in events]
+
+    # Get all bookings for these events
+    all_bookings = db.query(TicketBooking).filter(
+        TicketBooking.event_id.in_(event_ids)
+    ).all() if event_ids else []
+
+    # Overall stats
+    total_events = len(events)
+    active_events = len([
+        e for e in events
+        if e.status == "active"
+    ])
+    total_bookings = len(all_bookings)
+    confirmed_bookings = len([
+        b for b in all_bookings
+        if b.status == "confirmed"
+    ])
+    total_tickets_sold = sum(
+        b.quantity for b in all_bookings
+        if b.status == "confirmed"
+    )
+    total_revenue = sum(
+        b.total_price for b in all_bookings
+        if b.status == "confirmed"
+    )
+    organizer_earnings = sum(
+        b.organizer_amount for b in all_bookings
+        if b.status == "confirmed"
+    )
+    platform_fees = sum(
+        b.platform_commission for b in all_bookings
+        if b.status == "confirmed"
+    )
+
+    # Per-event breakdown
+    event_stats = []
+    for event in events:
+        e_bookings = [
+            b for b in all_bookings
+            if b.event_id == event.id
+        ]
+        confirmed = [
+            b for b in e_bookings
+            if b.status == "confirmed"
+        ]
+        e_tickets = sum(
+            b.quantity for b in confirmed
+        )
+        e_revenue = sum(
+            b.total_price for b in confirmed
+        )
+        e_earnings = sum(
+            b.organizer_amount for b in confirmed
+        )
+
+        # Get ticket types for this event
+        tts = db.query(TicketType).filter(
+            TicketType.event_id == event.id
+        ).all()
+
+        event_stats.append({
+            "id": event.id,
+            "title": event.title,
+            "category": event.category,
+            "event_date": event.event_date,
+            "status": event.status,
+            "total_capacity": event.total_capacity,
+            "tickets_sold": e_tickets,
+            "bookings_count": len(confirmed),
+            "revenue": e_revenue,
+            "earnings": e_earnings,
+            "fill_rate": round(
+                (e_tickets / event.total_capacity)
+                * 100, 1
+            ) if event.total_capacity > 0 else 0,
+            "ticket_types": len(tts),
+            "is_free": bool(event.is_free)
+        })
+
+    # Sort by revenue descending
+    event_stats.sort(
+        key=lambda x: x["revenue"], reverse=True
+    )
+
+    return {
+        "summary": {
+            "total_events": total_events,
+            "active_events": active_events,
+            "total_bookings": total_bookings,
+            "confirmed_bookings": confirmed_bookings,
+            "total_tickets_sold": total_tickets_sold,
+            "total_revenue": total_revenue,
+            "organizer_earnings": organizer_earnings,
+            "platform_fees": platform_fees,
+        },
+        "events": event_stats
+    }

@@ -587,6 +587,11 @@ export default function Profile() {
               path: '/my-events',
             },
             role === 'provider' && {
+              label: 'Event Analytics',
+              emoji: '📊',
+              path: '/event-analytics',
+            },
+            role === 'provider' && {
               label: 'Payments Received',
               emoji: '💰',
               path: '/provider-payments',

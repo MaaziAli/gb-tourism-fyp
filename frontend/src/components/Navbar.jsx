@@ -159,6 +159,17 @@ function Navbar() {
                 >
                   🎪 My Events
                 </NavLink>
+                {role === 'provider' && (
+                  <NavLink
+                    to="/event-analytics"
+                    className={({ isActive }) =>
+                      'nav-link' + (isActive ? ' active' : '')
+                    }
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    📊 Event Stats
+                  </NavLink>
+                )}
                 <NavLink
                   to="/create-event"
                   className={({ isActive: navActive }) =>

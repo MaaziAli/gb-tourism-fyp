@@ -15,6 +15,8 @@ function AdminDashboard() {
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [payments, setPayments] = useState(null)
   const [paymentsLoading, setPaymentsLoading] = useState(false)
+  const [adminEvents, setAdminEvents] = useState([])
+  const [eventsLoading, setEventsLoading] = useState(false)
 
   useEffect(() => {
     const loadAll = async () => {
@@ -50,6 +52,9 @@ function AdminDashboard() {
     if (activeSection === 'payments') {
       fetchPayments()
     }
+    if (activeSection === 'events') {
+      fetchAdminEvents()
+    }
   }, [activeSection])
 
   async function fetchReviews() {
@@ -73,6 +78,18 @@ function AdminDashboard() {
       console.error('Failed to load payments', err)
     } finally {
       setPaymentsLoading(false)
+    }
+  }
+
+  async function fetchAdminEvents() {
+    setEventsLoading(true)
+    try {
+      const res = await api.get('/events/admin/all')
+      setAdminEvents(res.data)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setEventsLoading(false)
     }
   }
 
@@ -281,6 +298,22 @@ function AdminDashboard() {
             }}
           >
             💳 Payments
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('events')}
+            style={{
+              textAlign: 'left',
+              padding: '8px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor:
+                activeSection === 'events' ? '#1f2937' : 'transparent',
+              color: '#e5e7eb',
+            }}
+          >
+            🎪 Events
           </button>
         </nav>
       </aside>
@@ -1837,6 +1870,347 @@ function AdminDashboard() {
                 )}
               </div>
             ) : null}
+          </div>
+        )}
+
+        {activeSection === 'events' && (
+          <div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '24px',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: '1.4rem',
+                  fontWeight: 800,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                🎪 All Events
+              </h2>
+              <div
+                style={{
+                  fontSize: '0.85rem',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                {adminEvents.length} total events
+              </div>
+            </div>
+
+            {eventsLoading ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                Loading events...
+              </div>
+            ) : adminEvents.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '48px',
+                  background: 'var(--bg-card)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '2.5rem',
+                    marginBottom: '12px',
+                  }}
+                >
+                  🎪
+                </div>
+                No events yet
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                {adminEvents.map((event) => {
+                  const color = (() => {
+                    const colors = {
+                      'Music & Cultural Festival': '#7c3aed',
+                      'Polo & Horse Events': '#0369a1',
+                      'Guided Trek & Expedition': '#16a34a',
+                      'Art & Photography': '#d97706',
+                      'Local Festival & Fair': '#e11d48',
+                      'Sports Event': '#2563eb',
+                      'Food & Dining Event': '#f97316',
+                      'Community Gathering': '#0891b2',
+                      'Horse Riding & Adventure': '#92400e',
+                    }
+                    return colors[event.category] || '#7c3aed'
+                  })()
+
+                  return (
+                    <div
+                      key={event.id}
+                      style={{
+                        background: 'var(--bg-card)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-color)',
+                        boxShadow: 'var(--shadow-sm)',
+                        padding: '16px 20px',
+                        display: 'flex',
+                        gap: '16px',
+                        alignItems: 'flex-start',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 60,
+                          height: 60,
+                          borderRadius: '10px',
+                          background: color + '22',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.5rem',
+                          flexShrink: 0,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {event.image_url ? (
+                          <img
+                            src={`http://127.0.0.1:8000/uploads/${event.image_url}`}
+                            alt={event.title}
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                            }}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          '🎪'
+                        )}
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: '0.95rem',
+                            color: 'var(--text-primary)',
+                            marginBottom: '3px',
+                          }}
+                        >
+                          {event.title}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-secondary)',
+                            marginBottom: '4px',
+                          }}
+                        >
+                          📅 {event.event_date} · 📍 {event.venue}, {event.location}
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '8px',
+                            flexWrap: 'wrap',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <span
+                            style={{
+                              background: color + '18',
+                              color: color,
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {event.category}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            By {event.organizer_name}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            🎟️ {event.tickets_sold}/{event.total_capacity} sold
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                          flexShrink: 0,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <span
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: '999px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            background:
+                              event.status === 'active'
+                                ? '#dcfce7'
+                                : event.status === 'cancelled'
+                                  ? '#fee2e2'
+                                  : '#e0f2fe',
+                            color:
+                              event.status === 'active'
+                                ? '#16a34a'
+                                : event.status === 'cancelled'
+                                  ? '#dc2626'
+                                  : '#0369a1',
+                          }}
+                        >
+                          {event.status}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await api.patch(`/events/${event.id}/feature`)
+                              setAdminEvents((prev) =>
+                                prev.map((ev) =>
+                                  ev.id === event.id
+                                    ? {
+                                        ...ev,
+                                        is_featured: !ev.is_featured,
+                                      }
+                                    : ev,
+                                ),
+                              )
+                            } catch (err) {
+                              console.error(err)
+                            }
+                          }}
+                          style={{
+                            padding: '5px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid #f59e0b44',
+                            background: event.is_featured
+                              ? '#fef3c7'
+                              : 'var(--bg-secondary)',
+                            color: '#d97706',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: '0.78rem',
+                          }}
+                        >
+                          {event.is_featured ? '⭐ Featured' : '☆ Feature'}
+                        </button>
+
+                        {event.status === 'active' && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!window.confirm('Cancel this event?')) return
+                              try {
+                                await api.patch(`/events/${event.id}/status`, {
+                                  status: 'cancelled',
+                                })
+                                setAdminEvents((prev) =>
+                                  prev.map((ev) =>
+                                    ev.id === event.id
+                                      ? {
+                                          ...ev,
+                                          status: 'cancelled',
+                                        }
+                                      : ev,
+                                  ),
+                                )
+                              } catch (err) {
+                                console.error(err)
+                              }
+                            }}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--danger)',
+                              background: 'var(--danger-bg)',
+                              color: 'var(--danger)',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              fontSize: '0.78rem',
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        )}
+
+                        {event.status === 'cancelled' && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!window.confirm('Reactivate this event?')) return
+                              try {
+                                await api.patch(`/events/${event.id}/status`, {
+                                  status: 'active',
+                                })
+                                setAdminEvents((prev) =>
+                                  prev.map((ev) =>
+                                    ev.id === event.id
+                                      ? { ...ev, status: 'active' }
+                                      : ev,
+                                  ),
+                                )
+                              } catch (err) {
+                                console.error(err)
+                              }
+                            }}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--accent)',
+                              background: 'var(--accent-light)',
+                              color: 'var(--accent)',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              fontSize: '0.78rem',
+                            }}
+                          >
+                            Reactivate
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </main>

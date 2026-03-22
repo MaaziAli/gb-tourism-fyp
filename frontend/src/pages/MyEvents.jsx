@@ -101,22 +101,47 @@ export default function MyEvents() {
               {events.length} event{events.length !== 1 ? 's' : ''} created
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate('/create-event')}
+          <div
             style={{
-              background: 'white',
-              color: '#7c3aed',
-              border: 'none',
-              borderRadius: 10,
-              padding: '10px 20px',
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: '0.9rem',
+              display: 'flex',
+              gap: 10,
+              flexWrap: 'wrap',
+              alignItems: 'center',
             }}
           >
-            + Create Event
-          </button>
+            <button
+              type="button"
+              onClick={() => navigate('/event-analytics')}
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white',
+                borderRadius: '10px',
+                padding: '9px 16px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+              }}
+            >
+              📊 Analytics
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/create-event')}
+              style={{
+                background: 'white',
+                color: '#7c3aed',
+                border: 'none',
+                borderRadius: 10,
+                padding: '10px 20px',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+              }}
+            >
+              + Create Event
+            </button>
+          </div>
         </div>
       </div>
 

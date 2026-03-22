@@ -368,3 +368,43 @@ def toggle_feature(
     event.is_featured = not event.is_featured
     db.commit()
     return {"is_featured": event.is_featured}
+
+
+@router.get("/admin/all")
+def admin_get_all_events(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Admins only")
+    events = db.query(Event).order_by(
+        Event.created_at.desc()
+    ).all()
+    return [
+        event_to_dict(e, db, include_tickets=True)
+        for e in events
+    ]
+
+
+@router.patch("/{event_id}/status")
+def admin_update_event_status(
+    event_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Admins only")
+    event = db.query(Event).filter(
+        Event.id == event_id
+    ).first()
+    if not event:
+        raise HTTPException(404, "Not found")
+    status = body.get("status")
+    if status not in [
+        "active", "cancelled", "completed"
+    ]:
+        raise HTTPException(400, "Invalid status")
+    event.status = status
+    db.commit()
+    return {"ok": True, "status": status}

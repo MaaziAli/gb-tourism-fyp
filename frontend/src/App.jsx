@@ -31,6 +31,7 @@ import MyTickets from './pages/MyTickets'
 import CreateEvent from './pages/CreateEvent'
 import MyEvents from './pages/MyEvents'
 import EventAttendees from './pages/EventAttendees'
+import EventAnalytics from './pages/EventAnalytics'
 
 function App() {
   return (
@@ -187,6 +188,14 @@ function App() {
             element={
               <ProviderRoute>
                 <MyEvents />
+              </ProviderRoute>
+            }
+          />
+          <Route
+            path="/event-analytics"
+            element={
+              <ProviderRoute>
+                <EventAnalytics />
               </ProviderRoute>
             }
           />
