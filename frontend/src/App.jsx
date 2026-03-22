@@ -36,6 +36,7 @@ import EventAnalytics from './pages/EventAnalytics'
 import Wishlist from './pages/Wishlist'
 import PublicCoupons from './pages/PublicCoupons'
 import MyCoupons from './pages/MyCoupons'
+import LoyaltyPage from './pages/LoyaltyPage'
 
 function App() {
   return (
@@ -234,6 +235,14 @@ function App() {
               <ProviderRoute>
                 <EventAttendees />
               </ProviderRoute>
+            }
+          />
+          <Route
+            path="/loyalty"
+            element={
+              <PrivateRoute>
+                <LoyaltyPage />
+              </PrivateRoute>
             }
           />
           <Route

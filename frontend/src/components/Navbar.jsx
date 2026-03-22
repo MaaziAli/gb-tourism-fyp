@@ -5,6 +5,7 @@ import { getRole, isLoggedIn } from '../utils/role'
 import { useTheme } from '../hooks/useTheme'
 import useWindowSize from '../hooks/useWindowSize'
 import NotificationBell from './NotificationBell'
+import LoyaltyBadge from './LoyaltyBadge'
 
 function Navbar() {
   const navigate = useNavigate()
@@ -233,6 +234,15 @@ function Navbar() {
                 {role === 'user' && (
                   <>
                     <NavLink
+                      to="/loyalty"
+                      className={({ isActive }) =>
+                        'nav-link' + (isActive ? ' active' : '')
+                      }
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      ⭐ Points
+                    </NavLink>
+                    <NavLink
                       to="/wishlist"
                       className={({ isActive }) =>
                         'nav-link' + (isActive ? ' active' : '')
@@ -337,6 +347,7 @@ function Navbar() {
         {!isMobile && (
           <div className="nav-links nav-links-end">
             <NotificationBell />
+            {loggedIn && role === 'user' && <LoyaltyBadge compact={true} />}
             <button
               type="button"
               className="theme-toggle"

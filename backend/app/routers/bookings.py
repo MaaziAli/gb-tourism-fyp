@@ -13,6 +13,7 @@ from app.database import get_db
 from app.models.booking import Booking
 from app.models.coupon import Coupon
 from app.models.listing import Listing
+from app.models.loyalty import LoyaltyTransaction
 from app.models.review import Review
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingResponse
@@ -152,6 +153,65 @@ def create_booking(
         type="booking",
     )
 
+    try:
+        from app.utils.loyalty_utils import (
+            BONUS_POINTS,
+            add_points,
+            calculate_points_for_amount,
+            check_first_booking,
+            get_or_create_account,
+        )
+
+        get_or_create_account(db, current_user.id)
+
+        if booking.total_price > 0:
+            is_first = check_first_booking(db, current_user.id)
+            if is_first:
+                add_points(
+                    db,
+                    user_id=current_user.id,
+                    points=BONUS_POINTS["first_booking"],
+                    transaction_type="first_booking",
+                    description="🎉 First booking bonus!",
+                    reference_id=booking.id,
+                )
+            account = get_or_create_account(db, current_user.id)
+            earned = calculate_points_for_amount(
+                booking.total_price,
+                account.tier,
+            )
+            if earned > 0:
+                add_points(
+                    db,
+                    user_id=current_user.id,
+                    points=earned,
+                    transaction_type="booking_earn",
+                    description=(
+                        f"Points for booking '{listing.title}' "
+                        f"(PKR {booking.total_price:,.0f})"
+                    ),
+                    reference_id=booking.id,
+                )
+
+            from app.utils.notify import create_notification as _loyalty_notif
+
+            total_earned = earned + (
+                BONUS_POINTS["first_booking"] if is_first else 0
+            )
+            if total_earned > 0:
+                _loyalty_notif(
+                    db,
+                    user_id=current_user.id,
+                    title=f"+{total_earned} Points Earned!",
+                    message=(
+                        f"You earned {total_earned} loyalty points for your "
+                        f"booking at '{listing.title}'."
+                    ),
+                    type="success",
+                )
+    except Exception:
+        pass
+
     return booking
 
 
@@ -239,6 +299,20 @@ def get_my_bookings(
         listing = db.query(Listing).filter(
             Listing.id == b.listing_id
         ).first()
+        pe = (
+            db.query(
+                func.coalesce(func.sum(LoyaltyTransaction.points), 0)
+            )
+            .filter(
+                LoyaltyTransaction.user_id == current_user.id,
+                LoyaltyTransaction.reference_id == b.id,
+                LoyaltyTransaction.transaction_type.in_(
+                    ["booking_earn", "first_booking"]
+                ),
+            )
+            .scalar()
+        )
+        points_earned = int(pe or 0)
         result.append({
             "id": b.id,
             "listing_id": b.listing_id,
@@ -275,6 +349,7 @@ def get_my_bookings(
             "special_requirements": getattr(
                 b, "special_requirements", None
             ),
+            "points_earned": points_earned,
         })
     return result
 

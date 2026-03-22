@@ -83,6 +83,32 @@ def create_review(
     db.commit()
     db.refresh(review)
 
+    try:
+        from app.utils.loyalty_utils import BONUS_POINTS, add_points
+
+        add_points(
+            db,
+            user_id=current_user.id,
+            points=BONUS_POINTS["review"],
+            transaction_type="review_bonus",
+            description=(
+                f"⭐ Review bonus for rating '{listing.title}'"
+            ),
+            reference_id=review.id,
+        )
+        create_notification(
+            db,
+            user_id=current_user.id,
+            title=f"+{BONUS_POINTS['review']} Points for Review!",
+            message=(
+                f"Thanks for reviewing! You earned "
+                f"{BONUS_POINTS['review']} loyalty points."
+            ),
+            type="success",
+        )
+    except Exception:
+        pass
+
     # Notify listing owner of new review
     listing = db.query(Listing).filter(Listing.id == listing_id).first()
     if listing and listing.owner_id != current_user.id:

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getRole } from '../utils/role'
 import useWindowSize from '../hooks/useWindowSize'
+import LoyaltyBadge from '../components/LoyaltyBadge'
 
 export default function Profile() {
   const [user, setUser] = useState(null)
@@ -380,6 +381,12 @@ export default function Profile() {
           )}
         </div>
 
+        {role === 'user' && (
+          <div style={{ marginBottom: '16px' }}>
+            <LoyaltyBadge compact={false} />
+          </div>
+        )}
+
         {/* Stats card */}
         {stats && (
           <div
@@ -535,6 +542,11 @@ export default function Profile() {
               label: 'My Bookings',
               emoji: '📅',
               path: '/my-bookings',
+            },
+            role === 'user' && {
+              label: 'Loyalty Points',
+              emoji: '⭐',
+              path: '/loyalty',
             },
             role === 'user' && {
               label: 'My Wishlist',

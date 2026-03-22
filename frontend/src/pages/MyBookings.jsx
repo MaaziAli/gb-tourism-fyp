@@ -307,6 +307,13 @@ export default function MyBookings() {
               const upcoming = isUpcoming(b.check_in)
               const isActive = b.status === 'active'
               const isCancelling = cancellingId === b.id
+              const needsPayment =
+                b.payment_status !== 'paid' &&
+                b.payment_status !== 'free' &&
+                b.status !== 'cancelled' &&
+                (b.total_price ?? 0) > 0
+              const showPayNow = isActive && needsPayment
+              const showPendingBadge = needsPayment && !showPayNow
 
               return (
                 <div
@@ -543,42 +550,69 @@ export default function MyBookings() {
                             </span>
                           </span>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            {isActive &&
-                              b.payment_status !== 'paid' && (
-                                <button
-                                  onClick={() =>
-                                    navigate('/payment/' + b.id)
-                                  }
-                                  style={{
-                                    padding: '7px 14px',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    background:
-                                      'linear-gradient(135deg, #16a34a, #15803d)',
-                                    color: 'white',
-                                    fontWeight: 700,
-                                    fontSize: '0.8rem',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  💳 Pay
-                                </button>
-                              )}
-                            {isActive &&
-                              b.payment_status === 'paid' && (
-                                <span
-                                  style={{
-                                    padding: '7px 12px',
-                                    borderRadius: '8px',
-                                    background: '#dcfce7',
-                                    color: '#16a34a',
-                                    fontWeight: 700,
-                                    fontSize: '0.8rem',
-                                  }}
-                                >
-                                  ✅ Paid
-                                </span>
-                              )}
+                            {showPayNow && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  navigate('/payment/' + b.id)
+                                }
+                                style={{
+                                  padding: '7px 16px',
+                                  borderRadius: '8px',
+                                  border: 'none',
+                                  background:
+                                    'linear-gradient(135deg, #16a34a, #15803d)',
+                                  color: 'white',
+                                  fontWeight: 700,
+                                  fontSize: '0.82rem',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                💳 Pay Now
+                              </button>
+                            )}
+                            {isActive && b.payment_status === 'paid' && (
+                              <span
+                                style={{
+                                  background: '#dcfce7',
+                                  color: '#16a34a',
+                                  padding: '3px 10px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ✅ Paid
+                              </span>
+                            )}
+                            {isActive && b.payment_status === 'free' && (
+                              <span
+                                style={{
+                                  background: '#dcfce7',
+                                  color: '#16a34a',
+                                  padding: '3px 10px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ✅ Free
+                              </span>
+                            )}
+                            {showPendingBadge && (
+                              <span
+                                style={{
+                                  background: '#fef3c7',
+                                  color: '#d97706',
+                                  padding: '3px 10px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ⏳ Payment Pending
+                              </span>
+                            )}
                             {isActive && upcoming && (
                               <button
                                 onClick={() => cancelBooking(b.id)}
@@ -838,42 +872,69 @@ export default function MyBookings() {
                             </span>
                           </span>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            {isActive &&
-                              b.payment_status !== 'paid' && (
-                                <button
-                                  onClick={() =>
-                                    navigate('/payment/' + b.id)
-                                  }
-                                  style={{
-                                    padding: '7px 16px',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    background:
-                                      'linear-gradient(135deg, #16a34a, #15803d)',
-                                    color: 'white',
-                                    fontWeight: 700,
-                                    fontSize: '0.82rem',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  💳 Pay Now
-                                </button>
-                              )}
-                            {isActive &&
-                              b.payment_status === 'paid' && (
-                                <span
-                                  style={{
-                                    padding: '7px 16px',
-                                    borderRadius: '8px',
-                                    background: '#dcfce7',
-                                    color: '#16a34a',
-                                    fontWeight: 700,
-                                    fontSize: '0.82rem',
-                                  }}
-                                >
-                                  ✅ Paid
-                                </span>
-                              )}
+                            {showPayNow && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  navigate('/payment/' + b.id)
+                                }
+                                style={{
+                                  padding: '7px 16px',
+                                  borderRadius: '8px',
+                                  border: 'none',
+                                  background:
+                                    'linear-gradient(135deg, #16a34a, #15803d)',
+                                  color: 'white',
+                                  fontWeight: 700,
+                                  fontSize: '0.82rem',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                💳 Pay Now
+                              </button>
+                            )}
+                            {isActive && b.payment_status === 'paid' && (
+                              <span
+                                style={{
+                                  background: '#dcfce7',
+                                  color: '#16a34a',
+                                  padding: '3px 10px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ✅ Paid
+                              </span>
+                            )}
+                            {isActive && b.payment_status === 'free' && (
+                              <span
+                                style={{
+                                  background: '#dcfce7',
+                                  color: '#16a34a',
+                                  padding: '3px 10px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ✅ Free
+                              </span>
+                            )}
+                            {showPendingBadge && (
+                              <span
+                                style={{
+                                  background: '#fef3c7',
+                                  color: '#d97706',
+                                  padding: '3px 10px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ⏳ Payment Pending
+                              </span>
+                            )}
                             {isActive && upcoming && (
                               <button
                                 onClick={() => cancelBooking(b.id)}
