@@ -537,14 +537,9 @@ export default function Profile() {
               path: '/my-bookings',
             },
             role === 'user' && {
-              label: 'My Reservations',
-              emoji: '🍽️',
-              path: '/my-reservations',
-            },
-            role === 'user' && {
-              label: 'Payment History',
-              emoji: '💳',
-              path: '/my-spending',
+              label: 'My Tickets',
+              emoji: '🎟️',
+              path: '/my-tickets',
             },
             role === 'user' && {
               label: 'Trip Planner',
@@ -557,34 +552,24 @@ export default function Profile() {
               path: '/my-trips',
             },
             role === 'user' && {
-              label: 'My Tickets',
-              emoji: '🎟️',
-              path: '/my-tickets',
+              label: 'Payment History',
+              emoji: '💳',
+              path: '/my-spending',
             },
             role === 'user' && {
-              label: 'Browse Events',
-              emoji: '🎪',
-              path: '/events',
+              label: 'My Reservations',
+              emoji: '🍽️',
+              path: '/my-reservations',
             },
-            role === 'provider' && {
-              label: 'My Events',
-              emoji: '🎪',
-              path: '/my-events',
+            role === 'user' && {
+              label: 'Recommendations',
+              emoji: '✨',
+              path: '/recommendations',
             },
-            role === 'provider' && {
-              label: 'Create Event',
-              emoji: '➕',
-              path: '/create-event',
-            },
-            role === 'admin' && {
-              label: 'My Events',
-              emoji: '🎪',
-              path: '/my-events',
-            },
-            role === 'admin' && {
-              label: 'Create Event',
-              emoji: '➕',
-              path: '/create-event',
+            role === 'user' && {
+              label: 'Explore Map',
+              emoji: '📍',
+              path: '/map',
             },
             role === 'provider' && {
               label: 'My Services',
@@ -592,21 +577,36 @@ export default function Profile() {
               path: '/my-listings',
             },
             role === 'provider' && {
+              label: 'Analytics',
+              emoji: '📊',
+              path: '/my-analytics',
+            },
+            role === 'provider' && {
+              label: 'My Events',
+              emoji: '🎪',
+              path: '/my-events',
+            },
+            role === 'provider' && {
               label: 'Payments Received',
               emoji: '💰',
               path: '/provider-payments',
             },
             role === 'provider' && {
-              label: 'Analytics',
-              emoji: '📊',
-              path: '/my-analytics',
+              label: 'Explore Map',
+              emoji: '📍',
+              path: '/map',
             },
-            role !== 'admin' && {
-              label: 'Recommendations',
-              emoji: '✨',
-              path: '/recommendations',
+            role === 'admin' && {
+              label: 'My Events',
+              emoji: '🎪',
+              path: '/my-events',
             },
-            {
+            role === 'admin' && {
+              label: 'Create Event',
+              emoji: '➕',
+              path: '/create-event',
+            },
+            role === 'admin' && {
               label: 'Explore Map',
               emoji: '📍',
               path: '/map',

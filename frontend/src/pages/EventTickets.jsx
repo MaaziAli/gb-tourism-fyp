@@ -137,13 +137,16 @@ export default function EventTickets() {
       })
       setSuccess(res.data)
     } catch (e) {
+      console.error('Booking error:', e)
+      console.error('Response:', e.response?.data)
       const detail = e.response?.data?.detail
       setError(
-        typeof detail === 'string'
-          ? detail
-          : Array.isArray(detail)
+        (typeof detail === 'string' ? detail : null) ||
+          (Array.isArray(detail)
             ? detail.map((x) => x?.msg || JSON.stringify(x)).join(', ')
-            : 'Booking failed. Please try again.'
+            : null) ||
+          e.message ||
+          'Booking failed. Please try again.'
       )
     } finally {
       setProcessing(false)

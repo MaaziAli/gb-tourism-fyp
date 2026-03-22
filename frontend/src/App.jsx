@@ -44,6 +44,14 @@ function App() {
           <Route path="/events" element={<Events />} />
           <Route path="/events/:id" element={<EventDetail />} />
           <Route
+            path="/listing/:id"
+            element={
+              <PrivateRoute>
+                <ListingDetail />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/events/:id/tickets"
             element={
               <PrivateRoute>
@@ -59,7 +67,6 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route path="/listing/:id" element={<ListingDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
@@ -89,9 +96,9 @@ function App() {
           <Route
             path="/provider-payments"
             element={
-              <PrivateRoute>
+              <ProviderRoute>
                 <ProviderPayments />
-              </PrivateRoute>
+              </ProviderRoute>
             }
           />
           <Route

@@ -127,7 +127,7 @@ function Navbar() {
                 className={`nav-link${isActive('/admin') ? ' active' : ''}`}
                 onClick={() => setMenuOpen(false)}
               >
-                ⚙️ Admin
+                ⚙️ Admin Panel
               </Link>
             )}
             {loggedIn && (role === 'provider' || role === 'admin') && (
@@ -176,6 +176,15 @@ function Navbar() {
                   onClick={() => setMenuOpen(false)}
                 >
                   📊 Analytics
+                </Link>
+                <Link
+                  to="/provider-payments"
+                  className={`nav-link${
+                    isActive('/provider-payments') ? ' active' : ''
+                  }`}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  💰 Payments
                 </Link>
               </>
             )}
