@@ -1,3 +1,5 @@
+"""Coupon API — static path routes are registered before dynamic /{coupon_id} routes."""
+
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -56,7 +58,7 @@ class ValidateCouponRequest(BaseModel):
 
 
 def coupon_to_dict(coupon: Coupon, db: Session) -> dict:
-    usage_count = coupon.used_count
+    usage_count = coupon.used_count or 0
     return {
         "id": coupon.id,
         "code": coupon.code,
@@ -64,18 +66,19 @@ def coupon_to_dict(coupon: Coupon, db: Session) -> dict:
         "description": coupon.description,
         "discount_type": coupon.discount_type,
         "discount_value": coupon.discount_value,
-        "min_booking_amount": coupon.min_booking_amount,
+        "min_booking_amount": coupon.min_booking_amount or 0,
         "max_discount_amount": coupon.max_discount_amount,
         "max_uses": coupon.max_uses,
         "used_count": usage_count,
-        "max_uses_per_user": coupon.max_uses_per_user,
+        "max_uses_per_user": coupon.max_uses_per_user or 1,
         "valid_from": coupon.valid_from,
         "valid_until": coupon.valid_until,
         "is_active": bool(coupon.is_active),
         "is_public": bool(coupon.is_public),
-        "coupon_type": coupon.coupon_type,
+        "coupon_type": coupon.coupon_type or "general",
         "coupon_type_label": COUPON_TYPES.get(
-            coupon.coupon_type, coupon.coupon_type
+            coupon.coupon_type or "general",
+            coupon.coupon_type or "general",
         ),
         "created_at": (
             coupon.created_at.isoformat() if coupon.created_at else None
@@ -90,6 +93,64 @@ def coupon_to_dict(coupon: Coupon, db: Session) -> dict:
             else None
         ),
     }
+
+
+# ══════════════════════════════════════
+# Static routes first (no path parameters)
+# ══════════════════════════════════════
+
+
+@router.get("/my-coupons")
+def get_my_coupons(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    coupons = (
+        db.query(Coupon)
+        .filter(Coupon.created_by == current_user.id)
+        .order_by(Coupon.created_at.desc())
+        .all()
+    )
+    return [coupon_to_dict(c, db) for c in coupons]
+
+
+@router.get("/public")
+def get_public_coupons(
+    db: Session = Depends(get_db),
+):
+    today = date.today().isoformat()
+    coupons = (
+        db.query(Coupon)
+        .filter(Coupon.is_active.is_(True))
+        .filter(Coupon.is_public.is_(True))
+        .all()
+    )
+    valid = []
+    for c in coupons:
+        if c.valid_until and today > c.valid_until:
+            continue
+        used = c.used_count or 0
+        if c.max_uses is not None and used >= c.max_uses:
+            continue
+        valid.append(coupon_to_dict(c, db))
+    return valid
+
+
+@router.get("/admin/all")
+def admin_get_all_coupons(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Admins only")
+    coupons = db.query(Coupon).order_by(Coupon.created_at.desc()).all()
+    result = []
+    for c in coupons:
+        d = coupon_to_dict(c, db)
+        creator = db.query(User).filter(User.id == c.created_by).first()
+        d["creator_name"] = creator.full_name if creator else "Unknown"
+        result.append(d)
+    return result
 
 
 @router.post("/validate")
@@ -171,41 +232,6 @@ def apply_coupon(
     }
 
 
-@router.get("/my-coupons")
-def get_my_coupons(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    coupons = (
-        db.query(Coupon)
-        .filter(Coupon.created_by == current_user.id)
-        .order_by(Coupon.created_at.desc())
-        .all()
-    )
-    return [coupon_to_dict(c, db) for c in coupons]
-
-
-@router.get("/public")
-def get_public_coupons(
-    db: Session = Depends(get_db),
-):
-    today = date.today().isoformat()
-    coupons = (
-        db.query(Coupon)
-        .filter(Coupon.is_active.is_(True))
-        .filter(Coupon.is_public.is_(True))
-        .all()
-    )
-    valid = []
-    for c in coupons:
-        if c.valid_until and today > c.valid_until:
-            continue
-        if c.max_uses and c.used_count >= c.max_uses:
-            continue
-        valid.append(coupon_to_dict(c, db))
-    return valid
-
-
 @router.post("/")
 def create_coupon(
     body: CouponCreate,
@@ -214,7 +240,8 @@ def create_coupon(
 ):
     if current_user.role not in ("provider", "admin"):
         raise HTTPException(
-            403, "Only providers can create coupons"
+            403,
+            "Only providers can create coupons",
         )
 
     code = body.code.upper().strip().replace(" ", "")
@@ -304,6 +331,11 @@ def create_coupon(
     return coupon_to_dict(coupon, db)
 
 
+# ══════════════════════════════════════
+# Dynamic routes last
+# ══════════════════════════════════════
+
+
 @router.patch("/{coupon_id}/toggle")
 def toggle_coupon(
     coupon_id: int,
@@ -342,20 +374,3 @@ def delete_coupon(
     db.delete(coupon)
     db.commit()
     return {"ok": True}
-
-
-@router.get("/admin/all")
-def admin_get_all_coupons(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    if current_user.role != "admin":
-        raise HTTPException(403, "Admins only")
-    coupons = db.query(Coupon).order_by(Coupon.created_at.desc()).all()
-    result = []
-    for c in coupons:
-        d = coupon_to_dict(c, db)
-        creator = db.query(User).filter(User.id == c.created_by).first()
-        d["creator_name"] = creator.full_name if creator else "Unknown"
-        result.append(d)
-    return result

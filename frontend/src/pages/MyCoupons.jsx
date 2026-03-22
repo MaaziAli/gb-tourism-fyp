@@ -23,7 +23,6 @@ export default function MyCoupons() {
   const [creating, setCreating] = useState(false)
   const [formError, setFormError] = useState('')
   const [formSuccess, setFormSuccess] = useState('')
-  const [pageError, setPageError] = useState('')
   const { isMobile } = useWindowSize()
 
   const [code, setCode] = useState('')
@@ -60,13 +59,13 @@ export default function MyCoupons() {
   }
 
   async function fetchCoupons() {
+    setLoading(true)
     try {
       const res = await api.get('/coupons/my-coupons')
-      setCoupons(res.data)
-      setPageError('')
+      setCoupons(res.data || [])
     } catch (e) {
-      console.error(e)
-      setPageError('Could not load coupons. Try again later.')
+      console.error('Failed to load coupons:', e)
+      setCoupons([])
     } finally {
       setLoading(false)
     }
@@ -248,18 +247,6 @@ export default function MyCoupons() {
         margin: '-48px auto 0',
         padding: '0 16px',
       }}>
-
-        {pageError && (
-          <div style={{
-            background: 'var(--danger-bg)',
-            color: 'var(--danger)', padding: '12px 16px',
-            borderRadius: '10px',
-            marginBottom: '16px',
-            fontWeight: 600, fontSize: '0.9rem',
-          }}>
-            ⚠️ {pageError}
-          </div>
-        )}
 
         {formSuccess && (
           <div style={{
