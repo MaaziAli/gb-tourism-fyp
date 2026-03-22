@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import CouponInput from '../components/CouponInput'
+import PointsEarnedPopup from '../components/PointsEarnedPopup'
 
 function getCategoryColor(cat) {
   const colors = {
@@ -42,6 +43,7 @@ export default function EventTickets() {
   const [success, setSuccess] = useState(null)
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [pointsPopup, setPointsPopup] = useState(null)
 
   useEffect(() => {
     api
@@ -149,6 +151,13 @@ export default function EventTickets() {
             : null,
       })
       setSuccess(res.data)
+      const earnedPoints = Math.floor((res.data.total_price || 0) * 10)
+      if (earnedPoints > 0) {
+        setPointsPopup({
+          points: earnedPoints,
+          description: `Earned for ${event?.title || 'event ticket'}`,
+        })
+      }
     } catch (e) {
       console.error('Booking error:', e)
       console.error('Response:', e.response?.data)
@@ -169,6 +178,7 @@ export default function EventTickets() {
   if (success) {
     const color = getCategoryColor(event?.category || '')
     return (
+      <>
       <div
         style={{
           minHeight: '100vh',
@@ -367,6 +377,14 @@ export default function EventTickets() {
           </div>
         </div>
       </div>
+      {pointsPopup && (
+        <PointsEarnedPopup
+          points={pointsPopup.points}
+          description={pointsPopup.description}
+          onClose={() => setPointsPopup(null)}
+        />
+      )}
+      </>
     )
   }
 

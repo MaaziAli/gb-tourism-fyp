@@ -4,6 +4,7 @@ import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
 import CouponInput from '../components/CouponInput'
+import PointsEarnedPopup from '../components/PointsEarnedPopup'
 
 function getPriceLabel(serviceType) {
   const perDay = [
@@ -42,6 +43,7 @@ export default function BookingForm() {
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [confirmedTotal, setConfirmedTotal] = useState(null)
+  const [pointsPopup, setPointsPopup] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -110,9 +112,19 @@ export default function BookingForm() {
           ? parseInt(roomTypeId, 10) : null,
         coupon_code: appliedCoupon?.code || null,
       })
+      const tp = res.data.total_price ?? 0
       setBookingId(res.data.id)
-      setConfirmedTotal(res.data.total_price)
+      setConfirmedTotal(tp)
       setSuccess(true)
+      const earnedPoints = Math.floor(tp * 10)
+      if (earnedPoints > 0) {
+        setPointsPopup({
+          points: earnedPoints,
+          description: `Earned for booking ${
+            listing?.title || 'this service'
+          }`,
+        })
+      }
     } catch(e) {
       setError(e.response?.data?.detail || 'Booking failed')
     } finally {
@@ -134,6 +146,7 @@ export default function BookingForm() {
   // SUCCESS STATE
   if (success) {
     return (
+      <>
       <div style={{
         minHeight: '100vh',
         background: 'var(--bg-primary)',
@@ -285,6 +298,14 @@ export default function BookingForm() {
           </div>
         </div>
       </div>
+      {pointsPopup && (
+        <PointsEarnedPopup
+          points={pointsPopup.points}
+          description={pointsPopup.description}
+          onClose={() => setPointsPopup(null)}
+        />
+      )}
+      </>
     )
   }
 

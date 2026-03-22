@@ -6,6 +6,7 @@ import { getUser, getRole, isLoggedIn } from '../utils/role'
 import useWindowSize from '../hooks/useWindowSize'
 import WishlistButton from '../components/WishlistButton'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
+import PointsEarnedPopup from '../components/PointsEarnedPopup'
 
 function getServiceBadge(type) {
   switch (type) {
@@ -187,6 +188,7 @@ export default function ListingDetail() {
   const [resLoading, setResLoading] = useState(false)
   const [resSuccess, setResSuccess] = useState(false)
   const [resError, setResError] = useState('')
+  const [pointsPopup, setPointsPopup] = useState(null)
 
   const currentUser = getUser()
   const userRole = getRole()
@@ -355,6 +357,10 @@ export default function ListingDetail() {
       })
       setResSuccess(true)
       setShowReservation(false)
+      setPointsPopup({
+        points: 1000,
+        description: 'Restaurant reservation bonus!',
+      })
     } catch (e) {
       const d = e.response?.data?.detail
       setResError(
@@ -430,6 +436,7 @@ export default function ListingDetail() {
   const avgRating = listing.average_rating ?? summary?.average_rating ?? 0
 
   return (
+    <>
     <div
       style={{
         minHeight: '100vh',
@@ -2109,5 +2116,13 @@ export default function ListingDetail() {
         </div>
       )}
     </div>
+    {pointsPopup && (
+      <PointsEarnedPopup
+        points={pointsPopup.points}
+        description={pointsPopup.description}
+        onClose={() => setPointsPopup(null)}
+      />
+    )}
+    </>
   )
 }

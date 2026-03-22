@@ -12,7 +12,7 @@ from app.utils.loyalty_utils import (
     TIER_EMOJI,
     TIER_THRESHOLDS,
     get_or_create_account,
-    pkr_to_points_needed,
+    pkr_to_points,
     points_to_pkr,
 )
 
@@ -116,7 +116,7 @@ def calculate_redeem(
     if body.points > account.total_points:
         raise HTTPException(
             400,
-            f"Not enough points. You have {account.total_points} points.",
+            f"Not enough points. You have {account.total_points:,}",
         )
 
     max_discount = body.booking_amount * 0.5
@@ -124,15 +124,18 @@ def calculate_redeem(
     actual_discount = min(discount, max_discount)
 
     if actual_discount < discount:
-        actual_points = pkr_to_points_needed(actual_discount)
+        actual_points = pkr_to_points(actual_discount)
     else:
         actual_points = body.points
 
     return {
         "points_requested": body.points,
         "points_to_use": actual_points,
-        "discount_amount": actual_discount,
-        "final_amount": max(0, body.booking_amount - actual_discount),
+        "discount_amount": round(actual_discount, 2),
+        "final_amount": round(
+            max(0, body.booking_amount - actual_discount),
+            2,
+        ),
         "available_points": account.total_points,
         "remaining_after": account.total_points - actual_points,
         "max_redeemable": account.total_points,
@@ -145,8 +148,8 @@ def get_tiers():
     tiers_list = ["bronze", "silver", "gold", "platinum"]
     benefits = {
         "bronze": [
-            "Earn 1 point per PKR 10",
-            "Redeem for PKR 25 per 100 pts",
+            "Earn 10 points per PKR 1 spent",
+            "Redeem 1000 points for PKR 1 off",
             "Access to member deals",
         ],
         "silver": [

@@ -1,4 +1,5 @@
-import math
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional
 
@@ -6,16 +7,20 @@ from sqlalchemy.orm import Session
 
 from app.models.loyalty import LoyaltyAccount, LoyaltyTransaction
 
-# PKR 10 = 1 point
-POINTS_PER_PKR = 0.1
-# 100 points = PKR 25 → 1 point = PKR 0.25
-POINTS_VALUE_PKR = 0.25
+# ══════════════════════════════════════
+# DARAZ-STYLE POINTS CONFIGURATION
+# ══════════════════════════════════════
+POINTS_PER_PKR = 10
+# PKR 1 = 10 points
+
+POINTS_VALUE = 1 / 1000
+# 1000 points = PKR 1
 
 TIER_THRESHOLDS = {
     "bronze": 0,
-    "silver": 500,
-    "gold": 2000,
-    "platinum": 5000,
+    "silver": 50000,
+    "gold": 200000,
+    "platinum": 500000,
 }
 
 TIER_BONUS_RATES = {
@@ -33,9 +38,9 @@ TIER_EMOJI = {
 }
 
 BONUS_POINTS = {
-    "first_booking": 200,
-    "review": 50,
-    "restaurant": 30,
+    "first_booking": 5000,
+    "review": 2000,
+    "restaurant": 1000,
 }
 
 
@@ -76,13 +81,21 @@ def calculate_points_for_amount(amount: float, tier: str) -> int:
 
 
 def points_to_pkr(points: int) -> float:
-    return round(points * POINTS_VALUE_PKR, 2)
+    return round(points * POINTS_VALUE, 2)
 
 
-def pkr_to_points_needed(pkr: float) -> int:
+def pkr_to_points(pkr: float) -> int:
     if pkr <= 0:
         return 0
-    return max(1, int(math.ceil(pkr / POINTS_VALUE_PKR)))
+    return int(pkr / POINTS_VALUE)
+
+
+def format_points(points: int) -> str:
+    if points >= 1000000:
+        return f"{points / 1000000:.1f}M"
+    if points >= 1000:
+        return f"{points / 1000:.1f}K"
+    return str(points)
 
 
 def add_points(
@@ -92,7 +105,7 @@ def add_points(
     transaction_type: str,
     description: str,
     reference_id: int | None = None,
-) -> Optional[LoyaltyAccount]:
+) -> Optional[dict]:
     if points <= 0:
         return None
 
@@ -105,6 +118,7 @@ def add_points(
 
     new_tier = get_tier(account.lifetime_points)
     account.tier = new_tier
+    tier_upgraded = new_tier != old_tier
 
     txn = LoyaltyTransaction(
         user_id=user_id,
@@ -118,7 +132,7 @@ def add_points(
     db.commit()
     db.refresh(account)
 
-    if new_tier != old_tier:
+    if tier_upgraded:
         try:
             from app.utils.notify import create_notification
 
@@ -128,15 +142,22 @@ def add_points(
                 user_id=user_id,
                 title=f"Tier Upgrade! {emoji} {new_tier.title()}",
                 message=(
-                    f"Congratulations! You've reached {emoji} "
-                    f"{new_tier.title()} tier. Enjoy better rewards!"
+                    f"🎉 You've reached {emoji} {new_tier.title()} "
+                    f"tier! Enjoy more bonus points on every booking."
                 ),
                 type="success",
             )
         except Exception:
             pass
 
-    return account
+    return {
+        "points_earned": points,
+        "total_points": account.total_points,
+        "tier": account.tier,
+        "tier_upgraded": tier_upgraded,
+        "new_tier": new_tier if tier_upgraded else None,
+        "pkr_value": points_to_pkr(points),
+    }
 
 
 def redeem_points(
@@ -152,7 +173,7 @@ def redeem_points(
         return {
             "success": False,
             "message": (
-                f"Insufficient points. You have {account.total_points} points."
+                f"Not enough points. You have {account.total_points:,} points."
             ),
         }
 
@@ -178,7 +199,7 @@ def redeem_points(
         "pkr_value": pkr_value,
         "remaining_points": account.total_points,
         "message": (
-            f"Redeemed {points} points for PKR {pkr_value:,.0f} discount!"
+            f"Redeemed {points:,} points for PKR {pkr_value:,.2f} discount!"
         ),
     }
 

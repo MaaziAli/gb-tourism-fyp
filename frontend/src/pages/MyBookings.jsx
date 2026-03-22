@@ -307,13 +307,6 @@ export default function MyBookings() {
               const upcoming = isUpcoming(b.check_in)
               const isActive = b.status === 'active'
               const isCancelling = cancellingId === b.id
-              const needsPayment =
-                b.payment_status !== 'paid' &&
-                b.payment_status !== 'free' &&
-                b.status !== 'cancelled' &&
-                (b.total_price ?? 0) > 0
-              const showPayNow = isActive && needsPayment
-              const showPendingBadge = needsPayment && !showPayNow
 
               return (
                 <div
@@ -550,69 +543,111 @@ export default function MyBookings() {
                             </span>
                           </span>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            {showPayNow && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  navigate('/payment/' + b.id)
+                            {(() => {
+                              const raw = localStorage.getItem('user')
+                              if (!raw) return null
+                              let user
+                              try {
+                                user = JSON.parse(raw)
+                              } catch (e) {
+                                return null
+                              }
+                              if (user.role !== 'user') return null
+                              if (b.payment_status === 'paid') return null
+                              if (b.payment_status === 'free') return null
+                              if (b.status === 'cancelled') return null
+                              if (!b.total_price || b.total_price <= 0)
+                                return null
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    navigate(`/payment/${b.id}`)
+                                  }
+                                  style={{
+                                    padding: '7px 16px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background:
+                                      'linear-gradient(135deg, #16a34a, #15803d)',
+                                    color: 'white',
+                                    fontWeight: 700,
+                                    fontSize: '0.82rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  💳 Pay Now
+                                </button>
+                              )
+                            })()}
+                            {(() => {
+                              if (b.payment_status === 'paid') {
+                                return (
+                                  <span
+                                    style={{
+                                      background: '#dcfce7',
+                                      color: '#16a34a',
+                                      padding: '3px 10px',
+                                      borderRadius: '999px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    ✅ Paid
+                                  </span>
+                                )
+                              }
+                              if (
+                                b.payment_status === 'free' ||
+                                b.total_price === 0
+                              ) {
+                                return (
+                                  <span
+                                    style={{
+                                      background: '#dcfce7',
+                                      color: '#16a34a',
+                                      padding: '3px 10px',
+                                      borderRadius: '999px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    ✅ Free
+                                  </span>
+                                )
+                              }
+                              if (b.status === 'cancelled') {
+                                return null
+                              }
+                              try {
+                                const raw = localStorage.getItem('user')
+                                if (raw) {
+                                  const u = JSON.parse(raw)
+                                  if (
+                                    u.role === 'user' &&
+                                    (b.total_price ?? 0) > 0
+                                  ) {
+                                    return null
+                                  }
                                 }
-                                style={{
-                                  padding: '7px 16px',
-                                  borderRadius: '8px',
-                                  border: 'none',
-                                  background:
-                                    'linear-gradient(135deg, #16a34a, #15803d)',
-                                  color: 'white',
-                                  fontWeight: 700,
-                                  fontSize: '0.82rem',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                💳 Pay Now
-                              </button>
-                            )}
-                            {isActive && b.payment_status === 'paid' && (
-                              <span
-                                style={{
-                                  background: '#dcfce7',
-                                  color: '#16a34a',
-                                  padding: '3px 10px',
-                                  borderRadius: '999px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                ✅ Paid
-                              </span>
-                            )}
-                            {isActive && b.payment_status === 'free' && (
-                              <span
-                                style={{
-                                  background: '#dcfce7',
-                                  color: '#16a34a',
-                                  padding: '3px 10px',
-                                  borderRadius: '999px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                ✅ Free
-                              </span>
-                            )}
-                            {showPendingBadge && (
-                              <span
-                                style={{
-                                  background: '#fef3c7',
-                                  color: '#d97706',
-                                  padding: '3px 10px',
-                                  borderRadius: '999px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                ⏳ Payment Pending
-                              </span>
-                            )}
+                              } catch (e) {
+                                /* ignore */
+                              }
+                              return (
+                                <span
+                                  style={{
+                                    background: '#fef3c7',
+                                    color: '#d97706',
+                                    padding: '3px 10px',
+                                    borderRadius: '999px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  ⏳ Unpaid
+                                </span>
+                              )
+                            })()}
                             {isActive && upcoming && (
                               <button
                                 onClick={() => cancelBooking(b.id)}
@@ -872,69 +907,111 @@ export default function MyBookings() {
                             </span>
                           </span>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            {showPayNow && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  navigate('/payment/' + b.id)
+                            {(() => {
+                              const raw = localStorage.getItem('user')
+                              if (!raw) return null
+                              let user
+                              try {
+                                user = JSON.parse(raw)
+                              } catch (e) {
+                                return null
+                              }
+                              if (user.role !== 'user') return null
+                              if (b.payment_status === 'paid') return null
+                              if (b.payment_status === 'free') return null
+                              if (b.status === 'cancelled') return null
+                              if (!b.total_price || b.total_price <= 0)
+                                return null
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    navigate(`/payment/${b.id}`)
+                                  }
+                                  style={{
+                                    padding: '7px 16px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background:
+                                      'linear-gradient(135deg, #16a34a, #15803d)',
+                                    color: 'white',
+                                    fontWeight: 700,
+                                    fontSize: '0.82rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  💳 Pay Now
+                                </button>
+                              )
+                            })()}
+                            {(() => {
+                              if (b.payment_status === 'paid') {
+                                return (
+                                  <span
+                                    style={{
+                                      background: '#dcfce7',
+                                      color: '#16a34a',
+                                      padding: '3px 10px',
+                                      borderRadius: '999px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    ✅ Paid
+                                  </span>
+                                )
+                              }
+                              if (
+                                b.payment_status === 'free' ||
+                                b.total_price === 0
+                              ) {
+                                return (
+                                  <span
+                                    style={{
+                                      background: '#dcfce7',
+                                      color: '#16a34a',
+                                      padding: '3px 10px',
+                                      borderRadius: '999px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    ✅ Free
+                                  </span>
+                                )
+                              }
+                              if (b.status === 'cancelled') {
+                                return null
+                              }
+                              try {
+                                const raw = localStorage.getItem('user')
+                                if (raw) {
+                                  const u = JSON.parse(raw)
+                                  if (
+                                    u.role === 'user' &&
+                                    (b.total_price ?? 0) > 0
+                                  ) {
+                                    return null
+                                  }
                                 }
-                                style={{
-                                  padding: '7px 16px',
-                                  borderRadius: '8px',
-                                  border: 'none',
-                                  background:
-                                    'linear-gradient(135deg, #16a34a, #15803d)',
-                                  color: 'white',
-                                  fontWeight: 700,
-                                  fontSize: '0.82rem',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                💳 Pay Now
-                              </button>
-                            )}
-                            {isActive && b.payment_status === 'paid' && (
-                              <span
-                                style={{
-                                  background: '#dcfce7',
-                                  color: '#16a34a',
-                                  padding: '3px 10px',
-                                  borderRadius: '999px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                ✅ Paid
-                              </span>
-                            )}
-                            {isActive && b.payment_status === 'free' && (
-                              <span
-                                style={{
-                                  background: '#dcfce7',
-                                  color: '#16a34a',
-                                  padding: '3px 10px',
-                                  borderRadius: '999px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                ✅ Free
-                              </span>
-                            )}
-                            {showPendingBadge && (
-                              <span
-                                style={{
-                                  background: '#fef3c7',
-                                  color: '#d97706',
-                                  padding: '3px 10px',
-                                  borderRadius: '999px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                ⏳ Payment Pending
-                              </span>
-                            )}
+                              } catch (e) {
+                                /* ignore */
+                              }
+                              return (
+                                <span
+                                  style={{
+                                    background: '#fef3c7',
+                                    color: '#d97706',
+                                    padding: '3px 10px',
+                                    borderRadius: '999px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  ⏳ Unpaid
+                                </span>
+                              )
+                            })()}
                             {isActive && upcoming && (
                               <button
                                 onClick={() => cancelBooking(b.id)}

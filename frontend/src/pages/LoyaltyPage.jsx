@@ -368,7 +368,7 @@ export default function LoyaltyPage() {
           ))}
         </div>
 
-        {account.total_points >= 100 && (
+        {account.total_points >= 1000 && (
           <div
             style={{
               background: 'var(--bg-card)',
@@ -396,7 +396,7 @@ export default function LoyaltyPage() {
                 color: 'var(--text-secondary)',
               }}
             >
-              Use your points as discount when booking. 100 points = PKR 25 off
+              Use your points as discount when booking. 1000 points = PKR 1 off
             </p>
 
             <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
@@ -416,10 +416,10 @@ export default function LoyaltyPage() {
                   type="number"
                   value={redeemPoints}
                   onChange={(e) => setRedeemPoints(e.target.value)}
-                  placeholder="e.g. 500"
-                  min={100}
+                  placeholder="e.g. 5000"
+                  min={1000}
                   max={account.total_points}
-                  step={100}
+                  step={1000}
                   style={{
                     width: '100%',
                     padding: '10px 12px',
@@ -455,7 +455,7 @@ export default function LoyaltyPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-              {[100, 250, 500, 1000]
+              {[1000, 5000, 10000, 50000]
                 .filter((p) => p <= account.total_points)
                 .map((p) => (
                   <button
@@ -465,7 +465,7 @@ export default function LoyaltyPage() {
                       setRedeemPoints(String(p))
                       setRedeemCalc({
                         points_to_use: p,
-                        discount_amount: (p / 100) * 25,
+                        discount_amount: p * 0.001,
                         remaining_after: account.total_points - p,
                       })
                     }}
@@ -487,9 +487,9 @@ export default function LoyaltyPage() {
                       fontSize: '0.82rem',
                     }}
                   >
-                    {p} pts
+                    {p >= 1000 ? `${p / 1000}K` : p} pts
                     <span style={{ marginLeft: '4px', fontSize: '0.72rem', opacity: 0.7 }}>
-                      = PKR {(p / 100) * 25}
+                      = PKR {(p * 0.001).toLocaleString('en-PK')}
                     </span>
                   </button>
                 ))}
@@ -661,7 +661,7 @@ export default function LoyaltyPage() {
               {
                 icon: '🏨',
                 title: 'Book Any Service',
-                desc: 'PKR 10 spent = 1 point',
+                desc: 'PKR 1 = 10 points earned',
                 bonus:
                   account.bonus_multiplier > 1
                     ? `+${Math.round((account.bonus_multiplier - 1) * 100)}% tier bonus`
@@ -671,25 +671,25 @@ export default function LoyaltyPage() {
               {
                 icon: '⭐',
                 title: 'Write a Review',
-                desc: '50 bonus points per review',
+                desc: '2,000 bonus points per review',
                 color: '#d97706',
               },
               {
                 icon: '🎉',
                 title: 'First Booking',
-                desc: '200 bonus points one-time',
+                desc: '5,000 bonus points one-time',
                 color: '#16a34a',
               },
               {
                 icon: '🎪',
                 title: 'Book Event Tickets',
-                desc: 'PKR 10 spent = 1 point',
+                desc: 'PKR 1 = 10 points earned',
                 color: '#7c3aed',
               },
               {
                 icon: '🍽️',
                 title: 'Restaurant Reservation',
-                desc: '30 bonus points per reservation',
+                desc: '1,000 bonus points per reservation',
                 color: '#e11d48',
               },
               {
