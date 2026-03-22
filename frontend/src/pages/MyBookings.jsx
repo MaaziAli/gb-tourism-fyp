@@ -461,6 +461,58 @@ export default function MyBookings() {
                             </span>
                           )}
                         </div>
+                        {b.is_group_booking && (
+                          <div style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '6px',
+                            alignItems: 'center',
+                            marginBottom: '6px',
+                          }}>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center', gap: '6px',
+                              background: 'var(--accent-light)',
+                              color: 'var(--accent)',
+                              padding: '3px 10px', borderRadius: '999px',
+                              fontSize: '0.75rem', fontWeight: 700,
+                            }}>
+                              👥 Group of {b.group_size}
+                              {b.price_per_person != null && (
+                                <span style={{
+                                  fontWeight: 400,
+                                  color: 'var(--text-secondary)',
+                                }}>
+                                  · PKR {b.price_per_person
+                                    ?.toLocaleString('en-PK')}/person
+                                </span>
+                              )}
+                            </div>
+                            {b.group_discount_applied > 0 && (
+                              <div style={{
+                                display: 'inline-flex',
+                                alignItems: 'center', gap: '4px',
+                                background: '#dcfce7',
+                                color: '#16a34a',
+                                padding: '2px 8px', borderRadius: '999px',
+                                fontSize: '0.72rem', fontWeight: 600,
+                              }}>
+                                🎉 Saved PKR {b.group_discount_applied
+                                  ?.toLocaleString('en-PK')}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {b.special_requirements && (
+                          <div style={{
+                            fontSize: '0.78rem',
+                            color: 'var(--text-muted)',
+                            fontStyle: 'italic', marginTop: '4px',
+                            marginBottom: '4px',
+                          }}>
+                            📋 {b.special_requirements}
+                          </div>
+                        )}
                         <div
                           style={{
                             display: 'flex',
@@ -700,6 +752,58 @@ export default function MyBookings() {
                               </span>
                             )}
                           </div>
+                          {b.is_group_booking && (
+                            <div style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '6px',
+                              alignItems: 'center',
+                              marginBottom: '6px',
+                            }}>
+                              <div style={{
+                                display: 'inline-flex',
+                                alignItems: 'center', gap: '6px',
+                                background: 'var(--accent-light)',
+                                color: 'var(--accent)',
+                                padding: '3px 10px', borderRadius: '999px',
+                                fontSize: '0.75rem', fontWeight: 700,
+                              }}>
+                                👥 Group of {b.group_size}
+                                {b.price_per_person != null && (
+                                  <span style={{
+                                    fontWeight: 400,
+                                    color: 'var(--text-secondary)',
+                                  }}>
+                                    · PKR {b.price_per_person
+                                      ?.toLocaleString('en-PK')}/person
+                                  </span>
+                                )}
+                              </div>
+                              {b.group_discount_applied > 0 && (
+                                <div style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center', gap: '4px',
+                                  background: '#dcfce7',
+                                  color: '#16a34a',
+                                  padding: '2px 8px', borderRadius: '999px',
+                                  fontSize: '0.72rem', fontWeight: 600,
+                                }}>
+                                  🎉 Saved PKR {b.group_discount_applied
+                                    ?.toLocaleString('en-PK')}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {b.special_requirements && (
+                            <div style={{
+                              fontSize: '0.78rem',
+                              color: 'var(--text-muted)',
+                              fontStyle: 'italic', marginTop: '4px',
+                              marginBottom: '4px',
+                            }}>
+                              📋 {b.special_requirements}
+                            </div>
+                          )}
                         </div>
                         <div
                           style={{

@@ -43,6 +43,7 @@ from app.routers import (
     wishlist as wishlist_router,
     availability as availability_router,
     coupons as coupons_router,
+    group_bookings as group_bookings_router,
 )
 
 
@@ -91,6 +92,7 @@ def create_app() -> FastAPI:
     app.include_router(wishlist_router.router)
     app.include_router(availability_router.router)
     app.include_router(coupons_router.router)
+    app.include_router(group_bookings_router.router)
 
     # Static files for uploaded images
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

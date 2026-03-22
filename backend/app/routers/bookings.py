@@ -262,7 +262,19 @@ def get_my_bookings(
                               else None,
             "payment_status": getattr(b, 'payment_status', 'unpaid'),
             "created_at": b.created_at.isoformat()
-                          if b.created_at else None
+                          if b.created_at else None,
+            "group_size": getattr(b, "group_size", None) or 1,
+            "is_group_booking": bool(
+                getattr(b, "is_group_booking", False)
+            ),
+            "group_lead_name": getattr(b, "group_lead_name", None),
+            "group_discount_applied": float(
+                getattr(b, "group_discount_applied", 0) or 0
+            ),
+            "price_per_person": getattr(b, "price_per_person", None),
+            "special_requirements": getattr(
+                b, "special_requirements", None
+            ),
         })
     return result
 

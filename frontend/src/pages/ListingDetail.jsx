@@ -54,7 +54,7 @@ function getPriceLabel(serviceType) {
   return '/night'
 }
 
-function BookButton({ listingId, selectedRoom, ownerId }) {
+function BookButton({ listingId, selectedRoom, ownerId, serviceType }) {
   const navigate = useNavigate()
   const raw = localStorage.getItem('user')
   if (!raw) {
@@ -95,26 +95,62 @@ function BookButton({ listingId, selectedRoom, ownerId }) {
     : ''
 
   return (
-    <button
-      onClick={() => navigate(`/booking/${listingId}${params}`)}
-      style={{
-        width: '100%',
-        padding: '14px',
-        borderRadius: '12px',
-        border: 'none',
-        background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
-        color: 'white',
-        fontWeight: 800,
-        fontSize: '1rem',
-        cursor: 'pointer',
-        marginTop: '8px',
-        display: 'block',
-        textAlign: 'center',
-      }}
-    >
-      🗓️ Book Now
-      {selectedRoom ? ` — ${selectedRoom.name}` : ''}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => navigate(`/booking/${listingId}${params}`)}
+        style={{
+          width: '100%',
+          padding: '14px',
+          borderRadius: '12px',
+          border: 'none',
+          background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+          color: 'white',
+          fontWeight: 800,
+          fontSize: '1rem',
+          cursor: 'pointer',
+          marginTop: '8px',
+          display: 'block',
+          textAlign: 'center',
+        }}
+      >
+        🗓️ Book Now
+        {selectedRoom ? ` — ${selectedRoom.name}` : ''}
+      </button>
+      {serviceType !== 'restaurant' && (
+        <button
+          type="button"
+          onClick={() =>
+            navigate(`/group-booking/${listingId}${params}`)
+          }
+          style={{
+            width: '100%',
+            padding: '11px',
+            borderRadius: '10px',
+            border: '1px solid var(--accent)',
+            background: 'var(--accent-light)',
+            color: 'var(--accent)',
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+            marginTop: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+          }}
+        >
+          👥 Book for Group
+          <span style={{
+            fontSize: '0.72rem',
+            fontWeight: 400,
+            color: 'var(--text-secondary)',
+          }}>
+            (5+ people = discounts)
+          </span>
+        </button>
+      )}
+    </>
   )
 }
 
@@ -1976,6 +2012,7 @@ export default function ListingDetail() {
                     listingId={id}
                     selectedRoom={selectedRoom}
                     ownerId={listing?.owner_id}
+                    serviceType={listing?.service_type}
                   />
 
                   {isOwner && (

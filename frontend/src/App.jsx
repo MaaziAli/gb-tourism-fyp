@@ -11,6 +11,7 @@ import Register from './pages/Register'
 import MyBookings from './pages/MyBookings'
 import AddListing from './pages/AddListing'
 import BookingForm from './pages/BookingForm'
+import GroupBookingForm from './pages/GroupBookingForm'
 import EditListing from './pages/EditListing'
 import MyListings from './pages/MyListings'
 import Profile from './pages/Profile'
@@ -152,6 +153,14 @@ function App() {
             element={
               <PrivateRoute>
                 <BookingForm />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/group-booking/:listingId"
+            element={
+              <PrivateRoute>
+                <GroupBookingForm />
               </PrivateRoute>
             }
           />

@@ -644,30 +644,55 @@ export default function Listings() {
                         if (u.role === 'admin') return null
                         if (u.role === 'provider') return null
                         return (
-                          <button
-                            onClick={e => {
-                              e.stopPropagation()
-                              if (listing.service_type === 'restaurant') {
-                                navigate(`/listing/${listing.id}`)
-                              } else {
-                                navigate(`/booking/${listing.id}`)
+                          <>
+                            <button
+                              onClick={e => {
+                                e.stopPropagation()
+                                if (listing.service_type === 'restaurant') {
+                                  navigate(`/listing/${listing.id}`)
+                                } else {
+                                  navigate(`/booking/${listing.id}`)
+                                }
+                              }}
+                              style={{
+                                flex: 1, padding: '9px',
+                                borderRadius: '8px', border: 'none',
+                                background: listing.service_type === 'restaurant'
+                                  ? 'linear-gradient(135deg, #e11d48, #f97316)'
+                                  : 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                                color: 'white', cursor: 'pointer',
+                                fontWeight: 700, fontSize: '0.85rem'
+                              }}
+                            >
+                              {listing.service_type === 'restaurant'
+                                ? '🍽️ Reserve Table'
+                                : 'Book Now'
                               }
-                            }}
-                            style={{
-                              flex: 1, padding: '9px',
-                              borderRadius: '8px', border: 'none',
-                              background: listing.service_type === 'restaurant'
-                                ? 'linear-gradient(135deg, #e11d48, #f97316)'
-                                : 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
-                              color: 'white', cursor: 'pointer',
-                              fontWeight: 700, fontSize: '0.85rem'
-                            }}
-                          >
-                            {listing.service_type === 'restaurant'
-                              ? '🍽️ Reserve Table'
-                              : 'Book Now'
-                            }
-                          </button>
+                            </button>
+                            {listing.service_type !== 'restaurant' && (
+                              <button
+                                type="button"
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  navigate(
+                                    `/group-booking/${listing.id}`
+                                  )
+                                }}
+                                style={{
+                                  padding: '9px',
+                                  borderRadius: '8px',
+                                  border: '1px solid var(--border-color)',
+                                  background: 'var(--bg-secondary)',
+                                  color: 'var(--text-secondary)',
+                                  cursor: 'pointer', fontWeight: 600,
+                                  fontSize: '0.78rem', whiteSpace: 'nowrap'
+                                }}
+                                title="Group booking available"
+                              >
+                                👥
+                              </button>
+                            )}
+                          </>
                         )
                       })()}
                     </div>
