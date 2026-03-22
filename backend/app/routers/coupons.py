@@ -50,11 +50,13 @@ class CouponCreate(BaseModel):
     listing_id: int | None = None
     is_stackable: bool = True
     tier: str = "standard"
+    scope: str | None = None
 
 
 class ValidateCouponRequest(BaseModel):
     code: str
     listing_id: int | None = None
+    listing_owner_id: int | None = None
     booking_amount: float
 
 
@@ -96,6 +98,16 @@ def coupon_to_dict(coupon: Coupon, db: Session) -> dict:
             coupon.max_uses - usage_count
             if coupon.max_uses is not None
             else None
+        ),
+        "scope": getattr(coupon, "scope", "provider"),
+        "provider_id": getattr(coupon, "provider_id", None),
+        "scope_label": {
+            "all": "🌐 All Services",
+            "provider": "🏨 My Services Only",
+            "listing": "📌 Specific Service",
+        }.get(
+            getattr(coupon, "scope", "provider"),
+            "🏨 My Services Only",
         ),
     }
 
@@ -179,6 +191,7 @@ def validate_coupon(
         body.booking_amount,
         body.listing_id,
         db,
+        listing_owner_id=body.listing_owner_id,
     )
 
     if not valid:
@@ -221,6 +234,7 @@ def apply_coupon(
         body.booking_amount,
         body.listing_id,
         db,
+        listing_owner_id=body.listing_owner_id,
     )
 
     if not valid:
@@ -308,9 +322,26 @@ def create_coupon(
         extra = f"Influencer: {body.influencer_name.strip()}"
         desc = f"{desc}\n{extra}" if desc else extra
 
+    if body.scope:
+        scope = body.scope
+    elif current_user.role == "admin":
+        scope = "all"
+    elif body.listing_id:
+        scope = "listing"
+    else:
+        scope = "provider"
+
+    provider_id = None
+    if current_user.role == "provider":
+        provider_id = current_user.id
+    elif current_user.role == "admin":
+        provider_id = None
+
     coupon = Coupon(
         created_by=current_user.id,
+        provider_id=provider_id,
         listing_id=body.listing_id or None,
+        scope=scope,
         code=code,
         title=body.title,
         description=desc,

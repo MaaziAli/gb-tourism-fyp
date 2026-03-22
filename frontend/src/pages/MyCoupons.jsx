@@ -417,6 +417,65 @@ export default function MyCoupons() {
               </div>
             </div>
 
+            <div
+              style={{
+                background: 'var(--bg-secondary)',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '16px',
+                fontSize: '0.8rem',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 700,
+                  marginBottom: '6px',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.85rem',
+                }}
+              >
+                🎯 Coupon Scope
+              </div>
+              {(() => {
+                const raw = localStorage.getItem('user')
+                if (!raw) return null
+                let u
+                try {
+                  u = JSON.parse(raw)
+                } catch (e) {
+                  return null
+                }
+                if (u.role === 'admin') {
+                  return (
+                    <div style={{ color: '#2563eb' }}>
+                      🌐 <strong>Admin coupon</strong> — works on ALL services
+                      across the platform
+                    </div>
+                  )
+                }
+                return (
+                  <div>
+                    <div style={{ marginBottom: '4px' }}>
+                      🏨 <strong>Provider coupon</strong> — only works on YOUR
+                      services
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      • Leave listing empty = works on all your services
+                      <br />
+                      • Add specific listing = works on that service only
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+
             <div style={{
               display: 'grid',
               gridTemplateColumns: isMobile
@@ -1139,6 +1198,24 @@ export default function MyCoupons() {
                           fontWeight: 600,
                         }}>
                           {c.coupon_type_label}
+                        </span>
+
+                        <span
+                          style={{
+                            background:
+                              c.scope === 'all'
+                                ? '#dbeafe'
+                                : 'var(--bg-secondary)',
+                            color:
+                              c.scope === 'all'
+                                ? '#2563eb'
+                                : 'var(--text-muted)',
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            fontSize: '0.72rem',
+                          }}
+                        >
+                          {c.scope_label || '🏨 My Services'}
                         </span>
 
                         <span style={{

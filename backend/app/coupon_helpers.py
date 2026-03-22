@@ -5,6 +5,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.models.coupon import Coupon, CouponUsage
+from app.models.listing import Listing
 
 
 def calculate_discount(coupon: Coupon, amount: float) -> float:
@@ -23,6 +24,8 @@ def validate_coupon_logic(
     booking_amount: float,
     listing_id: int | None,
     db: Session,
+    *,
+    listing_owner_id: int | None = None,
 ) -> tuple[bool, str, float]:
     today = date.today().isoformat()
 
@@ -46,14 +49,34 @@ def validate_coupon_logic(
             0,
         )
 
-    if coupon.listing_id:
-        if listing_id is None or coupon.listing_id != listing_id:
-            return False, "Coupon not valid for this service", 0
+    effective_owner_id = listing_owner_id
+    if effective_owner_id is None and listing_id is not None:
+        lst = db.query(Listing).filter(Listing.id == listing_id).first()
+        effective_owner_id = lst.owner_id if lst else None
+
+    scope = getattr(coupon, "scope", None) or "provider"
+    provider_id = getattr(coupon, "provider_id", None)
+
+    if scope == "all":
+        pass
+
+    elif scope == "listing" or coupon.listing_id:
+        if coupon.listing_id:
+            if listing_id is None or coupon.listing_id != listing_id:
+                return False, "Coupon not valid for this service", 0
+
+    elif scope == "provider":
+        if provider_id and effective_owner_id is not None:
+            if provider_id != effective_owner_id:
+                return (
+                    False,
+                    "Coupon not valid for this provider's services",
+                    0,
+                )
 
     per_user = coupon.max_uses_per_user
     if per_user is None:
         per_user = 1
-    # 0 means unlimited uses per user
     if per_user > 0:
         user_usage = (
             db.query(CouponUsage)

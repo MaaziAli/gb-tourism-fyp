@@ -440,6 +440,99 @@ export default function MyBookings() {
                         )}
                         <div
                           style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flexWrap: 'wrap',
+                            marginBottom: '8px',
+                          }}
+                        >
+                          {(() => {
+                            const raw = localStorage.getItem('user')
+                            if (!raw) return null
+                            let user
+                            try {
+                              user = JSON.parse(raw)
+                            } catch (e) {
+                              return null
+                            }
+                            if (user.role === 'provider' || user.role === 'admin')
+                              return null
+                            if (b.payment_status === 'paid') {
+                              return (
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    background: '#dcfce7',
+                                    color: '#16a34a',
+                                    padding: '4px 12px',
+                                    borderRadius: '999px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  ✅ Paid
+                                </span>
+                              )
+                            }
+                            if (
+                              b.payment_status === 'free' ||
+                              !b.total_price ||
+                              b.total_price === 0
+                            ) {
+                              return (
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    background: '#dcfce7',
+                                    color: '#16a34a',
+                                    padding: '4px 12px',
+                                    borderRadius: '999px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  ✅ Free
+                                </span>
+                              )
+                            }
+                            if (b.status === 'cancelled') return null
+                            try {
+                              const raw2 = localStorage.getItem('user')
+                              if (raw2) {
+                                const u = JSON.parse(raw2)
+                                if (
+                                  u.role === 'user' &&
+                                  (b.total_price ?? 0) > 0
+                                ) {
+                                  return null
+                                }
+                              }
+                            } catch (e) {
+                              /* ignore */
+                            }
+                            return (
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  background: '#fef3c7',
+                                  color: '#d97706',
+                                  padding: '4px 12px',
+                                  borderRadius: '999px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ⏳ Unpaid
+                              </span>
+                            )
+                          })()}
+                        </div>
+                        <div
+                          style={{
                             fontSize: '0.8rem',
                             color: 'var(--text-secondary)',
                             marginBottom: '10px',
@@ -542,7 +635,14 @@ export default function MyBookings() {
                               total
                             </span>
                           </span>
-                          <div style={{ display: 'flex', gap: '8px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              flexWrap: 'wrap',
+                            }}
+                          >
                             {(() => {
                               const raw = localStorage.getItem('user')
                               if (!raw) return null
@@ -580,76 +680,9 @@ export default function MyBookings() {
                                 </button>
                               )
                             })()}
-                            {(() => {
-                              if (b.payment_status === 'paid') {
-                                return (
-                                  <span
-                                    style={{
-                                      background: '#dcfce7',
-                                      color: '#16a34a',
-                                      padding: '3px 10px',
-                                      borderRadius: '999px',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    ✅ Paid
-                                  </span>
-                                )
-                              }
-                              if (
-                                b.payment_status === 'free' ||
-                                b.total_price === 0
-                              ) {
-                                return (
-                                  <span
-                                    style={{
-                                      background: '#dcfce7',
-                                      color: '#16a34a',
-                                      padding: '3px 10px',
-                                      borderRadius: '999px',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    ✅ Free
-                                  </span>
-                                )
-                              }
-                              if (b.status === 'cancelled') {
-                                return null
-                              }
-                              try {
-                                const raw = localStorage.getItem('user')
-                                if (raw) {
-                                  const u = JSON.parse(raw)
-                                  if (
-                                    u.role === 'user' &&
-                                    (b.total_price ?? 0) > 0
-                                  ) {
-                                    return null
-                                  }
-                                }
-                              } catch (e) {
-                                /* ignore */
-                              }
-                              return (
-                                <span
-                                  style={{
-                                    background: '#fef3c7',
-                                    color: '#d97706',
-                                    padding: '3px 10px',
-                                    borderRadius: '999px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  ⏳ Unpaid
-                                </span>
-                              )
-                            })()}
                             {isActive && upcoming && (
                               <button
+                                type="button"
                                 onClick={() => cancelBooking(b.id)}
                                 disabled={isCancelling}
                                 style={{
@@ -801,6 +834,99 @@ export default function MyBookings() {
                           <div
                             style={{
                               display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              flexWrap: 'wrap',
+                              marginBottom: '8px',
+                            }}
+                          >
+                            {(() => {
+                              const raw = localStorage.getItem('user')
+                              if (!raw) return null
+                              let user
+                              try {
+                                user = JSON.parse(raw)
+                              } catch (e) {
+                                return null
+                              }
+                              if (user.role === 'provider' || user.role === 'admin')
+                                return null
+                              if (b.payment_status === 'paid') {
+                                return (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      background: '#dcfce7',
+                                      color: '#16a34a',
+                                      padding: '4px 12px',
+                                      borderRadius: '999px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    ✅ Paid
+                                  </span>
+                                )
+                              }
+                              if (
+                                b.payment_status === 'free' ||
+                                !b.total_price ||
+                                b.total_price === 0
+                              ) {
+                                return (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      background: '#dcfce7',
+                                      color: '#16a34a',
+                                      padding: '4px 12px',
+                                      borderRadius: '999px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    ✅ Free
+                                  </span>
+                                )
+                              }
+                              if (b.status === 'cancelled') return null
+                              try {
+                                const raw2 = localStorage.getItem('user')
+                                if (raw2) {
+                                  const u = JSON.parse(raw2)
+                                  if (
+                                    u.role === 'user' &&
+                                    (b.total_price ?? 0) > 0
+                                  ) {
+                                    return null
+                                  }
+                                }
+                              } catch (e) {
+                                /* ignore */
+                              }
+                              return (
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    background: '#fef3c7',
+                                    color: '#d97706',
+                                    padding: '4px 12px',
+                                    borderRadius: '999px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  ⏳ Unpaid
+                                </span>
+                              )
+                            })()}
+                          </div>
+                          <div
+                            style={{
+                              display: 'flex',
                               gap: '16px',
                               flexWrap: 'wrap',
                               fontSize: '0.82rem',
@@ -906,7 +1032,14 @@ export default function MyBookings() {
                               total
                             </span>
                           </span>
-                          <div style={{ display: 'flex', gap: '8px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              flexWrap: 'wrap',
+                            }}
+                          >
                             {(() => {
                               const raw = localStorage.getItem('user')
                               if (!raw) return null
@@ -944,76 +1077,9 @@ export default function MyBookings() {
                                 </button>
                               )
                             })()}
-                            {(() => {
-                              if (b.payment_status === 'paid') {
-                                return (
-                                  <span
-                                    style={{
-                                      background: '#dcfce7',
-                                      color: '#16a34a',
-                                      padding: '3px 10px',
-                                      borderRadius: '999px',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    ✅ Paid
-                                  </span>
-                                )
-                              }
-                              if (
-                                b.payment_status === 'free' ||
-                                b.total_price === 0
-                              ) {
-                                return (
-                                  <span
-                                    style={{
-                                      background: '#dcfce7',
-                                      color: '#16a34a',
-                                      padding: '3px 10px',
-                                      borderRadius: '999px',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 700,
-                                    }}
-                                  >
-                                    ✅ Free
-                                  </span>
-                                )
-                              }
-                              if (b.status === 'cancelled') {
-                                return null
-                              }
-                              try {
-                                const raw = localStorage.getItem('user')
-                                if (raw) {
-                                  const u = JSON.parse(raw)
-                                  if (
-                                    u.role === 'user' &&
-                                    (b.total_price ?? 0) > 0
-                                  ) {
-                                    return null
-                                  }
-                                }
-                              } catch (e) {
-                                /* ignore */
-                              }
-                              return (
-                                <span
-                                  style={{
-                                    background: '#fef3c7',
-                                    color: '#d97706',
-                                    padding: '3px 10px',
-                                    borderRadius: '999px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  ⏳ Unpaid
-                                </span>
-                              )
-                            })()}
                             {isActive && upcoming && (
                               <button
+                                type="button"
                                 onClick={() => cancelBooking(b.id)}
                                 disabled={isCancelling}
                                 style={{

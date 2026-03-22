@@ -892,6 +892,7 @@ export default function GroupBookingForm() {
               <CouponInput
                 key={`${priceCalc.total_price}-${listingId}`}
                 listingId={parseInt(listingId, 10)}
+                listingOwnerId={listing?.owner_id || null}
                 bookingAmount={
                   priceCalc.total_price
                 }

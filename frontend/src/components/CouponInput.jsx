@@ -3,6 +3,7 @@ import api from '../api/axios'
 
 export default function CouponInput({
   listingId,
+  listingOwnerId,
   bookingAmount,
   onApply,
   onRemove,
@@ -20,6 +21,7 @@ export default function CouponInput({
       const res = await api.post('/coupons/validate', {
         code: code.toUpperCase().trim(),
         listing_id: listingId || null,
+        listing_owner_id: listingOwnerId || null,
         booking_amount: bookingAmount,
       })
       setApplied(res.data)

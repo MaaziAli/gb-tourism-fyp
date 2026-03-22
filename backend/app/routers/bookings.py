@@ -104,6 +104,7 @@ def create_booking(
             subtotal,
             body.listing_id,
             db,
+            listing_owner_id=listing.owner_id,
         )
         if not ok:
             raise HTTPException(status_code=400, detail=msg)

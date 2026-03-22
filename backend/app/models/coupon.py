@@ -40,6 +40,12 @@ class Coupon(Base):
 
     coupon_type = Column(String, default="general")
 
+    scope = Column(String, default="provider")
+    provider_id = Column(
+        Integer, ForeignKey("users.id"),
+        nullable=True,
+    )
+
     # 1 = can combine with group discount; 0 = cannot combine
     is_stackable = Column(Integer, default=1)
     influencer_name = Column(String, nullable=True)

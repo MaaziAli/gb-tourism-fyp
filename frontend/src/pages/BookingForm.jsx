@@ -686,6 +686,7 @@ export default function BookingForm() {
                     <CouponInput
                       key={`${subtotal}-${checkIn}-${checkOut}`}
                       listingId={parseInt(listingId, 10)}
+                      listingOwnerId={listing?.owner_id || null}
                       bookingAmount={subtotal}
                       onApply={(data) => {
                         setCouponDiscount(data.discount_amount)

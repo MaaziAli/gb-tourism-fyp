@@ -119,7 +119,7 @@ export default function LoyaltyPage() {
       <div
         style={{
           background: `linear-gradient(135deg, ${tierColor.bg}dd, ${tierColor.bg})`,
-          padding: '40px 16px 80px',
+          padding: '40px 16px 100px',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -291,13 +291,24 @@ export default function LoyaltyPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: '900px', margin: '-48px auto 0', padding: '0 16px' }}>
+      <div
+        style={{
+          maxWidth: '900px',
+          margin: '0 auto',
+          padding: '0 16px',
+          marginTop: '-60px',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
             gap: '12px',
             marginBottom: '20px',
+            position: 'relative',
+            zIndex: 2,
           }}
         >
           {[
@@ -339,8 +350,8 @@ export default function LoyaltyPage() {
                 background: 'var(--bg-card)',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-color)',
-                boxShadow: 'var(--shadow-sm)',
-                padding: '16px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                padding: isMobile ? '14px' : '20px',
                 borderTop: `3px solid ${card.color}`,
               }}
             >

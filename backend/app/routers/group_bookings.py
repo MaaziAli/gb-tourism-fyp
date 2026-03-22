@@ -372,6 +372,7 @@ def create_group_booking(
             total_price,
             body.listing_id,
             db,
+            listing_owner_id=listing.owner_id,
         )
         if not ok:
             raise HTTPException(400, msg)

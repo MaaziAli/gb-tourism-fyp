@@ -91,6 +91,7 @@ def book_tickets(
             subtotal,
             None,
             db,
+            listing_owner_id=None,
         )
         if not ok:
             raise HTTPException(400, msg)
