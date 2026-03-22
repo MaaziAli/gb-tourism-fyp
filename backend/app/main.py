@@ -22,6 +22,7 @@ from app.models import event as _event_model  # noqa
 from app.models import ticket_type as _tt_event_model  # noqa
 from app.models import ticket_booking as _tb_model  # noqa
 from app.models import wishlist as _w_model  # noqa
+from app.models import availability as _av_model  # noqa
 from app.routers import (
     auth,
     bookings,
@@ -39,6 +40,7 @@ from app.routers import (
     events as events_router,
     ticket_bookings as tb_router,
     wishlist as wishlist_router,
+    availability as availability_router,
 )
 
 
@@ -85,6 +87,7 @@ def create_app() -> FastAPI:
     app.include_router(events_router.router)
     app.include_router(tb_router.router)
     app.include_router(wishlist_router.router)
+    app.include_router(availability_router.router)
 
     # Static files for uploaded images
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

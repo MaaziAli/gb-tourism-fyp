@@ -5,6 +5,7 @@ import { getImageUrl } from '../utils/image'
 import { getUser, getRole, isLoggedIn } from '../utils/role'
 import useWindowSize from '../hooks/useWindowSize'
 import WishlistButton from '../components/WishlistButton'
+import AvailabilityCalendar from '../components/AvailabilityCalendar'
 
 function getServiceBadge(type) {
   switch (type) {
@@ -145,6 +146,7 @@ export default function ListingDetail() {
   const [resDate, setResDate] = useState('')
   const [resTime, setResTime] = useState('')
   const [resPersons, setResPersons] = useState(2)
+  const [showCalendar, setShowCalendar] = useState(false)
   const [resSpecial, setResSpecial] = useState('')
   const [resLoading, setResLoading] = useState(false)
   const [resSuccess, setResSuccess] = useState(false)
@@ -1929,6 +1931,46 @@ export default function ListingDetail() {
                         </div>
                       </div>
                     )}
+
+                  {listing.service_type !== 'restaurant' && (
+                    <div style={{ marginBottom: '14px' }}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowCalendar((p) => !p)
+                        }
+                        style={{
+                          width: '100%', padding: '9px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer', fontWeight: 600,
+                          fontSize: '0.85rem', textAlign: 'left',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <span>📅 Check Availability</span>
+                        <span>{showCalendar ? '▲' : '▼'}</span>
+                      </button>
+                      {showCalendar && (
+                        <div style={{
+                          marginTop: '10px',
+                          background: 'var(--bg-secondary)',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border-color)',
+                          padding: '14px'
+                        }}>
+                          <AvailabilityCalendar
+                            listingId={parseInt(id, 10)}
+                            mode="view"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <BookButton
                     listingId={id}

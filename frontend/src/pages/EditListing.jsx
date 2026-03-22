@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
+import AvailabilityCalendar from '../components/AvailabilityCalendar'
 
 function EditListing() {
   const { listingId } = useParams()
@@ -1248,6 +1249,44 @@ function EditListing() {
                 {imageMsg}
               </p>
             )}
+          </div>
+
+          {/* Availability Calendar */}
+          <div style={{ marginBottom: '28px' }}>
+            <label
+              style={{
+                display: 'block',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                marginBottom: '6px',
+                color: 'var(--text-primary)',
+              }}
+            >
+              📅 Manage Availability
+            </label>
+            <p
+              style={{
+                margin: '0 0 14px',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              Select dates to block or unblock. Red dates = unavailable to
+              travelers.
+            </p>
+            <div
+              style={{
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+                padding: '20px',
+              }}
+            >
+              <AvailabilityCalendar
+                listingId={parseInt(listingId, 10)}
+                mode="manage"
+              />
+            </div>
           </div>
 
           {error && (

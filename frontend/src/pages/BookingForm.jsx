@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
+import AvailabilityCalendar from '../components/AvailabilityCalendar'
 
 function getPriceLabel(serviceType) {
   const perDay = [
@@ -328,14 +329,47 @@ export default function BookingForm() {
             boxShadow: 'var(--shadow-md)',
             padding: '24px', marginBottom: '16px'
           }}>
-            <h3 style={{
-              margin: '0 0 20px', fontSize: '1rem',
-              fontWeight: 700, color: 'var(--text-primary)',
-              display: 'flex', alignItems: 'center',
-              gap: '8px'
-            }}>
-              📅 Select Your Dates
-            </h3>
+            {/* Availability Calendar */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block', fontWeight: 700,
+                fontSize: '0.9rem', marginBottom: '10px',
+                color: 'var(--text-primary)'
+              }}>
+                📅 Select Your Dates
+              </label>
+              <div style={{
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+                padding: '16px', marginBottom: '14px'
+              }}>
+                <AvailabilityCalendar
+                  listingId={parseInt(listingId, 10)}
+                  mode="view"
+                  selectedCheckIn={checkIn}
+                  selectedCheckOut={checkOut}
+                  onDateSelect={(date) => {
+                    if (!checkIn || (checkIn && checkOut)) {
+                      setCheckIn(date)
+                      setCheckOut('')
+                    } else if (date > checkIn) {
+                      setCheckOut(date)
+                    } else {
+                      setCheckIn(date)
+                      setCheckOut('')
+                    }
+                  }}
+                />
+              </div>
+              <p style={{
+                margin: 0, fontSize: '0.75rem',
+                color: 'var(--text-muted)'
+              }}>
+                💡 Red dates are unavailable.
+                Click to select check-in then check-out.
+              </p>
+            </div>
 
             <div style={{
               display: 'grid',
