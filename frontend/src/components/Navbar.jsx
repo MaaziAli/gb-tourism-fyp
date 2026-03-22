@@ -207,6 +207,7 @@ const PROVIDER_GROUPS = [
   {
     label: '🏨 My Services',
     items: [
+      { icon: '📊', label: 'Dashboard', path: '/provider-dashboard' },
       { icon: '📋', label: 'My Listings', path: '/my-listings' },
       { icon: '➕', label: 'Add Service', path: '/add-listing' },
       { icon: '📊', label: 'Analytics', path: '/my-analytics' },

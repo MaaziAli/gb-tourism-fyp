@@ -21,6 +21,8 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminAnalytics from './pages/admin/AdminAnalytics'
 import ListingDetail from './pages/ListingDetail'
 import ProviderAnalytics from './pages/ProviderAnalytics'
+import ProviderDashboard from './pages/ProviderDashboard'
+import NotificationsPage from './pages/NotificationsPage'
 import PaymentPage from './pages/PaymentPage'
 import PaymentHistory from './pages/PaymentHistory'
 import ProviderPayments from './pages/ProviderPayments'
@@ -198,6 +200,22 @@ function App() {
               <ProviderRoute>
                 <ProviderAnalytics />
               </ProviderRoute>
+            }
+          />
+          <Route
+            path="/provider-dashboard"
+            element={
+              <ProviderRoute>
+                <ProviderDashboard />
+              </ProviderRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <PrivateRoute>
+                <NotificationsPage />
+              </PrivateRoute>
             }
           />
           <Route

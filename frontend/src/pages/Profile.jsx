@@ -538,6 +538,16 @@ export default function Profile() {
             </h3>
           </div>
           {[
+            {
+              label: 'Notifications',
+              emoji: '🔔',
+              path: '/notifications',
+            },
+            role === 'provider' && {
+              label: 'Dashboard',
+              emoji: '📊',
+              path: '/provider-dashboard',
+            },
             role === 'user' && {
               label: 'My Bookings',
               emoji: '📅',

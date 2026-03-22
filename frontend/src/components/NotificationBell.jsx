@@ -287,6 +287,32 @@ export default function NotificationBell() {
               ))
             )}
           </div>
+
+          <div
+            style={{
+              borderTop: '1px solid var(--border-color)',
+              padding: '10px 16px',
+              textAlign: 'center',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                navigate('/notifications')
+                setOpen(false)
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--accent)',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.82rem',
+              }}
+            >
+              📋 View All Notifications →
+            </button>
+          </div>
         </div>
       )}
     </div>

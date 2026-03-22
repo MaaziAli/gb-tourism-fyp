@@ -355,6 +355,188 @@ def get_my_bookings(
     return result
 
 
+@router.get("/provider/dashboard")
+def get_provider_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role not in ["provider", "admin"]:
+        raise HTTPException(403, "Providers only")
+
+    from datetime import datetime, timedelta
+
+    from app.models.event import Event
+    from app.models.ticket_booking import TicketBooking
+
+    now = datetime.utcnow()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    last_month_start = (month_start - timedelta(days=1)).replace(day=1)
+
+    listings = db.query(Listing).filter(Listing.owner_id == current_user.id).all()
+    listing_ids = [l.id for l in listings]
+    listing_map = {l.id: l for l in listings}
+
+    events = db.query(Event).filter(Event.organizer_id == current_user.id).all()
+    event_ids = [e.id for e in events]
+
+    if listing_ids:
+        all_bookings = (
+            db.query(Booking)
+            .filter(
+                Booking.listing_id.in_(listing_ids),
+                Booking.status != "cancelled",
+            )
+            .all()
+        )
+    else:
+        all_bookings = []
+
+    month_bookings = [
+        b for b in all_bookings if b.created_at and b.created_at >= month_start
+    ]
+    last_month_bookings = [
+        b
+        for b in all_bookings
+        if b.created_at and last_month_start <= b.created_at < month_start
+    ]
+
+    total_revenue = sum(b.total_price or 0 for b in all_bookings)
+    month_revenue = sum(b.total_price or 0 for b in month_bookings)
+    last_month_revenue = sum(b.total_price or 0 for b in last_month_bookings)
+    commission_rate = 0.10
+    net_earnings = round(total_revenue * (1 - commission_rate), 2)
+    month_net = round(month_revenue * (1 - commission_rate), 2)
+
+    if last_month_revenue > 0:
+        revenue_change = round(
+            ((month_revenue - last_month_revenue) / last_month_revenue) * 100, 1
+        )
+    else:
+        revenue_change = 100 if month_revenue > 0 else 0
+
+    if event_ids:
+        event_bookings = (
+            db.query(TicketBooking)
+            .filter(
+                TicketBooking.event_id.in_(event_ids),
+                TicketBooking.status == "confirmed",
+            )
+            .all()
+        )
+    else:
+        event_bookings = []
+
+    event_revenue = sum(b.organizer_amount or 0 for b in event_bookings)
+
+    if listing_ids:
+        all_reviews = db.query(Review).filter(Review.listing_id.in_(listing_ids)).all()
+    else:
+        all_reviews = []
+
+    avg_rating = (
+        round(sum(r.rating for r in all_reviews) / max(1, len(all_reviews)), 1)
+        if all_reviews
+        else 0
+    )
+
+    recent_bookings = sorted(
+        all_bookings,
+        key=lambda b: b.created_at or datetime.min,
+        reverse=True,
+    )[:8]
+
+    recent_list = []
+    for b in recent_bookings:
+        guest = db.query(User).filter(User.id == b.user_id).first()
+        listing = listing_map.get(b.listing_id)
+        recent_list.append(
+            {
+                "id": b.id,
+                "guest_name": guest.full_name if guest else "Unknown",
+                "guest_email": guest.email if guest else "",
+                "listing_title": listing.title if listing else "Unknown",
+                "service_type": listing.service_type if listing else "",
+                "check_in": b.check_in.isoformat() if b.check_in else None,
+                "check_out": b.check_out.isoformat() if b.check_out else None,
+                "total_price": b.total_price or 0,
+                "net_amount": round((b.total_price or 0) * 0.90, 2),
+                "status": b.status,
+                "payment_status": getattr(b, "payment_status", "unknown"),
+                "group_size": getattr(b, "group_size", 1) or 1,
+                "created_at": b.created_at.isoformat() if b.created_at else None,
+            }
+        )
+
+    listing_stats = []
+    for listing in listings:
+        l_bookings = [b for b in all_bookings if b.listing_id == listing.id]
+        l_reviews = [r for r in all_reviews if r.listing_id == listing.id]
+        l_revenue = sum(b.total_price or 0 for b in l_bookings)
+        l_avg = (
+            round(sum(r.rating for r in l_reviews) / max(1, len(l_reviews)), 1)
+            if l_reviews
+            else 0
+        )
+
+        listing_stats.append(
+            {
+                "id": listing.id,
+                "title": listing.title,
+                "service_type": listing.service_type,
+                "location": listing.location,
+                "price_per_night": listing.price_per_night,
+                "image_url": listing.image_url,
+                "bookings_count": len(l_bookings),
+                "revenue": round(l_revenue, 2),
+                "net_earnings": round(l_revenue * 0.90, 2),
+                "avg_rating": l_avg,
+                "review_count": len(l_reviews),
+            }
+        )
+
+    listing_stats.sort(key=lambda x: x["revenue"], reverse=True)
+
+    monthly = []
+    for i in range(5, -1, -1):
+        d = now - timedelta(days=i * 30)
+        m_start = d.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        m_end = m_start + timedelta(days=32)
+        m_bookings = [
+            b for b in all_bookings if b.created_at and m_start <= b.created_at < m_end
+        ]
+        m_rev = sum(b.total_price or 0 for b in m_bookings)
+        monthly.append(
+            {
+                "month": d.strftime("%b"),
+                "revenue": round(m_rev, 2),
+                "net": round(m_rev * 0.90, 2),
+                "bookings": len(m_bookings),
+            }
+        )
+
+    return {
+        "summary": {
+            "total_listings": len(listings),
+            "active_listings": len(listings),
+            "total_bookings": len(all_bookings),
+            "month_bookings": len(month_bookings),
+            "total_revenue": round(total_revenue, 2),
+            "month_revenue": round(month_revenue, 2),
+            "net_earnings": net_earnings,
+            "month_net": month_net,
+            "revenue_change": revenue_change,
+            "event_revenue": round(event_revenue, 2),
+            "total_events": len(events),
+            "total_reviews": len(all_reviews),
+            "avg_rating": avg_rating,
+            "commission_rate": commission_rate,
+        },
+        "recent_bookings": recent_list,
+        "listing_stats": listing_stats,
+        "monthly_trend": monthly,
+    }
+
+
 @router.patch("/{booking_id}/cancel", response_model=BookingResponse)
 def cancel_booking(
     booking_id: int,
