@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
 import useWindowSize from '../../hooks/useWindowSize'
 
 function AdminDashboard() {
+  const navigate = useNavigate()
   const { isMobile } = useWindowSize()
   const [activeSection, setActiveSection] = useState('dashboard')
   const [stats, setStats] = useState(null)
@@ -2249,13 +2251,34 @@ function AdminDashboard() {
 
         {activeSection === 'coupons' && (
           <div>
-            <h2 style={{
-              margin: '0 0 20px', fontSize: '1.4rem',
-              fontWeight: 800,
-              color: 'var(--text-primary)',
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
             }}>
-              🎟️ All Coupons
-            </h2>
+              <h2 style={{
+                margin: 0, fontSize: '1.4rem',
+                fontWeight: 800,
+                color: 'var(--text-primary)',
+              }}>
+                🎟️ All Coupons
+              </h2>
+              <button
+                type="button"
+                onClick={() => navigate('/my-coupons')}
+                style={{
+                  background:
+                    'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: 'white', border: 'none',
+                  borderRadius: '10px',
+                  padding: '9px 18px', cursor: 'pointer',
+                  fontWeight: 700, fontSize: '0.875rem',
+                }}
+              >
+                + Create Coupon
+              </button>
+            </div>
             {couponsLoading ? (
               <div style={{
                 textAlign: 'center', padding: '40px',

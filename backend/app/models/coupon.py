@@ -40,6 +40,11 @@ class Coupon(Base):
 
     coupon_type = Column(String, default="general")
 
+    # 1 = can combine with group discount; 0 = cannot combine
+    is_stackable = Column(Integer, default=1)
+    influencer_name = Column(String, nullable=True)
+    tier = Column(String, default="standard")
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

@@ -81,9 +81,10 @@ def _resolve_price_and_room(
             .first()
         )
         if not room:
-            raise HTTPException(404, "Room type not found")
+            return price_per_night, None, None
         price_per_night = room.price_per_night
         room_name = room.name
+        resolved_room_id = room_type_id
     return price_per_night, resolved_room_id, room_name
 
 
@@ -123,11 +124,11 @@ def calculate_group_price(
         else 0
     )
     discount_amount = round(base_price * discount_rate / 100, 2)
-    discounted_price = base_price - discount_amount
+    discounted_price = round(base_price - discount_amount, 2)
 
     price_per_person = round(
-        discounted_price / body.group_size, 2
-    ) if body.group_size > 0 else 0.0
+        discounted_price / max(1, body.group_size), 2
+    )
 
     service_type = listing.service_type or ""
     price_unit = "per night"
@@ -209,16 +210,15 @@ def create_group_booking(
     )
 
     base_price = price_per_night * nights
-    discount_rate = (
-        get_group_discount_rate(body.group_size)
-        if body.apply_group_discount
-        else 0
-    )
+    discount_rate = 0
+    if body.apply_group_discount:
+        discount_rate = get_group_discount_rate(body.group_size)
+
     group_discount_amount = round(base_price * discount_rate / 100, 2)
-    total_price = base_price - group_discount_amount
+    total_price = round(base_price - group_discount_amount, 2)
     price_per_person_val = round(
-        total_price / body.group_size, 2
-    ) if body.group_size > 0 else 0.0
+        total_price / max(1, body.group_size), 2
+    )
 
     coupon_obj = None
     coupon_discount = 0.0
@@ -227,6 +227,14 @@ def create_group_booking(
         coupon_obj = db.query(Coupon).filter(Coupon.code == code_norm).first()
         if not coupon_obj:
             raise HTTPException(400, "Invalid coupon code")
+        if body.apply_group_discount and discount_rate > 0:
+            raw_stack = getattr(coupon_obj, "is_stackable", True)
+            stackable = bool(raw_stack) if raw_stack is not None else True
+            if not stackable:
+                raise HTTPException(
+                    400,
+                    "This coupon cannot be combined with group discount",
+                )
         ok, msg, coupon_discount = validate_coupon_logic(
             coupon_obj,
             current_user.id,
@@ -238,8 +246,8 @@ def create_group_booking(
             raise HTTPException(400, msg)
         total_price = max(0, round(total_price - coupon_discount, 2))
         price_per_person_val = round(
-            total_price / body.group_size, 2
-        ) if body.group_size > 0 else 0.0
+            total_price / max(1, body.group_size), 2
+        )
 
     booking = Booking(
         listing_id=body.listing_id,
@@ -271,48 +279,50 @@ def create_group_booking(
     db.refresh(booking)
 
     group_text = (
-        f"Group of {body.group_size} people"
-        if body.group_size > 1
-        else "1 person"
+        f"Group of {body.group_size}"
+        if body.group_size > 1 else "1 person"
     )
-    create_notification(
-        db,
-        user_id=current_user.id,
-        title="Group Booking Confirmed! 👥",
-        message=(
-            f"{group_text} booked '{listing.title}' from "
-            f"{body.check_in} to {body.check_out}. "
-            f"Total: PKR {total_price:,.0f}"
-            + (
-                f" (saved PKR {group_discount_amount:,.0f} on group rate!)"
-                if group_discount_amount > 0
-                else ""
-            )
-        ),
-        type="success",
-    )
-    create_notification(
-        db,
-        user_id=listing.owner_id,
-        title="New Group Booking! 👥",
-        message=(
-            f"{current_user.full_name} booked for {group_text} from "
-            f"{body.check_in} to {body.check_out}. "
-            f"Revenue: PKR {total_price:,.0f}"
-        ),
-        type="booking",
-    )
+    try:
+        create_notification(
+            db,
+            user_id=current_user.id,
+            title="Group Booking Confirmed! 👥",
+            message=(
+                f"{group_text} booked '{listing.title}' from "
+                f"{body.check_in} to {body.check_out}. "
+                f"Total: PKR {total_price:,.0f}"
+                + (
+                    f" (saved PKR {group_discount_amount:,.0f}!)"
+                    if group_discount_amount > 0
+                    else ""
+                )
+            ),
+            type="success",
+        )
+        create_notification(
+            db,
+            user_id=listing.owner_id,
+            title="New Group Booking! 👥",
+            message=(
+                f"{current_user.full_name} booked for {group_text}. "
+                f"Revenue: PKR {total_price:,.0f}"
+            ),
+            type="booking",
+        )
+    except Exception:
+        pass
 
     return {
         "id": booking.id,
         "listing_title": listing.title,
         "check_in": booking.check_in.isoformat() if booking.check_in else body.check_in,
         "check_out": booking.check_out.isoformat() if booking.check_out else body.check_out,
-        "group_size": booking.group_size,
-        "total_price": booking.total_price,
+        "group_size": body.group_size,
+        "total_price": total_price,
         "discount_applied": group_discount_amount,
         "price_per_person": price_per_person_val,
         "discount_rate": discount_rate,
+        "nights": nights,
         "status": "confirmed",
         "message": "Group booking confirmed!",
     }

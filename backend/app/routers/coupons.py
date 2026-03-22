@@ -32,6 +32,7 @@ class CouponCreate(BaseModel):
     code: str
     title: str
     description: str | None = None
+    influencer_name: str | None = None
     discount_type: str
     discount_value: float
     min_booking_amount: float = 0
@@ -43,6 +44,8 @@ class CouponCreate(BaseModel):
     is_public: bool = True
     coupon_type: str = "general"
     listing_id: int | None = None
+    is_stackable: bool = True
+    tier: str = "standard"
 
 
 class ValidateCouponRequest(BaseModel):
@@ -77,6 +80,9 @@ def coupon_to_dict(coupon: Coupon, db: Session) -> dict:
             coupon.created_at.isoformat() if coupon.created_at else None
         ),
         "listing_id": coupon.listing_id,
+        "is_stackable": bool(getattr(coupon, "is_stackable", 1)),
+        "influencer_name": getattr(coupon, "influencer_name", None),
+        "tier": getattr(coupon, "tier", None) or "standard",
         "spots_left": (
             coupon.max_uses - usage_count
             if coupon.max_uses is not None
@@ -225,12 +231,17 @@ def create_coupon(
     if body.discount_type == "percentage" and body.discount_value > 100:
         raise HTTPException(400, "Percentage cannot exceed 100")
 
+    desc = body.description
+    if body.influencer_name and body.influencer_name.strip():
+        extra = f"Influencer: {body.influencer_name.strip()}"
+        desc = f"{desc}\n{extra}" if desc else extra
+
     coupon = Coupon(
         created_by=current_user.id,
         listing_id=body.listing_id,
         code=code,
         title=body.title,
-        description=body.description,
+        description=desc,
         discount_type=body.discount_type,
         discount_value=body.discount_value,
         min_booking_amount=body.min_booking_amount,
@@ -241,6 +252,11 @@ def create_coupon(
         valid_until=body.valid_until,
         is_public=body.is_public,
         coupon_type=body.coupon_type,
+        is_stackable=1 if body.is_stackable else 0,
+        influencer_name=body.influencer_name.strip()
+        if body.influencer_name
+        else None,
+        tier=body.tier or "standard",
     )
     db.add(coupon)
     db.commit()

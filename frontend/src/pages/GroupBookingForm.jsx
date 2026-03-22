@@ -52,8 +52,27 @@ export default function GroupBookingForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
 
+  const [step, setStep] = useState(1)
+  const [payMethod, setPayMethod] = useState('card')
+  const [cardName, setCardName] = useState('')
+  const [cardNumber, setCardNumber] = useState('')
+  const [cardExpiry, setCardExpiry] = useState('')
+  const [cardCvv, setCardCvv] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+
   const today = new Date()
     .toISOString().split('T')[0]
+
+  function formatCard(val) {
+    return val.replace(/\D/g, '').slice(0, 16)
+      .replace(/(.{4})/g, '$1 ').trim()
+  }
+
+  function formatExpiry(val) {
+    const c = val.replace(/\D/g, '').slice(0, 4)
+    return c.length >= 2
+      ? c.slice(0, 2) + '/' + c.slice(2) : c
+  }
 
   async function calculatePrice() {
     if (!checkIn || !checkOut || groupSize < 1) return
@@ -160,26 +179,71 @@ export default function GroupBookingForm() {
     }
   }, [listing])
 
-  async function handleBook() {
+  function proceedToPayment() {
     if (!checkIn || !checkOut) {
-      setError(
-        'Please select check-in and check-out dates'
-      )
+      setError('Please select check-in and check-out')
       return
     }
     if (checkOut <= checkIn) {
-      setError(
-        'Check-out must be after check-in'
-      )
+      setError('Check-out must be after check-in')
       return
     }
     if (!groupSize || groupSize < 1) {
       setError('Group size must be at least 1')
       return
     }
+    setError('')
+    setStep(2)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function detailFromError(err) {
+    const d = err.response?.data?.detail
+    if (typeof d === 'string') return d
+    if (Array.isArray(d)) {
+      return d.map(x =>
+        typeof x === 'object' && x?.msg
+          ? x.msg
+          : String(x)
+      ).join(' ')
+    }
+    return 'Booking failed. Please try again.'
+  }
+
+  async function handleBook() {
+    if (payMethod === 'card') {
+      if (!cardName.trim()) {
+        setError('Enter cardholder name')
+        return
+      }
+      const clean = cardNumber.replace(/\s/g, '')
+      if (clean.length !== 16) {
+        setError('Enter valid 16-digit card number')
+        return
+      }
+      if (cardExpiry.length < 5) {
+        setError('Enter valid expiry MM/YY')
+        return
+      }
+      if (cardCvv.length < 3) {
+        setError('Enter valid CVV')
+        return
+      }
+      if (clean === '4000000000000002') {
+        setError('Payment declined. Try another card.')
+        return
+      }
+    } else {
+      if (!phoneNumber.trim()) {
+        setError('Enter mobile number')
+        return
+      }
+    }
 
     setError('')
     setBooking(true)
+
+    await new Promise(r => setTimeout(r, 1500))
 
     try {
       const res = await api.post(
@@ -199,15 +263,13 @@ export default function GroupBookingForm() {
         }
       )
       setSuccess(res.data)
+      setStep(1)
     } catch (e) {
       console.error(
         'Booking error:',
         e.response?.data || e.message
       )
-      setError(
-        e.response?.data?.detail ||
-        'Booking failed. Please try again.'
-      )
+      setError(detailFromError(e))
     } finally {
       setBooking(false)
     }
@@ -876,14 +938,24 @@ export default function GroupBookingForm() {
                     <div style={{
                       textAlign: 'center',
                       background: 'var(--accent-light)',
-                      borderRadius: '8px', padding: '8px',
+                      borderRadius: '8px', padding: '10px',
                       fontSize: '0.85rem',
                       color: 'var(--accent)', fontWeight: 700,
                       marginTop: '6px',
                     }}>
-                      PKR {Math.round(
-                        finalTotal / groupSize
-                      ).toLocaleString('en-PK')} per person
+                      <div>
+                        PKR {Math.round(
+                          finalTotal / groupSize
+                        ).toLocaleString('en-PK')}/person
+                      </div>
+                      <div style={{
+                        fontSize: '0.72rem', fontWeight: 400,
+                        color: 'var(--text-secondary)',
+                        marginTop: '2px',
+                      }}>
+                        Total for {groupSize} people:
+                        PKR {finalTotal.toLocaleString('en-PK')}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -907,9 +979,8 @@ export default function GroupBookingForm() {
 
               <button
                 type="button"
-                onClick={handleBook}
+                onClick={proceedToPayment}
                 disabled={
-                  booking ||
                   !checkIn || !checkOut ||
                   checkOut <= checkIn
                 }
@@ -929,7 +1000,7 @@ export default function GroupBookingForm() {
               >
                 {booking
                   ? '⏳ Booking...'
-                  : `👥 Book for ${groupSize} People`
+                  : `👥 Continue for ${groupSize} People`
                 }
               </button>
 
@@ -939,8 +1010,7 @@ export default function GroupBookingForm() {
                 fontSize: '0.72rem',
                 color: 'var(--text-muted)',
               }}>
-                ✅ Free cancellation ·
-                Pay at property
+                Review details, then pay securely in the next step
               </p>
             </div>
           </div>
@@ -976,6 +1046,417 @@ export default function GroupBookingForm() {
           </div>
         </div>
       </div>
+
+      {step === 2 && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.6)',
+          zIndex: 1000, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          padding: '20px',
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-md)',
+            width: '100%', maxWidth: '480px',
+            maxHeight: '90vh', overflowY: 'auto',
+          }}>
+
+            <div style={{
+              background:
+                'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+              padding: '20px 24px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>
+                <h3 style={{
+                  color: 'white', margin: '0 0 3px',
+                  fontWeight: 800, fontSize: '1.1rem',
+                }}>
+                  💳 Complete Payment
+                </h3>
+                <p style={{
+                  color: 'rgba(255,255,255,0.75)',
+                  margin: 0, fontSize: '0.82rem',
+                }}>
+                  Group booking for {groupSize} people
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setStep(1)
+                  setError('')
+                }}
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  border: 'none', color: 'white',
+                  borderRadius: '50%', width: 32,
+                  height: 32, cursor: 'pointer',
+                  fontSize: '1.1rem', display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >×</button>
+            </div>
+
+            <div style={{ padding: '20px 24px' }}>
+
+              <div style={{
+                background: 'var(--bg-secondary)',
+                borderRadius: '10px', padding: '14px',
+                marginBottom: '20px',
+              }}>
+                <div style={{
+                  fontWeight: 700, fontSize: '0.875rem',
+                  color: 'var(--text-primary)',
+                  marginBottom: '8px',
+                }}>
+                  📋 Booking Summary
+                </div>
+                {[
+                  {
+                    l: listing?.title || '—',
+                    v: '',
+                  },
+                  {
+                    l: `${checkIn} → ${checkOut}`,
+                    v: `${nights} nights`,
+                  },
+                  {
+                    l: `${groupSize} people`,
+                    v: '',
+                  },
+                  priceCalc?.discount_rate > 0 && {
+                    l: `Group discount (${
+                      priceCalc.discount_rate}%)`,
+                    v: `-PKR ${(priceCalc.discount_amount
+                      || 0).toLocaleString('en-PK')}`,
+                    color: '#16a34a',
+                  },
+                  couponDiscount > 0 && {
+                    l: '🎟️ Coupon discount',
+                    v: `-PKR ${couponDiscount
+                      .toLocaleString('en-PK')}`,
+                    color: '#16a34a',
+                  },
+                ].filter(Boolean).map((row, i) => (
+                  row.v !== undefined && (
+                    <div key={i} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '0.8rem', padding: '3px 0',
+                      color: row.color ||
+                        'var(--text-secondary)',
+                    }}>
+                      <span>{row.l}</span>
+                      <span style={{ fontWeight: 600 }}>
+                        {row.v}
+                      </span>
+                    </div>
+                  )
+                ))}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  borderTop: '2px solid var(--border-color)',
+                  marginTop: '8px', paddingTop: '8px',
+                  fontWeight: 800,
+                  color: 'var(--text-primary)',
+                }}>
+                  <span>Total (whole group)</span>
+                  <span style={{
+                    color: 'var(--accent)',
+                    fontSize: '1.1rem',
+                  }}>
+                    PKR {finalTotal.toLocaleString('en-PK')}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px', marginBottom: '16px',
+              }}>
+                {[
+                  { key: 'card', icon: '💳',
+                    label: 'Card' },
+                  { key: 'jazzcash', icon: '📱',
+                    label: 'JazzCash' },
+                  { key: 'easypaisa', icon: '💚',
+                    label: 'EasyPaisa' },
+                ].map(m => (
+                  <div key={m.key}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setPayMethod(m.key)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setPayMethod(m.key)
+                      }
+                    }}
+                    style={{
+                      padding: '10px 8px',
+                      borderRadius: '10px', cursor: 'pointer',
+                      border: payMethod === m.key
+                        ? '2px solid var(--accent)'
+                        : '1px solid var(--border-color)',
+                      background: payMethod === m.key
+                        ? 'var(--accent-light)'
+                        : 'var(--bg-secondary)',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '1.2rem' }}>
+                      {m.icon}
+                    </div>
+                    <div style={{
+                      fontSize: '0.72rem', fontWeight: 600,
+                      color: payMethod === m.key
+                        ? 'var(--accent)'
+                        : 'var(--text-secondary)',
+                      marginTop: '3px',
+                    }}>
+                      {m.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {payMethod === 'card' && (
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{
+                      display: 'block', fontSize: '0.78rem',
+                      fontWeight: 700,
+                      color: 'var(--text-secondary)',
+                      marginBottom: '5px',
+                      textTransform: 'uppercase',
+                    }}>
+                      Cardholder Name
+                    </label>
+                    <input type="text"
+                      placeholder="Name on card"
+                      value={cardName}
+                      onChange={e =>
+                        setCardName(e.target.value)
+                      }
+                      style={{
+                        width: '100%', padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box',
+                        fontFamily: 'var(--font-primary)',
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{
+                      display: 'block', fontSize: '0.78rem',
+                      fontWeight: 700,
+                      color: 'var(--text-secondary)',
+                      marginBottom: '5px',
+                      textTransform: 'uppercase',
+                    }}>
+                      Card Number
+                    </label>
+                    <input type="text"
+                      placeholder="1234 5678 9012 3456"
+                      value={cardNumber}
+                      onChange={e =>
+                        setCardNumber(
+                          formatCard(e.target.value)
+                        )
+                      }
+                      maxLength={19}
+                      style={{
+                        width: '100%', padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '1rem',
+                        letterSpacing: '0.1em',
+                        fontFamily: 'monospace', outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <p style={{
+                      margin: '4px 0 0', fontSize: '0.7rem',
+                      color: 'var(--text-muted)',
+                    }}>
+                      Test card: 4242 4242 4242 4242 ·
+                      Decline: 4000 0000 0000 0002
+                    </p>
+                  </div>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '10px',
+                  }}>
+                    <div>
+                      <label style={{
+                        display: 'block', fontSize: '0.78rem',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '5px',
+                        textTransform: 'uppercase',
+                      }}>
+                        Expiry
+                      </label>
+                      <input type="text"
+                        placeholder="MM/YY"
+                        value={cardExpiry}
+                        onChange={e =>
+                          setCardExpiry(
+                            formatExpiry(e.target.value)
+                          )
+                        }
+                        maxLength={5}
+                        style={{
+                          width: '100%', padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.95rem',
+                          fontFamily: 'monospace', outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{
+                        display: 'block', fontSize: '0.78rem',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '5px',
+                        textTransform: 'uppercase',
+                      }}>
+                        CVV
+                      </label>
+                      <input type="password"
+                        placeholder="•••"
+                        value={cardCvv}
+                        onChange={e =>
+                          setCardCvv(
+                            e.target.value
+                              .replace(/\D/g, '').slice(0, 4)
+                          )
+                        }
+                        maxLength={4}
+                        style={{
+                          width: '100%', padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.95rem',
+                          fontFamily: 'monospace', outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(payMethod === 'jazzcash' ||
+                payMethod === 'easypaisa') && (
+                <div style={{
+                  textAlign: 'center', padding: '16px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '10px', marginBottom: '16px',
+                }}>
+                  <div style={{
+                    fontSize: '2rem', marginBottom: '8px',
+                  }}>
+                    {payMethod === 'jazzcash' ? '📱' : '💚'}
+                  </div>
+                  <p style={{
+                    margin: '0 0 12px',
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.875rem',
+                  }}>
+                    Enter your{' '}
+                    {payMethod === 'jazzcash'
+                      ? 'JazzCash' : 'EasyPaisa'
+                    } number
+                  </p>
+                  <input type="tel"
+                    placeholder="03XX-XXXXXXX"
+                    value={phoneNumber}
+                    onChange={e =>
+                      setPhoneNumber(e.target.value)
+                    }
+                    style={{
+                      width: '100%', padding: '11px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.95rem', outline: 'none',
+                      textAlign: 'center',
+                      fontFamily: 'monospace',
+                      letterSpacing: '0.1em',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              )}
+
+              {error && (
+                <div style={{
+                  background: 'var(--danger-bg)',
+                  color: 'var(--danger)',
+                  padding: '10px 12px', borderRadius: '8px',
+                  fontSize: '0.85rem', fontWeight: 600,
+                  marginBottom: '12px',
+                }}>
+                  ⚠️ {error}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleBook}
+                disabled={booking}
+                style={{
+                  width: '100%', padding: '14px',
+                  borderRadius: '12px', border: 'none',
+                  background:
+                    'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                  color: 'white', fontWeight: 800,
+                  fontSize: '1rem', cursor: 'pointer',
+                  opacity: booking ? 0.75 : 1,
+                }}
+              >
+                {booking
+                  ? '⏳ Processing...'
+                  : `🔒 Pay PKR ${finalTotal
+                    .toLocaleString('en-PK')}`
+                }
+              </button>
+
+              <p style={{
+                textAlign: 'center', margin: '8px 0 0',
+                fontSize: '0.72rem',
+                color: 'var(--text-muted)',
+              }}>
+                🔒 SSL Secure · Instant Confirmation
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
