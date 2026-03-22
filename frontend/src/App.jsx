@@ -43,6 +43,7 @@ import PublicCoupons from './pages/PublicCoupons'
 import MyCoupons from './pages/MyCoupons'
 import LoyaltyPage from './pages/LoyaltyPage'
 import MessagesPage from './pages/MessagesPage'
+import BookingVoucher from './pages/BookingVoucher'
 import CompareBar from './components/CompareBar'
 import ComparePage from './pages/ComparePage'
 
@@ -101,6 +102,14 @@ function App() {
             element={
               <PrivateRoute>
                 <MessagesPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/voucher/:bookingId"
+            element={
+              <PrivateRoute>
+                <BookingVoucher />
               </PrivateRoute>
             }
           />

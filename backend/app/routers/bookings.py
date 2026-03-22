@@ -691,6 +691,107 @@ def get_earnings_breakdown(
     }
 
 
+@router.get("/{booking_id}/voucher")
+def get_booking_voucher(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get full voucher data for a booking."""
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise HTTPException(404, "Booking not found")
+
+    listing = db.query(Listing).filter(
+        Listing.id == booking.listing_id
+    ).first()
+    if not listing:
+        raise HTTPException(404, "Listing not found")
+
+    if (
+        booking.user_id != current_user.id
+        and listing.owner_id != current_user.id
+        and current_user.role != "admin"
+    ):
+        raise HTTPException(403, "Not authorized")
+
+    guest = db.query(User).filter(User.id == booking.user_id).first()
+    provider = (
+        db.query(User).filter(User.id == listing.owner_id).first()
+        if listing
+        else None
+    )
+
+    booking_ref = f"GBT-{booking_id:06d}"
+
+    ci = booking.check_in
+    co = booking.check_out
+    nights = 1
+    if ci is not None and co is not None:
+        nights = max(1, (co - ci).days)
+
+    def _date_iso(d):
+        if d is None:
+            return None
+        return d.isoformat() if hasattr(d, "isoformat") else str(d)
+
+    room_name = None
+    if getattr(booking, "room_type_id", None):
+        from app.models.room_type import RoomType
+
+        room = db.query(RoomType).filter(
+            RoomType.id == booking.room_type_id
+        ).first()
+        if room:
+            room_name = room.name
+
+    check_in_s = _date_iso(booking.check_in)
+    check_out_s = _date_iso(booking.check_out)
+
+    return {
+        "booking_ref": booking_ref,
+        "booking_id": booking_id,
+        "status": booking.status,
+        "payment_status": getattr(booking, "payment_status", "unknown"),
+        "guest": {
+            "name": guest.full_name if guest else "Guest",
+            "email": guest.email if guest else "",
+        },
+        "listing": {
+            "id": listing.id if listing else None,
+            "title": listing.title if listing else "Unknown",
+            "location": listing.location if listing else "",
+            "service_type": listing.service_type if listing else "",
+            "address": listing.location if listing else "",
+            "image_url": listing.image_url if listing else None,
+        },
+        "provider": {
+            "name": provider.full_name if provider else "Provider",
+            "email": provider.email if provider else "",
+        },
+        "dates": {
+            "check_in": check_in_s,
+            "check_out": check_out_s,
+            "nights": nights,
+        },
+        "room_type": room_name,
+        "group_size": getattr(booking, "group_size", 1) or 1,
+        "total_price": booking.total_price or 0,
+        "group_lead_name": getattr(booking, "group_lead_name", None),
+        "created_at": booking.created_at.isoformat()
+        if booking.created_at
+        else None,
+        "qr_data": (
+            "GB-TOURISM-VOUCHER|"
+            f"REF:{booking_ref}|"
+            f"BOOKING:{booking_id}|"
+            f"GUEST:{guest.full_name if guest else ''}|"
+            f"CHECKIN:{check_in_s or ''}|"
+            f"LISTING:{listing.title if listing else ''}"
+        ),
+    }
+
+
 @router.patch("/{booking_id}/cancel", response_model=BookingResponse)
 def cancel_booking(
     booking_id: int,

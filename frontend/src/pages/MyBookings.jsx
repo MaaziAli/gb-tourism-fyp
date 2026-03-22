@@ -680,6 +680,27 @@ export default function MyBookings() {
                                 </button>
                               )
                             })()}
+                            {b.status !== 'cancelled' && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  navigate(`/voucher/${b.id}`)
+                                }
+                                style={{
+                                  padding: '7px 14px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #0ea5e944',
+                                  background: '#e0f2fe',
+                                  color: '#0369a1',
+                                  cursor: 'pointer', fontWeight: 600,
+                                  fontSize: '0.8rem',
+                                  display: 'flex', alignItems: 'center',
+                                  gap: '5px'
+                                }}
+                              >
+                                🎫 Voucher
+                              </button>
+                            )}
                             {isActive && upcoming && (
                               <button
                                 type="button"
@@ -1077,6 +1098,27 @@ export default function MyBookings() {
                                 </button>
                               )
                             })()}
+                            {b.status !== 'cancelled' && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  navigate(`/voucher/${b.id}`)
+                                }
+                                style={{
+                                  padding: '7px 14px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #0ea5e944',
+                                  background: '#e0f2fe',
+                                  color: '#0369a1',
+                                  cursor: 'pointer', fontWeight: 600,
+                                  fontSize: '0.8rem',
+                                  display: 'flex', alignItems: 'center',
+                                  gap: '5px'
+                                }}
+                              >
+                                🎫 Voucher
+                              </button>
+                            )}
                             {isActive && upcoming && (
                               <button
                                 type="button"

@@ -573,6 +573,24 @@ export default function GroupBookingForm() {
                 Browse More
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() =>
+                navigate(`/voucher/${success.id}`)
+              }
+              style={{
+                width: '100%', padding: '12px',
+                borderRadius: '12px', border: 'none',
+                background: '#f59e0b',
+                color: 'white', fontWeight: 700,
+                fontSize: '0.95rem', cursor: 'pointer',
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: '8px',
+                marginTop: '8px'
+              }}
+            >
+              🎫 Download Group Voucher
+            </button>
           </div>
         </div>
       </div>

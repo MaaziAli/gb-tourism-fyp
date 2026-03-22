@@ -270,6 +270,7 @@ export default function BookingForm() {
                 💳 Pay Now — PKR {(confirmedTotal ?? discountedTotal).toLocaleString('en-PK')}
               </button>
               <button
+                type="button"
                 onClick={() => navigate('/my-bookings')}
                 style={{
                   flex: 1, padding: '12px',
@@ -283,6 +284,25 @@ export default function BookingForm() {
                 View My Bookings
               </button>
               <button
+                type="button"
+                onClick={() =>
+                  navigate(`/voucher/${bookingId}`)
+                }
+                style={{
+                  width: '100%', padding: '12px',
+                  borderRadius: '12px', border: 'none',
+                  background: '#f59e0b',
+                  color: 'white', fontWeight: 700,
+                  fontSize: '0.95rem', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: '8px',
+                  marginTop: '8px'
+                }}
+              >
+                🎫 Download Voucher
+              </button>
+              <button
+                type="button"
                 onClick={() => navigate('/')}
                 style={{
                   flex: 1, padding: '12px',
