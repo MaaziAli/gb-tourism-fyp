@@ -8,6 +8,7 @@ from app.coupon_helpers import record_coupon_use, validate_coupon_logic
 from app.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.coupon import Coupon, CouponUsage
+from app.models.listing import Listing
 from app.models.user import User
 
 router = APIRouter(
@@ -218,18 +219,57 @@ def create_coupon(
 
     code = body.code.upper().strip().replace(" ", "")
 
+    if not code:
+        raise HTTPException(400, "Coupon code cannot be empty")
+
     existing = db.query(Coupon).filter(Coupon.code == code).first()
     if existing:
-        raise HTTPException(400, "Coupon code already exists")
+        raise HTTPException(
+            400,
+            f"Coupon code '{code}' already exists. "
+            "Try a different code.",
+        )
 
     if body.discount_type not in ("percentage", "flat"):
         raise HTTPException(
             400,
-            "discount_type must be percentage or flat",
+            "discount_type must be 'percentage' or 'flat'",
         )
 
-    if body.discount_type == "percentage" and body.discount_value > 100:
-        raise HTTPException(400, "Percentage cannot exceed 100")
+    if body.discount_type == "percentage" and (
+        body.discount_value <= 0 or body.discount_value > 100
+    ):
+        raise HTTPException(
+            400,
+            "Percentage must be between 1 and 100",
+        )
+
+    if body.discount_type == "flat" and body.discount_value <= 0:
+        raise HTTPException(
+            400,
+            "Flat discount must be positive",
+        )
+
+    if body.listing_id:
+        listing = (
+            db.query(Listing)
+            .filter(Listing.id == body.listing_id)
+            .first()
+        )
+        if not listing:
+            raise HTTPException(
+                404,
+                "Listing not found. "
+                "Leave listing empty for global coupon.",
+            )
+        if (
+            listing.owner_id != current_user.id
+            and current_user.role != "admin"
+        ):
+            raise HTTPException(
+                403,
+                "You can only create coupons for your own listings",
+            )
 
     desc = body.description
     if body.influencer_name and body.influencer_name.strip():
@@ -238,20 +278,20 @@ def create_coupon(
 
     coupon = Coupon(
         created_by=current_user.id,
-        listing_id=body.listing_id,
+        listing_id=body.listing_id or None,
         code=code,
         title=body.title,
         description=desc,
         discount_type=body.discount_type,
         discount_value=body.discount_value,
-        min_booking_amount=body.min_booking_amount,
+        min_booking_amount=body.min_booking_amount or 0,
         max_discount_amount=body.max_discount_amount,
         max_uses=body.max_uses,
-        max_uses_per_user=body.max_uses_per_user,
+        max_uses_per_user=body.max_uses_per_user or 1,
         valid_from=body.valid_from,
         valid_until=body.valid_until,
         is_public=body.is_public,
-        coupon_type=body.coupon_type,
+        coupon_type=body.coupon_type or "general",
         is_stackable=1 if body.is_stackable else 0,
         influencer_name=body.influencer_name.strip()
         if body.influencer_name

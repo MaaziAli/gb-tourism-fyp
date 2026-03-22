@@ -120,6 +120,7 @@ export default function GroupBookingForm() {
 
       setPriceCalc({
         listing_title: listing?.title || '',
+        service_type: listing?.service_type || '',
         price_per_night: basePrice,
         nights: nightsCount,
         check_in: checkIn,
@@ -132,6 +133,20 @@ export default function GroupBookingForm() {
         price_per_person: Math.round(
           total / groupSize
         ),
+        room_capacity: null,
+        units_needed: 1,
+        breakdown_text: [
+          `Estimate (offline): PKR ${basePrice.toLocaleString(
+            'en-PK'
+          )}/night × ${nightsCount} nights`,
+          `Subtotal ≈ PKR ${base.toLocaleString('en-PK')}`,
+          discountRate > 0
+            ? `Group discount ${discountRate}% ≈ -PKR ${
+                discountAmt.toLocaleString('en-PK')
+              }`
+            : null,
+          `Total ≈ PKR ${total.toLocaleString('en-PK')}`,
+        ].filter(Boolean),
         breakdown: {
           base: `PKR ${basePrice.toLocaleString(
             'en-PK'
@@ -289,6 +304,10 @@ export default function GroupBookingForm() {
       )
     : 0
 
+  const svcType = priceCalc
+    ? (priceCalc.service_type || '').toLowerCase()
+    : ''
+
   useEffect(() => {
     setCouponDiscount(0)
     setAppliedCoupon(null)
@@ -357,6 +376,14 @@ export default function GroupBookingForm() {
                   label: 'Group Size',
                   value: `${success.group_size} people`,
                 },
+                success.units_needed > 1 && {
+                  label: success.unit_label === 'room'
+                    ? 'Rooms Booked'
+                    : 'Units',
+                  value: `${success.units_needed} ${
+                    success.unit_label
+                  }(s)`,
+                },
                 success.discount_applied > 0 && {
                   label: 'Group Discount',
                   value: `-PKR ${success
@@ -414,6 +441,20 @@ export default function GroupBookingForm() {
                     ?.toLocaleString('en-PK')}
                 </span>
               </div>
+              {success.breakdown_text?.length > 0 && (
+                <div style={{
+                  marginTop: '8px',
+                  padding: '10px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  color: 'var(--text-secondary)',
+                }}>
+                  {success.breakdown_text.map((line, i) => (
+                    <div key={i}>{line}</div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {success.discount_applied > 0 && (
@@ -868,67 +909,98 @@ export default function GroupBookingForm() {
                   </div>
                 ) : priceCalc ? (
                   <div style={{ marginBottom: '16px' }}>
-                    {[
-                      {
-                        l: `PKR ${(priceCalc.price_per_night
-                          || listing?.price_per_night || 0)
-                          .toLocaleString('en-PK')} × ${
-                          priceCalc.nights || nights} night(s)`,
-                        v: `PKR ${(priceCalc.base_price || 0)
-                          .toLocaleString('en-PK')}`,
-                      },
-                      {
-                        l: `${groupSize} people`,
-                        v: null,
-                      },
-                      priceCalc.discount_rate > 0 && {
-                        l: `Group discount (${
-                          priceCalc.discount_rate}%)`,
-                        v: `-PKR ${(priceCalc.discount_amount
-                          || 0).toLocaleString('en-PK')}`,
-                        color: '#16a34a',
-                      },
-                      couponDiscount > 0 && {
-                        l: '🎟️ Coupon',
-                        v: `-PKR ${couponDiscount
-                          .toLocaleString('en-PK')}`,
-                        color: '#16a34a',
-                      },
-                    ].filter(Boolean).map((row, i) => (
-                      <div key={i} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        padding: '5px 0',
-                        fontSize: '0.82rem',
-                        color: row.color ||
-                          'var(--text-secondary)',
+
+                    {svcType === 'hotel' ||
+                    svcType === 'camping' ? (
+                      <div style={{
+                        background: 'var(--accent-light)',
+                        borderRadius: '8px', padding: '10px 12px',
+                        marginBottom: '10px', fontSize: '0.82rem',
+                        color: 'var(--accent)',
                       }}>
-                        <span>{row.l}</span>
-                        {row.v && (
-                          <span style={{ fontWeight: 600 }}>
-                            {row.v}
+                        🏨 {priceCalc.units_needed} room(s) needed
+                        for {groupSize} people
+                        {priceCalc.room_capacity != null && (
+                          <span style={{
+                            color: 'var(--text-secondary)',
+                            marginLeft: '4px',
+                          }}>
+                            ({priceCalc.room_capacity}/room)
                           </span>
                         )}
                       </div>
+                    ) : svcType === 'tour' ||
+                      svcType === 'activity' ||
+                      svcType === 'horse_riding' ||
+                      svcType === 'guide' ||
+                      svcType === 'medical' ? (
+                      <div style={{
+                        background: '#dcfce7',
+                        borderRadius: '8px', padding: '10px 12px',
+                        marginBottom: '10px', fontSize: '0.82rem',
+                        color: '#16a34a',
+                      }}>
+                        👥 Price per person ×
+                        {groupSize} people
+                      </div>
+                    ) : (
+                      <div style={{
+                        background: 'var(--bg-secondary)',
+                        borderRadius: '8px', padding: '10px 12px',
+                        marginBottom: '10px', fontSize: '0.82rem',
+                        color: 'var(--text-secondary)',
+                      }}>
+                        🚐 1 vehicle for your group
+                      </div>
+                    )}
+
+                    {priceCalc.breakdown_text?.map((line, i) => (
+                      <div key={i} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        padding: '4px 0', fontSize: '0.8rem',
+                        color: line.toLowerCase().includes('discount')
+                          ? '#16a34a'
+                          : line.includes('Total:')
+                            ? 'var(--text-primary)'
+                            : 'var(--text-secondary)',
+                        fontWeight: line.includes('Total:')
+                          ? 700 : 400,
+                      }}>
+                        <span>{line}</span>
+                      </div>
                     ))}
+
+                    {couponDiscount > 0 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        padding: '4px 0', fontSize: '0.8rem',
+                        color: '#16a34a',
+                      }}>
+                        <span>🎟️ Coupon discount</span>
+                        <span style={{ fontWeight: 600 }}>
+                          -PKR {couponDiscount
+                            .toLocaleString('en-PK')}
+                        </span>
+                      </div>
+                    )}
 
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       padding: '10px 0 4px',
-                      borderTop:
-                        '2px solid var(--border-color)',
-                      marginTop: '4px',
+                      borderTop: '2px solid var(--border-color)',
+                      marginTop: '6px',
                     }}>
                       <span style={{
                         fontWeight: 800,
                         color: 'var(--text-primary)',
                       }}>
-                        Total
+                        TOTAL
                       </span>
                       <span style={{
-                        fontWeight: 800,
-                        color: 'var(--accent)',
+                        fontWeight: 800, color: 'var(--accent)',
                         fontSize: '1.2rem',
                       }}>
                         PKR {finalTotal.toLocaleString('en-PK')}
@@ -939,21 +1011,22 @@ export default function GroupBookingForm() {
                       textAlign: 'center',
                       background: 'var(--accent-light)',
                       borderRadius: '8px', padding: '10px',
-                      fontSize: '0.85rem',
-                      color: 'var(--accent)', fontWeight: 700,
                       marginTop: '6px',
                     }}>
-                      <div>
+                      <div style={{
+                        fontSize: '1rem', fontWeight: 800,
+                        color: 'var(--accent)',
+                      }}>
                         PKR {Math.round(
                           finalTotal / groupSize
                         ).toLocaleString('en-PK')}/person
                       </div>
                       <div style={{
-                        fontSize: '0.72rem', fontWeight: 400,
+                        fontSize: '0.72rem',
                         color: 'var(--text-secondary)',
                         marginTop: '2px',
                       }}>
-                        Total for {groupSize} people:
+                        Total for {groupSize} people =
                         PKR {finalTotal.toLocaleString('en-PK')}
                       </div>
                     </div>

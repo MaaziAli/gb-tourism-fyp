@@ -44,6 +44,20 @@ export default function MyCoupons() {
 
   useEffect(() => { fetchCoupons() }, [])
 
+  function apiErrorDetail(e) {
+    const d = e.response?.data?.detail
+    if (typeof d === 'string') return d
+    if (Array.isArray(d)) {
+      return d.map(x =>
+        typeof x === 'object' && x?.msg
+          ? x.msg
+          : String(x)
+      ).join(' ')
+    }
+    if (d && typeof d === 'object') return JSON.stringify(d)
+    return 'Failed to create coupon'
+  }
+
   async function fetchCoupons() {
     try {
       const res = await api.get('/coupons/my-coupons')
@@ -118,10 +132,7 @@ export default function MyCoupons() {
       resetForm()
       setShowForm(false)
     } catch (e) {
-      setError(
-        e.response?.data?.detail ||
-        'Failed to create coupon'
-      )
+      setError(apiErrorDetail(e))
     } finally {
       setCreating(false)
     }

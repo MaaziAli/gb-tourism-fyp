@@ -1,3 +1,4 @@
+import math
 from datetime import date as date_type
 from datetime import datetime
 
@@ -50,6 +51,16 @@ class GroupBookingRequest(BaseModel):
     coupon_code: str | None = None
 
 
+PER_PERSON_TYPES = frozenset({
+    "tour",
+    "activity",
+    "horse_riding",
+    "guide",
+    "medical",
+})
+
+PER_ROOM_TYPES = frozenset({"hotel", "camping"})
+
 def _parse_dates(check_in: str, check_out: str) -> tuple[date_type, date_type, int]:
     try:
         ci = datetime.strptime(check_in, "%Y-%m-%d").date()
@@ -62,30 +73,141 @@ def _parse_dates(check_in: str, check_out: str) -> tuple[date_type, date_type, i
     return ci, co, nights
 
 
-def _resolve_price_and_room(
-    db: Session,
-    listing: Listing,
-    listing_id: int,
-    room_type_id: int | None,
-) -> tuple[float, int | None, str | None]:
-    price_per_night = listing.price_per_night
-    room_name = None
-    resolved_room_id = room_type_id
-    if room_type_id:
-        room = (
-            db.query(RoomType)
-            .filter(
-                RoomType.id == room_type_id,
-                RoomType.listing_id == listing_id,
-            )
-            .first()
+def _build_breakdown(
+    service_type: str,
+    price_unit: float,
+    units_needed: int,
+    nights: int,
+    group_size: int,
+    base_price: float,
+    discount_rate: int,
+    discount_amount: float,
+    total_price: float,
+    price_per_person: float,
+    unit_label: str,
+) -> list[str]:
+    lines: list[str] = []
+    if service_type in PER_PERSON_TYPES:
+        lines.append(
+            f"PKR {price_unit:,.0f}/person × "
+            f"{group_size} people × "
+            f"{nights} night(s) = "
+            f"PKR {base_price:,.0f}"
         )
-        if not room:
-            return price_per_night, None, None
-        price_per_night = room.price_per_night
-        room_name = room.name
-        resolved_room_id = room_type_id
-    return price_per_night, resolved_room_id, room_name
+    elif service_type in PER_ROOM_TYPES:
+        lines.append(
+            f"{units_needed} {unit_label}(s) needed "
+            f"for {group_size} people"
+        )
+        lines.append(
+            f"PKR {price_unit:,.0f}/{unit_label} × "
+            f"{units_needed} × {nights} night(s) = "
+            f"PKR {base_price:,.0f}"
+        )
+    else:
+        lines.append(
+            f"PKR {price_unit:,.0f} × "
+            f"{nights} night(s) = "
+            f"PKR {base_price:,.0f}"
+        )
+
+    if discount_rate > 0:
+        lines.append(
+            f"Group discount {discount_rate}% = "
+            f"-PKR {discount_amount:,.0f}"
+        )
+    lines.append(f"Total: PKR {total_price:,.0f}")
+    lines.append(
+        f"Per person: PKR {price_per_person:,.0f}"
+    )
+    return lines
+
+
+def calculate_price_for_group(
+    listing: Listing,
+    room: RoomType | None,
+    group_size: int,
+    nights: int,
+    apply_discount: bool,
+) -> dict:
+    service_type = (listing.service_type or "").strip().lower()
+    price_unit = float(listing.price_per_night or 0)
+    if room:
+        price_unit = float(room.price_per_night)
+
+    units_needed = 1
+    price_label = "night"
+    unit_label = "room"
+    room_capacity_val: int | None = None
+    base_price = 0.0
+
+    if service_type in PER_PERSON_TYPES:
+        units_needed = group_size
+        price_label = "person"
+        unit_label = "person"
+        base_price = price_unit * group_size * nights
+
+    elif service_type in PER_ROOM_TYPES:
+        room_capacity = 2
+        if room is not None and getattr(room, "capacity", None) is not None:
+            room_capacity = max(1, int(room.capacity))
+        room_capacity_val = room_capacity
+        rooms_needed = math.ceil(group_size / room_capacity)
+        units_needed = rooms_needed
+        price_label = "room/night"
+        unit_label = "room"
+        base_price = price_unit * rooms_needed * nights
+
+    else:
+        units_needed = 1
+        price_label = "trip"
+        unit_label = "vehicle"
+        base_price = price_unit * nights
+
+    discount_rate = 0
+    if apply_discount:
+        discount_rate = get_group_discount_rate(group_size)
+
+    discount_amount = round(
+        base_price * discount_rate / 100, 2
+    )
+    total_price = round(base_price - discount_amount, 2)
+    price_per_person = round(
+        total_price / max(1, group_size), 2
+    )
+
+    breakdown_text = _build_breakdown(
+        service_type,
+        price_unit,
+        units_needed,
+        nights,
+        group_size,
+        base_price,
+        discount_rate,
+        discount_amount,
+        total_price,
+        price_per_person,
+        unit_label,
+    )
+
+    return {
+        "service_type": service_type,
+        "price_unit": price_unit,
+        "price_label": price_label,
+        "unit_label": unit_label,
+        "units_needed": units_needed,
+        "nights": nights,
+        "group_size": group_size,
+        "base_price": base_price,
+        "discount_rate": discount_rate,
+        "discount_amount": discount_amount,
+        "total_price": total_price,
+        "price_per_person": price_per_person,
+        "room_capacity": room_capacity_val
+        if service_type in PER_ROOM_TYPES
+        else None,
+        "breakdown_text": breakdown_text,
+    }
 
 
 @router.get("/discount-rates")
@@ -111,60 +233,51 @@ def calculate_group_price(
     if not listing:
         raise HTTPException(404, "Listing not found")
 
-    price_per_night, _, _ = _resolve_price_and_room(
-        db, listing, body.listing_id, body.room_type_id
-    )
+    if (listing.service_type or "").strip().lower() == "restaurant":
+        raise HTTPException(
+            400,
+            "Group booking is not available for restaurants",
+        )
+
+    room = None
+    if body.room_type_id:
+        room = (
+            db.query(RoomType)
+            .filter(
+                RoomType.id == body.room_type_id,
+                RoomType.listing_id == body.listing_id,
+            )
+            .first()
+        )
 
     _, _, nights = _parse_dates(body.check_in, body.check_out)
 
-    base_price = price_per_night * nights
-    discount_rate = (
-        get_group_discount_rate(body.group_size)
-        if body.apply_group_discount
-        else 0
+    result = calculate_price_for_group(
+        listing,
+        room,
+        body.group_size,
+        nights,
+        body.apply_group_discount,
     )
-    discount_amount = round(base_price * discount_rate / 100, 2)
-    discounted_price = round(base_price - discount_amount, 2)
-
-    price_per_person = round(
-        discounted_price / max(1, body.group_size), 2
-    )
-
-    service_type = listing.service_type or ""
-    price_unit = "per night"
-    if service_type in (
-        "tour", "activity", "horse_riding",
-        "guide", "boat_trip",
-    ):
-        price_unit = "per person"
 
     return {
         "listing_title": listing.title,
-        "service_type": service_type,
-        "price_per_night": price_per_night,
+        "service_type": listing.service_type,
+        "price_per_night": result["price_unit"],
+        "price_label": result["price_label"],
+        "unit_label": result["unit_label"],
+        "units_needed": result["units_needed"],
         "nights": nights,
         "check_in": body.check_in,
         "check_out": body.check_out,
         "group_size": body.group_size,
-        "base_price": base_price,
-        "discount_rate": discount_rate,
-        "discount_amount": discount_amount,
-        "total_price": discounted_price,
-        "price_per_person": price_per_person,
-        "price_unit": price_unit,
-        "breakdown": {
-            "base": (
-                f"PKR {price_per_night:,.0f} × {nights} night(s)"
-            ),
-            "subtotal": f"PKR {base_price:,.0f}",
-            "group_discount": (
-                f"-{discount_rate}% = PKR -{discount_amount:,.0f}"
-                if discount_rate > 0
-                else None
-            ),
-            "total": f"PKR {discounted_price:,.0f}",
-            "per_person": f"PKR {price_per_person:,.0f} per person",
-        },
+        "base_price": result["base_price"],
+        "discount_rate": result["discount_rate"],
+        "discount_amount": result["discount_amount"],
+        "total_price": result["total_price"],
+        "price_per_person": result["price_per_person"],
+        "room_capacity": result["room_capacity"],
+        "breakdown_text": result["breakdown_text"],
     }
 
 
@@ -182,6 +295,23 @@ def create_group_booking(
 
     if listing.owner_id == current_user.id:
         raise HTTPException(400, "Cannot book your own listing")
+
+    if (listing.service_type or "").strip().lower() == "restaurant":
+        raise HTTPException(
+            400,
+            "Group booking is not available for restaurants",
+        )
+
+    room = None
+    if body.room_type_id:
+        room = (
+            db.query(RoomType)
+            .filter(
+                RoomType.id == body.room_type_id,
+                RoomType.listing_id == body.listing_id,
+            )
+            .first()
+        )
 
     ci, co, nights = _parse_dates(body.check_in, body.check_out)
 
@@ -205,20 +335,21 @@ def create_group_booking(
             "Booking conflict: dates overlap with existing booking",
         )
 
-    price_per_night, room_type_id, room_name = _resolve_price_and_room(
-        db, listing, body.listing_id, body.room_type_id
+    calc = calculate_price_for_group(
+        listing,
+        room,
+        body.group_size,
+        nights,
+        body.apply_group_discount,
     )
 
-    base_price = price_per_night * nights
-    discount_rate = 0
-    if body.apply_group_discount:
-        discount_rate = get_group_discount_rate(body.group_size)
+    discount_rate = calc["discount_rate"]
+    group_discount_amount = calc["discount_amount"]
+    total_price = calc["total_price"]
+    price_per_person_val = calc["price_per_person"]
 
-    group_discount_amount = round(base_price * discount_rate / 100, 2)
-    total_price = round(base_price - group_discount_amount, 2)
-    price_per_person_val = round(
-        total_price / max(1, body.group_size), 2
-    )
+    room_type_id = room.id if room else None
+    room_name = room.name if room else None
 
     coupon_obj = None
     coupon_discount = 0.0
@@ -315,14 +446,18 @@ def create_group_booking(
     return {
         "id": booking.id,
         "listing_title": listing.title,
+        "service_type": listing.service_type,
         "check_in": booking.check_in.isoformat() if booking.check_in else body.check_in,
         "check_out": booking.check_out.isoformat() if booking.check_out else body.check_out,
         "group_size": body.group_size,
+        "nights": nights,
+        "units_needed": calc["units_needed"],
+        "unit_label": calc["unit_label"],
         "total_price": total_price,
         "discount_applied": group_discount_amount,
         "price_per_person": price_per_person_val,
         "discount_rate": discount_rate,
-        "nights": nights,
+        "breakdown_text": calc["breakdown_text"],
         "status": "confirmed",
         "message": "Group booking confirmed!",
     }
