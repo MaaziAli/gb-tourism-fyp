@@ -326,6 +326,26 @@ export default function MyEvents() {
                         >
                           👁️ View
                         </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(`/events/${event.id}/attendees`)
+                          }
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: 7,
+                            border: `1px solid ${
+                              getCategoryColor(event.category)
+                            }44`,
+                            background: getCategoryColor(event.category)
+                              + '12',
+                            color: getCategoryColor(event.category),
+                            cursor: 'pointer', fontWeight: 600,
+                            fontSize: '0.8rem'
+                          }}
+                        >
+                          👥 {event.tickets_sold} Attendees
+                        </button>
                         {event.status === 'active' && (
                           <button
                             type="button"

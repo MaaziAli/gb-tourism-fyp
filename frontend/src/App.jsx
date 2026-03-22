@@ -30,6 +30,7 @@ import EventTickets from './pages/EventTickets'
 import MyTickets from './pages/MyTickets'
 import CreateEvent from './pages/CreateEvent'
 import MyEvents from './pages/MyEvents'
+import EventAttendees from './pages/EventAttendees'
 
 function App() {
   return (
@@ -186,6 +187,14 @@ function App() {
             element={
               <ProviderRoute>
                 <MyEvents />
+              </ProviderRoute>
+            }
+          />
+          <Route
+            path="/events/:id/attendees"
+            element={
+              <ProviderRoute>
+                <EventAttendees />
               </ProviderRoute>
             }
           />
