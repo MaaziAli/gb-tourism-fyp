@@ -216,80 +216,10 @@ def create_booking(
     return booking
 
 
-@router.get("/listing/{listing_id}/bookings")
-def get_listing_bookings(
-    listing_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Get detailed bookings for a specific listing owned by the current provider or admin."""
-    listing = (
-        db.query(Listing)
-        .filter(Listing.id == listing_id)
-        .first()
-    )
-    if not listing:
-        raise HTTPException(status_code=404, detail="Listing not found")
-    if listing.owner_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not your listing")
-
-    bookings = (
-        db.query(Booking)
-        .filter(Booking.listing_id == listing_id)
-        .order_by(Booking.created_at.desc())
-        .all()
-    )
-
-    from app.models.user import User as Guest
-
-    result: list[dict] = []
-    for b in bookings:
-        guest = db.query(Guest).filter(Guest.id == b.user_id).first()
-
-        nights = None
-        if b.check_in and b.check_out:
-            delta = b.check_out - b.check_in
-            nights = delta.days
-
-        result.append(
-            {
-                "id": b.id,
-                "guest_name": guest.full_name if guest else "Unknown",
-                "guest_email": guest.email if guest else "",
-                "check_in": b.check_in.isoformat() if b.check_in else None,
-                "check_out": b.check_out.isoformat() if b.check_out else None,
-                "nights": nights,
-                "total_price": b.total_price,
-                "status": b.status or "active",
-                "created_at": b.created_at.isoformat() if b.created_at else None,
-            }
-        )
-
-    return result
-
-
-@router.get("/provider/revenue")
-def get_provider_revenue(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Get total revenue for bookings on the current provider's listings."""
-    if current_user.role != "provider":
-        raise HTTPException(status_code=403, detail="Only providers can access this")
-    total = (
-        db.query(func.count(Booking.id))
-        .join(Listing, Booking.listing_id == Listing.id)
-        .filter(Listing.owner_id == current_user.id, Booking.status == "active")
-        .scalar()
-        or 0
-    )
-    return {"total_bookings": total}
-
-
 @router.get("/me")
 def get_my_bookings(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     bookings = db.query(Booking).filter(
         Booking.user_id == current_user.id
@@ -790,6 +720,76 @@ def get_provider_analytics(
         "average_rating": avg_rating,
         "listings_analytics": listings_analytics,
     }
+
+
+@router.get("/provider/revenue")
+def get_provider_revenue(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get total revenue for bookings on the current provider's listings."""
+    if current_user.role != "provider":
+        raise HTTPException(status_code=403, detail="Only providers can access this")
+    total = (
+        db.query(func.count(Booking.id))
+        .join(Listing, Booking.listing_id == Listing.id)
+        .filter(Listing.owner_id == current_user.id, Booking.status == "active")
+        .scalar()
+        or 0
+    )
+    return {"total_bookings": total}
+
+
+@router.get("/listing/{listing_id}/bookings")
+def get_listing_bookings(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get detailed bookings for a specific listing owned by the current provider or admin."""
+    listing = (
+        db.query(Listing)
+        .filter(Listing.id == listing_id)
+        .first()
+    )
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.owner_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not your listing")
+
+    bookings = (
+        db.query(Booking)
+        .filter(Booking.listing_id == listing_id)
+        .order_by(Booking.created_at.desc())
+        .all()
+    )
+
+    from app.models.user import User as Guest
+
+    result: list[dict] = []
+    for b in bookings:
+        guest = db.query(Guest).filter(Guest.id == b.user_id).first()
+
+        nights = None
+        if b.check_in and b.check_out:
+            delta = b.check_out - b.check_in
+            nights = delta.days
+
+        result.append(
+            {
+                "id": b.id,
+                "guest_name": guest.full_name if guest else "Unknown",
+                "guest_email": guest.email if guest else "",
+                "check_in": b.check_in.isoformat() if b.check_in else None,
+                "check_out": b.check_out.isoformat() if b.check_out else None,
+                "nights": nights,
+                "total_price": b.total_price,
+                "status": b.status or "active",
+                "created_at": b.created_at.isoformat() if b.created_at else None,
+            }
+        )
+
+    return result
 
 
 @router.get("/{booking_id}/voucher")

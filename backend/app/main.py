@@ -10,6 +10,8 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import Base, engine
+
+# ── Model imports ──
 from app.models import user as _user_model  # noqa
 from app.models import listing as _listing_model  # noqa
 from app.models import booking as _booking_model  # noqa
@@ -28,33 +30,55 @@ from app.models import wishlist as _w_model  # noqa
 from app.models import availability as _av_model  # noqa
 from app.models import coupon as _coupon_model  # noqa
 from app.models import loyalty as _loyalty_model  # noqa
-from app.models import message as _message_model  # noqa
-from app.models import recently_viewed as _recently_viewed_model  # noqa
-from app.routers import (
-    auth,
-    bookings,
-    listings,
-    users,
-    recommendations,
-    admin,
-    reviews as reviews_router,
-    listing_images as li_router,
-    room_types as rt_router,
-    notifications as notif_router,
-    payments as pay_router,
-    trip_planner as tp_router,
-    dining as dining_router,
-    events as events_router,
-    ticket_bookings as tb_router,
-    wishlist as wishlist_router,
-    availability as availability_router,
-    group_bookings as group_bookings_router,
-)
-from app.routers import coupons as coupons_router
-from app.routers import loyalty as loyalty_router
-from app.routers import messages as messages_router
-from app.routers import recently_viewed as recently_viewed_router
 
+try:
+    from app.models import message as _msg  # noqa
+except Exception as e:
+    print(f"Warning: message model: {e}")
+
+try:
+    from app.models import recently_viewed as _rv  # noqa
+except Exception as e:
+    print(f"Warning: recently_viewed model: {e}")
+
+# ── Router imports ──
+from app.routers import admin
+from app.routers import auth
+from app.routers import availability
+from app.routers import bookings
+from app.routers import coupons
+from app.routers import dining
+from app.routers import events
+from app.routers import group_bookings
+from app.routers import listing_images
+from app.routers import listings
+from app.routers import loyalty
+from app.routers import notifications
+from app.routers import payments
+from app.routers import recommendations
+from app.routers import reviews
+from app.routers import room_types
+from app.routers import ticket_bookings
+from app.routers import trip_planner
+from app.routers import users
+from app.routers import wishlist
+
+messages_router = None
+recently_viewed_router = None
+
+try:
+    from app.routers import messages as msg_mod
+
+    messages_router = msg_mod.router
+except Exception as e:
+    print(f"Warning: messages router: {e}")
+
+try:
+    from app.routers import recently_viewed as rv_mod
+
+    recently_viewed_router = rv_mod.router
+except Exception as e:
+    print(f"Warning: recently_viewed router: {e}")
 
 # Save and serve uploads from backend/uploads/
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
@@ -66,7 +90,6 @@ def create_app() -> FastAPI:
         title=settings.APP_TITLE,
         version=settings.APP_VERSION,
     )
-    # Enable CORS for React frontend
     origins = [
         "http://localhost:5173",
     ]
@@ -79,34 +102,41 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Create database tables (no destructive reset; tables created if missing)
     Base.metadata.create_all(bind=engine)
 
-    # Include routers
     app.include_router(auth.router)
-    app.include_router(bookings.router)
-    app.include_router(listings.router)
     app.include_router(users.router)
+    app.include_router(listings.router)
+    app.include_router(bookings.router)
     app.include_router(recommendations.router)
     app.include_router(admin.router)
-    app.include_router(reviews_router.router)
-    app.include_router(li_router.router)
-    app.include_router(rt_router.router)
-    app.include_router(notif_router.router)
-    app.include_router(pay_router.router)
-    app.include_router(tp_router.router)
-    app.include_router(dining_router.router)
-    app.include_router(events_router.router)
-    app.include_router(tb_router.router)
-    app.include_router(wishlist_router.router)
-    app.include_router(availability_router.router)
-    app.include_router(coupons_router.router)
-    app.include_router(group_bookings_router.router)
-    app.include_router(loyalty_router.router)
-    app.include_router(messages_router.router)
-    app.include_router(recently_viewed_router.router)
+    app.include_router(reviews.router)
+    app.include_router(listing_images.router)
+    app.include_router(room_types.router)
+    app.include_router(notifications.router)
+    app.include_router(payments.router)
+    app.include_router(trip_planner.router)
+    app.include_router(dining.router)
+    app.include_router(events.router)
+    app.include_router(ticket_bookings.router)
+    app.include_router(wishlist.router)
+    app.include_router(availability.router)
+    app.include_router(group_bookings.router)
+    app.include_router(coupons.router)
+    app.include_router(loyalty.router)
 
-    # Static files for uploaded images
+    if messages_router:
+        app.include_router(messages_router)
+        print("[OK] Messages router loaded")
+    else:
+        print("[WARN] Messages router NOT loaded")
+
+    if recently_viewed_router:
+        app.include_router(recently_viewed_router)
+        print("[OK] Recently viewed router loaded")
+    else:
+        print("[WARN] Recently viewed router NOT loaded")
+
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
