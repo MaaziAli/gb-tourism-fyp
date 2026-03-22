@@ -254,6 +254,25 @@ function AdminDashboard() {
           >
             Dashboard
           </button>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/admin/analytics')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') navigate('/admin/analytics')
+            }}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 400,
+              background: 'transparent',
+              color: '#94a3b8',
+              fontSize: '0.9rem',
+            }}
+          >
+            📊 Analytics
+          </div>
           <button
             type="button"
             onClick={() => setActiveSection('users')}
@@ -363,17 +382,46 @@ function AdminDashboard() {
 
         {!loading && !error && activeSection === 'dashboard' && stats && (
           <>
-            <h1
+            <div
               style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
                 marginBottom: '16px',
               }}
             >
-              Overview
-            </h1>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: '1.5rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Overview
+              </h1>
+              <button
+                type="button"
+                onClick={() => navigate('/admin/analytics')}
+                style={{
+                  background: 'linear-gradient(135deg, #16a34a, #0ea5e9)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '9px 18px',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                📊 Analytics
+              </button>
+            </div>
             <div
               style={{
                 display: 'grid',

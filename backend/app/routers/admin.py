@@ -305,3 +305,299 @@ def admin_delete_review(
     db.commit()
     return
 
+
+def _month_start(dt) -> "datetime":
+    from datetime import datetime
+
+    return dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def _add_months(dt, months: int) -> "datetime":
+    from datetime import datetime
+
+    y, m = dt.year, dt.month + months
+    while m <= 0:
+        m += 12
+        y -= 1
+    while m > 12:
+        m -= 12
+        y += 1
+    return datetime(y, m, 1)
+
+
+@router.get("/analytics/overview")
+def get_analytics_overview(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admins only")
+
+    from datetime import datetime
+
+    from app.models.event import Event
+    from app.models.ticket_booking import TicketBooking
+
+    now = datetime.utcnow()
+    first_of_this_month = _month_start(now)
+
+    total_users = db.query(User).count()
+    total_providers = (
+        db.query(User).filter(User.role == "provider").count()
+    )
+    total_listings = db.query(Listing).count()
+    total_bookings = (
+        db.query(Booking).filter(Booking.status != "cancelled").count()
+    )
+    total_events = db.query(Event).count()
+
+    booking_revenue = (
+        db.query(func.sum(Booking.total_price))
+        .filter(
+            Booking.status != "cancelled",
+            Booking.total_price > 0,
+        )
+        .scalar()
+        or 0
+    )
+
+    ticket_revenue = (
+        db.query(func.sum(TicketBooking.total_price))
+        .filter(TicketBooking.status != "cancelled")
+        .scalar()
+        or 0
+    )
+
+    total_revenue = float(booking_revenue or 0) + float(ticket_revenue or 0)
+    total_commission = round(total_revenue * 0.10, 2)
+
+    monthly_data = []
+    for month_offset in range(11, -1, -1):
+        ms = _add_months(first_of_this_month, -month_offset)
+        me = _add_months(ms, 1)
+        month_label = ms.strftime("%b %Y")
+        short_label = ms.strftime("%b")
+
+        m_revenue = (
+            db.query(func.sum(Booking.total_price))
+            .filter(
+                Booking.status != "cancelled",
+                Booking.total_price > 0,
+                Booking.created_at >= ms,
+                Booking.created_at < me,
+            )
+            .scalar()
+            or 0
+        )
+
+        t_revenue = (
+            db.query(func.sum(TicketBooking.total_price))
+            .filter(
+                TicketBooking.status != "cancelled",
+                TicketBooking.created_at >= ms,
+                TicketBooking.created_at < me,
+            )
+            .scalar()
+            or 0
+        )
+
+        rev = float(m_revenue or 0) + float(t_revenue or 0)
+
+        new_users = (
+            db.query(User)
+            .filter(User.created_at >= ms, User.created_at < me)
+            .count()
+        )
+
+        new_bookings = (
+            db.query(Booking)
+            .filter(
+                Booking.status != "cancelled",
+                Booking.created_at >= ms,
+                Booking.created_at < me,
+            )
+            .count()
+        )
+
+        monthly_data.append(
+            {
+                "month": month_label,
+                "short": short_label,
+                "revenue": round(rev, 2),
+                "commission": round(rev * 0.10, 2),
+                "bookings": new_bookings,
+                "new_users": new_users,
+            }
+        )
+
+    providers = db.query(User).filter(User.role == "provider").all()
+    provider_stats = []
+    for p in providers:
+        p_listings = (
+            db.query(Listing).filter(Listing.owner_id == p.id).all()
+        )
+        p_listing_ids = [l.id for l in p_listings]
+        if not p_listing_ids:
+            continue
+
+        p_revenue = (
+            db.query(func.sum(Booking.total_price))
+            .filter(
+                Booking.listing_id.in_(p_listing_ids),
+                Booking.status != "cancelled",
+            )
+            .scalar()
+            or 0
+        )
+
+        p_bookings = (
+            db.query(Booking)
+            .filter(
+                Booking.listing_id.in_(p_listing_ids),
+                Booking.status != "cancelled",
+            )
+            .count()
+        )
+
+        if float(p_revenue or 0) > 0:
+            pr = float(p_revenue or 0)
+            provider_stats.append(
+                {
+                    "name": p.full_name,
+                    "email": p.email,
+                    "listings": len(p_listings),
+                    "bookings": p_bookings,
+                    "revenue": round(pr, 2),
+                    "commission": round(pr * 0.10, 2),
+                }
+            )
+
+    provider_stats.sort(key=lambda x: x["revenue"], reverse=True)
+
+    all_listings = db.query(Listing).all()
+    listing_stats = []
+    for lst in all_listings:
+        l_revenue = (
+            db.query(func.sum(Booking.total_price))
+            .filter(
+                Booking.listing_id == lst.id,
+                Booking.status != "cancelled",
+            )
+            .scalar()
+            or 0
+        )
+
+        l_bookings = (
+            db.query(Booking)
+            .filter(
+                Booking.listing_id == lst.id,
+                Booking.status != "cancelled",
+            )
+            .count()
+        )
+
+        if l_bookings > 0:
+            listing_stats.append(
+                {
+                    "id": lst.id,
+                    "title": lst.title,
+                    "location": lst.location,
+                    "service_type": lst.service_type,
+                    "bookings": l_bookings,
+                    "revenue": round(float(l_revenue or 0), 2),
+                }
+            )
+
+    listing_stats.sort(key=lambda x: x["bookings"], reverse=True)
+
+    service_types = [
+        "hotel",
+        "tour",
+        "transport",
+        "activity",
+        "restaurant",
+        "car_rental",
+        "bike_rental",
+        "jeep_safari",
+        "boat_trip",
+        "horse_riding",
+        "guide",
+        "camping",
+        "medical",
+    ]
+    service_breakdown = []
+    for st in service_types:
+        count = (
+            db.query(Listing).filter(Listing.service_type == st).count()
+        )
+        if count > 0:
+            rev = (
+                db.query(func.sum(Booking.total_price))
+                .filter(Booking.status != "cancelled")
+                .join(Listing, Booking.listing_id == Listing.id)
+                .filter(Listing.service_type == st)
+                .scalar()
+                or 0
+            )
+
+            bk = (
+                db.query(Booking)
+                .join(Listing, Booking.listing_id == Listing.id)
+                .filter(
+                    Listing.service_type == st,
+                    Booking.status != "cancelled",
+                )
+                .count()
+            )
+
+            service_breakdown.append(
+                {
+                    "type": st,
+                    "listings": count,
+                    "bookings": bk,
+                    "revenue": round(float(rev or 0), 2),
+                }
+            )
+
+    service_breakdown.sort(key=lambda x: x["revenue"], reverse=True)
+
+    recent_bookings = (
+        db.query(Booking)
+        .order_by(Booking.created_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    recent_activity = []
+    for b in recent_bookings:
+        listing = db.query(Listing).filter(Listing.id == b.listing_id).first()
+        guest = db.query(User).filter(User.id == b.user_id).first()
+        recent_activity.append(
+            {
+                "type": "booking",
+                "user": guest.full_name if guest else "Unknown",
+                "service": listing.title if listing else "Unknown",
+                "amount": b.total_price,
+                "date": b.created_at.isoformat() if b.created_at else None,
+            }
+        )
+
+    return {
+        "totals": {
+            "users": total_users,
+            "providers": total_providers,
+            "listings": total_listings,
+            "bookings": total_bookings,
+            "events": total_events,
+            "revenue": round(total_revenue, 2),
+            "commission": total_commission,
+            "booking_revenue": round(float(booking_revenue or 0), 2),
+            "ticket_revenue": round(float(ticket_revenue or 0), 2),
+        },
+        "monthly": monthly_data,
+        "top_providers": provider_stats[:10],
+        "top_listings": listing_stats[:10],
+        "service_breakdown": service_breakdown,
+        "recent_activity": recent_activity,
+    }
+

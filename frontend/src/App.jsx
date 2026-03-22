@@ -17,6 +17,7 @@ import MyListings from './pages/MyListings'
 import Profile from './pages/Profile'
 import Recommendations from './pages/Recommendations'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminAnalytics from './pages/admin/AdminAnalytics'
 import ListingDetail from './pages/ListingDetail'
 import ProviderAnalytics from './pages/ProviderAnalytics'
 import PaymentPage from './pages/PaymentPage'
@@ -251,6 +252,14 @@ function App() {
               <PrivateRoute>
                 <Profile />
               </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/analytics"
+            element={
+              <AdminRoute>
+                <AdminAnalytics />
+              </AdminRoute>
             }
           />
           <Route
