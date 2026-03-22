@@ -3,10 +3,26 @@ import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 
 const TIER_COLORS = {
-  bronze: { bg: '#92400e', light: '#fef3c7', text: '#92400e' },
-  silver: { bg: '#6b7280', light: '#f3f4f6', text: '#4b5563' },
-  gold: { bg: '#d97706', light: '#fef9c3', text: '#b45309' },
-  platinum: { bg: '#7c3aed', light: '#f5f3ff', text: '#6d28d9' },
+  bronze: {
+    bg: '#b45309',
+    light: 'rgba(180, 83, 9, 0.1)',
+    text: '#b45309',
+  },
+  silver: {
+    bg: '#6b7280',
+    light: 'rgba(107, 114, 128, 0.1)',
+    text: '#6b7280',
+  },
+  gold: {
+    bg: '#d97706',
+    light: 'rgba(217, 119, 6, 0.1)',
+    text: '#d97706',
+  },
+  platinum: {
+    bg: '#7c3aed',
+    light: 'rgba(124, 58, 237, 0.1)',
+    text: '#7c3aed',
+  },
 }
 
 export default function LoyaltyPage() {
@@ -296,7 +312,7 @@ export default function LoyaltyPage() {
           maxWidth: '900px',
           margin: '0 auto',
           padding: '0 16px',
-          marginTop: '-60px',
+          marginTop: isMobile ? '-70px' : '-80px',
           position: 'relative',
           zIndex: 1,
         }}
@@ -350,7 +366,7 @@ export default function LoyaltyPage() {
                 background: 'var(--bg-card)',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-color)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
                 padding: isMobile ? '14px' : '20px',
                 borderTop: `3px solid ${card.color}`,
               }}

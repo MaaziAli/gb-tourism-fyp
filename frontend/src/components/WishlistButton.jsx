@@ -60,21 +60,24 @@ export default function WishlistButton({
         : 'Save to wishlist'
       }
       style={{
-        width: sz, height: sz,
+        width: sz,
+        height: sz,
         borderRadius: '50%',
-        background: saved
-          ? '#e11d48' : 'rgba(255,255,255,0.9)',
-        border: saved
-          ? 'none'
-          : '1px solid rgba(0,0,0,0.1)',
-        color: saved ? 'white' : '#e11d48',
-        cursor: 'pointer', fontSize: sz * 0.45,
-        display: 'flex', alignItems: 'center',
+        background: 'transparent',
+        border: 'none',
+        color: saved ? '#e11d48' : 'rgba(255,255,255,0.9)',
+        cursor: 'pointer',
+        fontSize: sz * 0.55,
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        boxShadow: saved ? 'none' : '0 1px 4px rgba(0,0,0,0.2)',
         transition: 'all 0.2s',
         opacity: loading ? 0.6 : 1,
-        flexShrink: 0
+        flexShrink: 0,
+        filter: saved
+          ? 'drop-shadow(0 0 4px rgba(225,29,72,0.4))'
+          : 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))',
       }}
     >
       {saved ? '❤️' : '🤍'}
