@@ -10,6 +10,9 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import Base, engine
+from app.models import user as _user_model  # noqa
+from app.models import listing as _listing_model  # noqa
+from app.models import booking as _booking_model  # noqa
 from app.models import review as _review_model  # noqa
 from app.models import listing_image as _li_model  # noqa
 from app.models import room_type as _rt_model  # noqa
@@ -42,9 +45,9 @@ from app.routers import (
     ticket_bookings as tb_router,
     wishlist as wishlist_router,
     availability as availability_router,
-    coupons as coupons_router,
     group_bookings as group_bookings_router,
 )
+from app.routers import coupons as coupons_router
 
 
 # Save and serve uploads from backend/uploads/
