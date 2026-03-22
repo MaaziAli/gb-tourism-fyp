@@ -119,7 +119,10 @@ def suggest_trip(
     )
 
     transports = db.query(Listing).filter(
-        Listing.service_type == "transport"
+        Listing.service_type.in_([
+            "transport", "car_rental",
+            "bike_rental", "jeep_safari",
+        ])
     ).all()
     matched_transport = [
         t for t in transports
@@ -150,7 +153,10 @@ def suggest_trip(
     )
 
     activities_all = db.query(Listing).filter(
-        Listing.service_type.in_(["tour", "activity"])
+        Listing.service_type.in_([
+            "tour", "activity", "horse_riding",
+            "guide", "boat_trip", "camping",
+        ])
     ).all()
     matched_activities = [
         a for a in activities_all

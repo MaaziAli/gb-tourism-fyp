@@ -51,6 +51,24 @@ function getServiceColor(type) {
       return '#d97706'
     case 'activity':
       return '#7c3aed'
+    case 'restaurant':
+      return '#e11d48'
+    case 'car_rental':
+      return '#0369a1'
+    case 'bike_rental':
+      return '#0891b2'
+    case 'jeep_safari':
+      return '#92400e'
+    case 'boat_trip':
+      return '#1d4ed8'
+    case 'horse_riding':
+      return '#7c2d12'
+    case 'medical':
+      return '#dc2626'
+    case 'guide':
+      return '#059669'
+    case 'camping':
+      return '#15803d'
     default:
       return '#0ea5e9'
   }
@@ -66,6 +84,24 @@ function getServiceEmoji(type) {
       return '🚐'
     case 'activity':
       return '🎯'
+    case 'restaurant':
+      return '🍽️'
+    case 'car_rental':
+      return '🚗'
+    case 'bike_rental':
+      return '🚲'
+    case 'jeep_safari':
+      return '🚙'
+    case 'boat_trip':
+      return '🚢'
+    case 'horse_riding':
+      return '🐴'
+    case 'medical':
+      return '🏥'
+    case 'guide':
+      return '🧭'
+    case 'camping':
+      return '🏕️'
     default:
       return '📍'
   }
@@ -274,6 +310,15 @@ export default function MapView() {
     { value: 'tour', label: 'Tours', emoji: '🏔️' },
     { value: 'transport', label: 'Transport', emoji: '🚐' },
     { value: 'activity', label: 'Activities', emoji: '🎯' },
+    { value: 'restaurant', label: 'Food', emoji: '🍽️' },
+    { value: 'car_rental', label: 'Car', emoji: '🚗' },
+    { value: 'bike_rental', label: 'Bike', emoji: '🚲' },
+    { value: 'jeep_safari', label: 'Jeep', emoji: '🚙' },
+    { value: 'boat_trip', label: 'Boat', emoji: '🚢' },
+    { value: 'horse_riding', label: 'Horse', emoji: '🐴' },
+    { value: 'medical', label: 'Medical', emoji: '🏥' },
+    { value: 'guide', label: 'Guide', emoji: '🧭' },
+    { value: 'camping', label: 'Camp', emoji: '🏕️' },
   ]
 
   return (

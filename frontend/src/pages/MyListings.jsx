@@ -329,7 +329,19 @@ export default function MyListings() {
                             {listing.service_type === 'transport' && '🚐 Transport'}
                             {listing.service_type === 'activity' && '🎯 Activity'}
                             {listing.service_type === 'restaurant' && '🍽️ Restaurant'}
-                            {!['hotel', 'tour', 'transport', 'activity', 'restaurant'].includes(
+                            {listing.service_type === 'car_rental' && '🚗 Car Rental'}
+                            {listing.service_type === 'bike_rental' && '🚲 Bike Rental'}
+                            {listing.service_type === 'jeep_safari' && '🚙 Jeep Safari'}
+                            {listing.service_type === 'boat_trip' && '🚢 Boat Trip'}
+                            {listing.service_type === 'horse_riding' && '🐴 Horse Riding'}
+                            {listing.service_type === 'medical' && '🏥 Medical'}
+                            {listing.service_type === 'guide' && '🧭 Guide'}
+                            {listing.service_type === 'camping' && '🏕️ Camping'}
+                            {![
+                              'hotel', 'tour', 'transport', 'activity', 'restaurant',
+                              'car_rental', 'bike_rental', 'jeep_safari', 'boat_trip',
+                              'horse_riding', 'medical', 'guide', 'camping',
+                            ].includes(
                               listing.service_type,
                             ) && listing.service_type?.toUpperCase()}
                           </span>

@@ -11,6 +11,14 @@ function getServiceBadge(type) {
     case 'transport': return { bg: '#d97706', label: '🚐 Transport' }
     case 'activity': return { bg: '#7c3aed', label: '🎯 Activity' }
     case 'restaurant': return { bg: '#e11d48', label: '🍽️ Restaurant' }
+    case 'car_rental': return { bg: '#0369a1', label: '🚗 Car Rental' }
+    case 'bike_rental': return { bg: '#0891b2', label: '🚲 Bike Rental' }
+    case 'jeep_safari': return { bg: '#92400e', label: '🚙 Jeep Safari' }
+    case 'boat_trip': return { bg: '#1d4ed8', label: '🚢 Boat Trip' }
+    case 'horse_riding': return { bg: '#7c2d12', label: '🐴 Horse Riding' }
+    case 'medical': return { bg: '#dc2626', label: '🏥 Medical' }
+    case 'guide': return { bg: '#059669', label: '🧭 Guide' }
+    case 'camping': return { bg: '#15803d', label: '🏕️ Camping' }
     default: return { bg: '#0ea5e9', label: type }
   }
 }

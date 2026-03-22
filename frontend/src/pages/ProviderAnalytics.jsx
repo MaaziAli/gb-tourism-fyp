@@ -4,6 +4,53 @@ import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import useWindowSize from '../hooks/useWindowSize'
 
+function getServiceBadge(type) {
+  switch (type) {
+    case 'hotel':
+      return { bg: '#2563eb', label: '🏨 Hotel' }
+    case 'tour':
+      return { bg: '#16a34a', label: '🏔️ Tour' }
+    case 'transport':
+      return { bg: '#d97706', label: '🚐 Transport' }
+    case 'activity':
+      return { bg: '#7c3aed', label: '🎯 Activity' }
+    case 'restaurant':
+      return { bg: '#e11d48', label: '🍽️ Restaurant' }
+    case 'car_rental':
+      return { bg: '#0369a1', label: '🚗 Car Rental' }
+    case 'bike_rental':
+      return { bg: '#0891b2', label: '🚲 Bike Rental' }
+    case 'jeep_safari':
+      return { bg: '#92400e', label: '🚙 Jeep Safari' }
+    case 'boat_trip':
+      return { bg: '#1d4ed8', label: '🚢 Boat Trip' }
+    case 'horse_riding':
+      return { bg: '#7c2d12', label: '🐴 Horse Riding' }
+    case 'medical':
+      return { bg: '#dc2626', label: '🏥 Medical' }
+    case 'guide':
+      return { bg: '#059669', label: '🧭 Guide' }
+    case 'camping':
+      return { bg: '#15803d', label: '🏕️ Camping' }
+    default:
+      return { bg: '#0ea5e9', label: type }
+  }
+}
+
+function getPriceLabel(serviceType) {
+  const perDay = [
+    'car_rental', 'bike_rental',
+    'jeep_safari', 'camping',
+  ]
+  const perPerson = [
+    'tour', 'activity', 'horse_riding',
+    'guide', 'boat_trip', 'restaurant',
+  ]
+  if (perDay.includes(serviceType)) return '/day'
+  if (perPerson.includes(serviceType)) return '/person'
+  return '/night'
+}
+
 export default function ProviderAnalytics() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -280,7 +327,9 @@ export default function ProviderAnalytics() {
                 gap: '12px',
               }}
             >
-              {data.listings_analytics?.map((listing, idx) => (
+              {data.listings_analytics?.map((listing, idx) => {
+                const sb = getServiceBadge(listing.service_type)
+                return (
                 <div
                   key={listing.id}
                   style={{
@@ -331,6 +380,20 @@ export default function ProviderAnalytics() {
                         >
                           {listing.title}
                         </div>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            background: sb.bg + '22',
+                            color: sb.bg,
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            marginBottom: '6px',
+                          }}
+                        >
+                          {sb.label}
+                        </span>
                         <div
                           style={{
                             fontSize: '0.8rem',
@@ -480,7 +543,8 @@ export default function ProviderAnalytics() {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div
@@ -609,7 +673,8 @@ export default function ProviderAnalytics() {
                         }}
                       >
                         📍 {l.location} · PKR{' '}
-                        {l.price_per_night?.toLocaleString('en-PK')}/night
+                        {l.price_per_night?.toLocaleString('en-PK')}
+                        {getPriceLabel(l.service_type)}
                       </div>
                     </div>
                     <div

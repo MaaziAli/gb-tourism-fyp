@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import useWindowSize from '../hooks/useWindowSize'
+import WishlistButton from '../components/WishlistButton'
 
 const SERVICE_TYPES = [
   { value: '', label: 'All Types' },
@@ -11,6 +12,14 @@ const SERVICE_TYPES = [
   { value: 'transport', label: '🚐 Transport' },
   { value: 'activity', label: '🎯 Activity' },
   { value: 'restaurant', label: '🍽️ Restaurant' },
+  { value: 'car_rental', label: '🚗 Car' },
+  { value: 'bike_rental', label: '🚲 Bike' },
+  { value: 'jeep_safari', label: '🚙 Jeep' },
+  { value: 'boat_trip', label: '🚢 Boat' },
+  { value: 'horse_riding', label: '🐴 Horse' },
+  { value: 'medical', label: '🏥 Medical' },
+  { value: 'guide', label: '🧭 Guide' },
+  { value: 'camping', label: '🏕️ Camping' },
 ]
 
 const SORT_OPTIONS = [
@@ -35,6 +44,14 @@ function getServiceBadge(type) {
     case 'transport': return { bg: '#d97706', label: '🚐 Transport' }
     case 'activity': return { bg: '#7c3aed', label: '🎯 Activity' }
     case 'restaurant': return { bg: '#e11d48', label: '🍽️ Restaurant' }
+    case 'car_rental': return { bg: '#0369a1', label: '🚗 Car Rental' }
+    case 'bike_rental': return { bg: '#0891b2', label: '🚲 Bike Rental' }
+    case 'jeep_safari': return { bg: '#92400e', label: '🚙 Jeep Safari' }
+    case 'boat_trip': return { bg: '#1d4ed8', label: '🚢 Boat Trip' }
+    case 'horse_riding': return { bg: '#7c2d12', label: '🐴 Horse Riding' }
+    case 'medical': return { bg: '#dc2626', label: '🏥 Medical' }
+    case 'guide': return { bg: '#059669', label: '🧭 Guide' }
+    case 'camping': return { bg: '#15803d', label: '🏕️ Camping' }
     default: return { bg: '#6b7280', label: type }
   }
 }
@@ -477,10 +494,20 @@ export default function Listings() {
                     }}>
                       {badge.label}
                     </span>
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px', right: '10px',
+                      zIndex: 2
+                    }}>
+                      <WishlistButton
+                        listingId={listing.id}
+                        size="sm"
+                      />
+                    </div>
                     {listing.average_rating > 0 && (
                       <span style={{
                         position: 'absolute',
-                        top: '12px', right: '12px',
+                        bottom: '12px', right: '12px',
                         background: 'rgba(0,0,0,0.65)',
                         backdropFilter: 'blur(4px)',
                         color: 'white',

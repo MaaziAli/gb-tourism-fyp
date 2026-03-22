@@ -376,6 +376,14 @@ function AddListing() {
               <option value="transport">🚗 Transport Service</option>
               <option value="activity">🧗 Activity</option>
               <option value="restaurant">🍽️ Restaurant</option>
+              <option value="car_rental">🚗 Car Rental</option>
+              <option value="bike_rental">🚲 Bike Rental</option>
+              <option value="jeep_safari">🚙 Jeep Safari</option>
+              <option value="boat_trip">🚢 Boat Trip</option>
+              <option value="horse_riding">🐴 Horse Riding</option>
+              <option value="medical">🏥 Medical Tourism</option>
+              <option value="guide">🧭 Local Guide</option>
+              <option value="camping">🏕️ Camping</option>
             </select>
           </div>
 

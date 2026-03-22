@@ -3,6 +3,21 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 
+function getPriceLabel(serviceType) {
+  const perDay = [
+    'car_rental', 'bike_rental',
+    'jeep_safari', 'camping',
+  ]
+  const perPerson = [
+    'tour', 'activity', 'horse_riding',
+    'guide', 'boat_trip',
+  ]
+  if (!serviceType) return '/night'
+  if (perDay.includes(serviceType)) return '/day'
+  if (perPerson.includes(serviceType)) return '/person'
+  return '/night'
+}
+
 export default function BookingForm() {
   const { listingId } = useParams()
   const navigate = useNavigate()
@@ -93,6 +108,14 @@ export default function BookingForm() {
   const pricePerNight =
     roomPrice || listing?.price_per_night || 0
 
+  const priceLabel = getPriceLabel(listing?.service_type)
+  const durationUnit =
+    ['car_rental', 'bike_rental', 'jeep_safari', 'camping'].includes(
+      listing?.service_type,
+    )
+      ? 'day'
+      : 'night'
+
   // SUCCESS STATE
   if (success) {
     return (
@@ -166,7 +189,9 @@ export default function BookingForm() {
                 gap: '4px', marginTop: '6px'
               }}>
                 <span>📅 {checkIn} → {checkOut}</span>
-                <span>🌙 {nights} night{nights > 1 ? 's' : ''}</span>
+                <span>🌙 {nights} {durationUnit}
+                  {nights > 1 ? 's' : ''}
+                </span>
                 <span style={{
                   fontWeight: 700, color: 'var(--accent)',
                   fontSize: '1rem', marginTop: '4px'
@@ -405,7 +430,8 @@ export default function BookingForm() {
                     color: 'var(--accent)',
                     fontSize: '0.95rem'
                   }}>
-                    {nights} night{nights > 1 ? 's' : ''}
+                    {nights} {durationUnit}
+                    {nights > 1 ? 's' : ''}
                   </span>
                 </div>
                 <span style={{
@@ -548,7 +574,9 @@ export default function BookingForm() {
                     color: 'var(--text-secondary)'
                   }}>
                     PKR {pricePerNight.toLocaleString('en-PK')}
-                    {' '}× {nights || '?'} night
+                    {priceLabel}
+                    {' '}× {nights || '?'}{' '}
+                    {durationUnit}
                     {nights > 1 ? 's' : ''}
                   </span>
                   <span style={{

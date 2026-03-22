@@ -213,6 +213,15 @@ function Navbar() {
                 {role === 'user' && (
                   <>
                     <NavLink
+                      to="/wishlist"
+                      className={({ isActive }) =>
+                        'nav-link' + (isActive ? ' active' : '')
+                      }
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      ❤️ Wishlist
+                    </NavLink>
+                    <NavLink
                       to="/my-tickets"
                       className={({ isActive: navActive }) =>
                         'nav-link' + (navActive ? ' active' : '')

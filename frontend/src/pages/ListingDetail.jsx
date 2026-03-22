@@ -4,6 +4,7 @@ import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import { getUser, getRole, isLoggedIn } from '../utils/role'
 import useWindowSize from '../hooks/useWindowSize'
+import WishlistButton from '../components/WishlistButton'
 
 function getServiceBadge(type) {
   switch (type) {
@@ -17,22 +18,39 @@ function getServiceBadge(type) {
       return { bg: '#7c3aed', label: '🎯 Activity' }
     case 'restaurant':
       return { bg: '#e11d48', label: '🍽️ Restaurant' }
+    case 'car_rental':
+      return { bg: '#0369a1', label: '🚗 Car Rental' }
+    case 'bike_rental':
+      return { bg: '#0891b2', label: '🚲 Bike Rental' }
+    case 'jeep_safari':
+      return { bg: '#92400e', label: '🚙 Jeep Safari' }
+    case 'boat_trip':
+      return { bg: '#1d4ed8', label: '🚢 Boat Trip' }
+    case 'horse_riding':
+      return { bg: '#7c2d12', label: '🐴 Horse Riding' }
+    case 'medical':
+      return { bg: '#dc2626', label: '🏥 Medical' }
+    case 'guide':
+      return { bg: '#059669', label: '🧭 Guide' }
+    case 'camping':
+      return { bg: '#15803d', label: '🏕️ Camping' }
     default:
       return { bg: '#0ea5e9', label: type }
   }
 }
 
 function getPriceLabel(serviceType) {
-  switch (serviceType) {
-    case 'restaurant':
-      return '/person'
-    case 'tour':
-      return '/person'
-    case 'activity':
-      return '/person'
-    default:
-      return '/night'
-  }
+  const perDay = [
+    'car_rental', 'bike_rental',
+    'jeep_safari', 'camping',
+  ]
+  const perPerson = [
+    'tour', 'activity', 'horse_riding',
+    'guide', 'boat_trip', 'restaurant',
+  ]
+  if (perDay.includes(serviceType)) return '/day'
+  if (perPerson.includes(serviceType)) return '/person'
+  return '/night'
 }
 
 function BookButton({ listingId, selectedRoom, ownerId }) {
@@ -429,27 +447,37 @@ export default function ListingDetail() {
           ← Back
         </button>
 
-        {isOwner && (
-          <button
-            onClick={() => navigate(`/edit-listing/${id}`)}
-            style={{
-              position: 'absolute',
-              top: '16px',
-              right: '16px',
-              background: 'rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: 'white',
-              borderRadius: '10px',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-            }}
-          >
-            ✏️ Edit
-          </button>
-        )}
+        <div
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center',
+          }}
+        >
+          <WishlistButton listingId={parseInt(id, 10)} />
+          {isOwner && (
+            <button
+              type="button"
+              onClick={() => navigate(`/edit-listing/${id}`)}
+              style={{
+                background: 'rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white',
+                borderRadius: '10px',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+              }}
+            >
+              ✏️ Edit
+            </button>
+          )}
+        </div>
 
         <div
           style={{

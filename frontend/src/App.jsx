@@ -32,6 +32,7 @@ import CreateEvent from './pages/CreateEvent'
 import MyEvents from './pages/MyEvents'
 import EventAttendees from './pages/EventAttendees'
 import EventAnalytics from './pages/EventAnalytics'
+import Wishlist from './pages/Wishlist'
 
 function App() {
   return (
@@ -76,6 +77,14 @@ function App() {
             element={
               <PrivateRoute>
                 <MyBookings />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/wishlist"
+            element={
+              <PrivateRoute>
+                <Wishlist />
               </PrivateRoute>
             }
           />
