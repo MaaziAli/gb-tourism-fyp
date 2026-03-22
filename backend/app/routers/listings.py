@@ -6,6 +6,7 @@ from uuid import uuid4
 import shutil
 
 from fastapi import APIRouter, Depends, HTTPException, File, Form, UploadFile
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.dependencies.auth import get_current_user
@@ -96,7 +97,49 @@ def get_listings(db: Session = Depends(get_db)):
             "owner_id": listing.owner_id,
             "average_rating": round(avg_rating, 1),
             "review_count": review_count,
+            "is_featured": bool(
+                getattr(listing, "is_featured", False)
+            ),
         })
+    return result
+
+
+@router.get("/featured")
+def get_featured_listings_public(db: Session = Depends(get_db)):
+    """Public endpoint for featured listings."""
+    from app.models.review import Review
+
+    listings = (
+        db.query(Listing)
+        .filter(Listing.is_featured.is_(True))
+        .limit(8)
+        .all()
+    )
+
+    result = []
+    for listing in listings:
+        stats = (
+            db.query(
+                func.avg(Review.rating).label("avg"),
+                func.count(Review.id).label("count"),
+            )
+            .filter(Review.listing_id == listing.id)
+            .first()
+        )
+
+        result.append(
+            {
+                "id": listing.id,
+                "title": listing.title,
+                "location": listing.location,
+                "service_type": listing.service_type,
+                "price_per_night": listing.price_per_night,
+                "image_url": listing.image_url,
+                "is_featured": True,
+                "average_rating": round(float(stats.avg or 0), 1),
+                "review_count": stats.count or 0,
+            }
+        )
     return result
 
 
@@ -131,6 +174,9 @@ def get_my_listings(
             "owner_id": listing.owner_id,
             "average_rating": round(avg_rating, 1),
             "review_count": review_count,
+            "is_featured": bool(
+                getattr(listing, "is_featured", False)
+            ),
         })
     return result
 
@@ -319,6 +365,9 @@ def smart_search(
                 "average_rating": avg_rating,
                 "review_count": review_count,
                 "relevance_score": score,
+                "is_featured": bool(
+                    getattr(listing, "is_featured", False)
+                ),
             }
         )
 
@@ -434,6 +483,9 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
         "owner_id": listing.owner_id,
         "average_rating": round(avg_rating, 1),
         "review_count": review_count,
+        "is_featured": bool(
+            getattr(listing, "is_featured", False)
+        ),
     }
 
 

@@ -22,6 +22,7 @@ import AdminAnalytics from './pages/admin/AdminAnalytics'
 import ListingDetail from './pages/ListingDetail'
 import ProviderAnalytics from './pages/ProviderAnalytics'
 import ProviderDashboard from './pages/ProviderDashboard'
+import ProviderEarningsChart from './pages/ProviderEarningsChart'
 import NotificationsPage from './pages/NotificationsPage'
 import PaymentPage from './pages/PaymentPage'
 import PaymentHistory from './pages/PaymentHistory'
@@ -207,6 +208,14 @@ function App() {
             element={
               <ProviderRoute>
                 <ProviderDashboard />
+              </ProviderRoute>
+            }
+          />
+          <Route
+            path="/earnings-chart"
+            element={
+              <ProviderRoute>
+                <ProviderEarningsChart />
               </ProviderRoute>
             }
           />

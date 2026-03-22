@@ -494,6 +494,19 @@ export default function Listings() {
                     }}>
                       {badge.label}
                     </span>
+                    {listing.is_featured && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '8px', right: '44px',
+                        background: '#f59e0b',
+                        color: 'white', padding: '2px 7px',
+                        borderRadius: '999px',
+                        fontSize: '0.65rem', fontWeight: 700,
+                        zIndex: 2
+                      }}>
+                        ⭐
+                      </div>
+                    )}
                     <div style={{
                       position: 'absolute',
                       top: '10px', right: '10px',

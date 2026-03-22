@@ -3,6 +3,293 @@ import { useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
 import useWindowSize from '../../hooks/useWindowSize'
 
+function FeaturedListingsManager() {
+  const [allListings, setAllListings] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    api
+      .get('/admin/listings')
+      .then((r) => setAllListings(r.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function toggleFeatured(listing) {
+    try {
+      const res = await api.patch(
+        `/admin/listings/${listing.id}/feature`,
+      )
+      setAllListings((prev) =>
+        prev.map((l) =>
+          l.id === listing.id
+            ? { ...l, is_featured: res.data.is_featured }
+            : l,
+        ),
+      )
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const SERVICE_COLORS = {
+    hotel: '#2563eb',
+    tour: '#16a34a',
+    transport: '#d97706',
+    activity: '#7c3aed',
+    restaurant: '#e11d48',
+  }
+
+  const filtered = allListings.filter(
+    (l) =>
+      !search ||
+      l.title?.toLowerCase().includes(search.toLowerCase()) ||
+      l.location?.toLowerCase().includes(search.toLowerCase()),
+  )
+
+  const featuredCount = allListings.filter((l) => l.is_featured).length
+
+  return (
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          gap: '12px',
+          marginBottom: '16px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div
+          style={{
+            background: '#fef3c7',
+            border: '1px solid #f59e0b44',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center',
+          }}
+        >
+          <span style={{ fontSize: '1.3rem' }}>⭐</span>
+          <div>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: '1.2rem',
+                color: '#d97706',
+              }}
+            >
+              {featuredCount}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#92400e' }}>
+              Featured now
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center',
+          }}
+        >
+          <span style={{ fontSize: '1.3rem' }}>🏨</span>
+          <div>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: '1.2rem',
+                color: 'var(--text-primary)',
+              }}
+            >
+              {allListings.length}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              Total listings
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ position: 'relative', marginBottom: '14px' }}>
+        <span
+          style={{
+            position: 'absolute',
+            left: '12px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            pointerEvents: 'none',
+          }}
+        >
+          🔍
+        </span>
+        <input
+          type="text"
+          placeholder="Search listings..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '9px 12px 9px 36px',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            fontSize: '0.875rem',
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+      </div>
+
+      {loading ? (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '40px',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          Loading listings...
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {filtered
+            .filter((l) => l.is_featured)
+            .concat(filtered.filter((l) => !l.is_featured))
+            .map((listing) => {
+              const color =
+                SERVICE_COLORS[listing.service_type] || '#6b7280'
+              return (
+                <div
+                  key={listing.id}
+                  style={{
+                    background: listing.is_featured
+                      ? '#fef9c3'
+                      : 'var(--bg-card)',
+                    borderRadius: 'var(--radius-md)',
+                    border: listing.is_featured
+                      ? '2px solid #f59e0b44'
+                      : '1px solid var(--border-color)',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '8px',
+                      background: color + '18',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.3rem',
+                      flexShrink: 0,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {listing.image_url ? (
+                      <img
+                        src={`http://127.0.0.1:8000/uploads/${listing.image_url}`}
+                        alt={listing.title}
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                        }}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      '🏢'
+                    )}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: '140px' }}>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        fontSize: '0.875rem',
+                        color: 'var(--text-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      {listing.is_featured && <span>⭐</span>}
+                      {listing.title}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      📍 {listing.location}
+                      {' · '}
+                      <span style={{ color: color, fontWeight: 600 }}>
+                        {listing.service_type}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      color: color,
+                      fontSize: '0.875rem',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    PKR{' '}
+                    {listing.price_per_night?.toLocaleString('en-PK')}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleFeatured(listing)}
+                    style={{
+                      padding: '7px 16px',
+                      borderRadius: '8px',
+                      border: listing.is_featured
+                        ? '2px solid #f59e0b'
+                        : '1px solid var(--border-color)',
+                      background: listing.is_featured
+                        ? '#fef3c7'
+                        : 'var(--bg-secondary)',
+                      color: listing.is_featured
+                        ? '#d97706'
+                        : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {listing.is_featured
+                      ? '⭐ Featured'
+                      : '☆ Make Featured'}
+                  </button>
+                </div>
+              )
+            })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AdminDashboard() {
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
@@ -149,6 +436,23 @@ function AdminDashboard() {
     } catch (err) {
       console.error('Failed to delete listing', err)
       alert('Failed to delete listing.')
+    }
+  }
+
+  const toggleListingFeatured = async (listing) => {
+    try {
+      const res = await api.patch(
+        `/admin/listings/${listing.id}/feature`,
+      )
+      setListings((prev) =>
+        prev.map((l) =>
+          l.id === listing.id
+            ? { ...l, is_featured: res.data.is_featured }
+            : l,
+        ),
+      )
+    } catch (e) {
+      console.error(e)
     }
   }
 
@@ -304,6 +608,24 @@ function AdminDashboard() {
             }}
           >
             Services
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('featured')}
+            style={{
+              textAlign: 'left',
+              padding: '8px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor:
+                activeSection === 'featured' ? '#1f2937' : 'transparent',
+              color: activeSection === 'featured' ? '#d97706' : '#94a3b8',
+              fontWeight: activeSection === 'featured' ? 700 : 400,
+              fontSize: '0.9rem',
+            }}
+          >
+            ⭐ Featured
           </button>
           <button
             type="button"
@@ -977,23 +1299,54 @@ function AdminDashboard() {
                         {listing.price_per_night?.toLocaleString('en-PK')}/
                         night
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteListing(listing.id)}
+                      <div
                         style={{
-                          padding: '7px 16px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          background: 'var(--danger-bg)',
-                          color: 'var(--danger)',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          fontSize: '0.82rem',
-                          width: '100%',
+                          display: 'flex',
+                          gap: '8px',
+                          flexWrap: 'wrap',
                         }}
                       >
-                        🗑️ Delete Service
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleListingFeatured(listing)}
+                          style={{
+                            padding: '5px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid #f59e0b44',
+                            background: listing.is_featured
+                              ? '#fef3c7'
+                              : 'var(--bg-secondary)',
+                            color: '#d97706',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: '0.78rem',
+                            flex: 1,
+                            minWidth: '120px',
+                          }}
+                        >
+                          {listing.is_featured
+                            ? '⭐ Featured'
+                            : '☆ Feature'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteListing(listing.id)}
+                          style={{
+                            padding: '7px 16px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: 'var(--danger-bg)',
+                            color: 'var(--danger)',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            fontSize: '0.82rem',
+                            flex: 1,
+                            minWidth: '120px',
+                          }}
+                        >
+                          🗑️ Delete Service
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1082,6 +1435,15 @@ function AdminDashboard() {
                           borderBottom: '1px solid var(--border-color)',
                         }}
                       >
+                        Feature
+                      </th>
+                      <th
+                        style={{
+                          padding: '10px 16px',
+                          color: 'var(--text-secondary)',
+                          borderBottom: '1px solid var(--border-color)',
+                        }}
+                      >
                         Actions
                       </th>
                     </tr>
@@ -1153,6 +1515,31 @@ function AdminDashboard() {
                         <td
                           style={{
                             padding: '10px 16px',
+                            borderBottom: '1px solid var(--border-color)',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleListingFeatured(l)}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid #f59e0b44',
+                              background: l.is_featured
+                                ? '#fef3c7'
+                                : 'var(--bg-secondary)',
+                              color: '#d97706',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              fontSize: '0.78rem',
+                            }}
+                          >
+                            {l.is_featured ? '⭐ Featured' : '☆ Feature'}
+                          </button>
+                        </td>
+                        <td
+                          style={{
+                            padding: '10px 16px',
                             borderBottom: '1px solid #f3f4f6',
                           }}
                         >
@@ -1179,6 +1566,43 @@ function AdminDashboard() {
               </div>
             )}
           </>
+        )}
+
+        {!loading && !error && activeSection === 'featured' && (
+          <div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: '1.4rem',
+                  fontWeight: 800,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                ⭐ Featured Listings
+              </h2>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '0.85rem',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                Featured listings appear on the home page and in recommendations
+              </p>
+            </div>
+
+            <FeaturedListingsManager />
+          </div>
         )}
 
         {!loading && !error && activeSection === 'reviews' && (

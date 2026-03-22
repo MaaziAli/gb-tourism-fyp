@@ -223,6 +223,22 @@ export default function ProviderDashboard() {
             >
               🎪 Create Event
             </button>
+            <button
+              type="button"
+              onClick={() => navigate('/earnings-chart')}
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white',
+                borderRadius: '10px',
+                padding: '9px 16px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+              }}
+            >
+              📈 Earnings Chart
+            </button>
           </div>
         </div>
       </div>

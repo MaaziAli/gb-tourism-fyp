@@ -95,7 +95,12 @@ export default function Home() {
   useEffect(() => {
     api.get('/listings').then(res => {
       const data = res.data || []
-      setFeaturedListings(data.slice(0, 6))
+      const sorted = [...data].sort((a, b) => {
+        if (a.is_featured && !b.is_featured) return -1
+        if (!a.is_featured && b.is_featured) return 1
+        return (b.average_rating || 0) - (a.average_rating || 0)
+      })
+      setFeaturedListings(sorted.slice(0, 6))
       const locs = new Set(
         data.map(l =>
           l.location?.split(',')[0]?.trim()
@@ -557,7 +562,7 @@ export default function Home() {
                   fontWeight: 800, color: 'var(--text-primary)',
                   letterSpacing: '-0.02em'
                 }}>
-                  Featured Services
+                  ⭐ Featured Services
                 </h2>
               </div>
               <button
@@ -645,14 +650,30 @@ export default function Home() {
                         background:
                           'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)'
                       }} />
+                      {listing.is_featured && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '8px', left: '8px',
+                          background:
+                            'linear-gradient(135deg, #f59e0b, #d97706)',
+                          color: 'white', padding: '3px 8px',
+                          borderRadius: '999px',
+                          fontSize: '0.68rem', fontWeight: 700,
+                          zIndex: 2
+                        }}>
+                          ⭐ Featured
+                        </div>
+                      )}
                       <span style={{
                         position: 'absolute',
-                        top: '12px', left: '12px',
+                        top: listing.is_featured ? '44px' : '12px',
+                        left: '12px',
                         background: badge.bg + 'ee',
                         color: 'white',
                         padding: '4px 10px',
                         borderRadius: '999px',
-                        fontSize: '0.72rem', fontWeight: 700
+                        fontSize: '0.72rem', fontWeight: 700,
+                        zIndex: 1
                       }}>
                         {badge.label}
                       </span>

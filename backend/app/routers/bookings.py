@@ -537,6 +537,160 @@ def get_provider_dashboard(
     }
 
 
+@router.get("/provider/earnings-breakdown")
+def get_earnings_breakdown(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role not in ["provider", "admin"]:
+        raise HTTPException(403, "Providers only")
+
+    from datetime import datetime, timedelta
+
+    from app.models.event import Event
+    from app.models.ticket_booking import TicketBooking
+
+    now = datetime.utcnow()
+
+    listings = db.query(Listing).filter(
+        Listing.owner_id == current_user.id
+    ).all()
+    listing_ids = [l.id for l in listings]
+
+    if listing_ids:
+        all_bookings = (
+            db.query(Booking)
+            .filter(
+                Booking.listing_id.in_(listing_ids),
+                Booking.status != "cancelled",
+                Booking.total_price > 0,
+            )
+            .all()
+        )
+    else:
+        all_bookings = []
+
+    monthly = []
+    for i in range(11, -1, -1):
+        d = now - timedelta(days=i * 30)
+        m_start = d.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        m_end = m_start + timedelta(days=32)
+        m_label = d.strftime("%b %Y")
+        m_short = d.strftime("%b")
+
+        m_bookings = [
+            b
+            for b in all_bookings
+            if b.created_at and m_start <= b.created_at < m_end
+        ]
+        m_gross = sum(b.total_price or 0 for b in m_bookings)
+        m_commission = round(m_gross * 0.10, 2)
+        m_net = round(m_gross - m_commission, 2)
+
+        monthly.append(
+            {
+                "month": m_label,
+                "short": m_short,
+                "gross": round(m_gross, 2),
+                "commission": m_commission,
+                "net": m_net,
+                "bookings": len(m_bookings),
+            }
+        )
+
+    weekly = []
+    for i in range(7, -1, -1):
+        w_start = now - timedelta(days=(i + 1) * 7)
+        w_end = now - timedelta(days=i * 7)
+        label = f"W{8 - i}"
+        if i == 0:
+            label = "This Week"
+        elif i == 1:
+            label = "Last Week"
+
+        w_bookings = [
+            b
+            for b in all_bookings
+            if b.created_at and w_start <= b.created_at < w_end
+        ]
+        w_gross = sum(b.total_price or 0 for b in w_bookings)
+        w_comm = round(w_gross * 0.10, 2)
+        weekly.append(
+            {
+                "week": label,
+                "gross": round(w_gross, 2),
+                "commission": w_comm,
+                "net": round(w_gross * 0.90, 2),
+                "bookings": len(w_bookings),
+            }
+        )
+
+    service_breakdown: dict = {}
+    for b in all_bookings:
+        listing = next(
+            (l for l in listings if l.id == b.listing_id),
+            None,
+        )
+        if not listing:
+            continue
+        st = listing.service_type
+        if st not in service_breakdown:
+            service_breakdown[st] = {
+                "type": st,
+                "gross": 0,
+                "net": 0,
+                "bookings": 0,
+            }
+        gross = b.total_price or 0
+        service_breakdown[st]["gross"] += gross
+        service_breakdown[st]["net"] += round(gross * 0.90, 2)
+        service_breakdown[st]["bookings"] += 1
+
+    service_list = sorted(
+        service_breakdown.values(),
+        key=lambda x: x["gross"],
+        reverse=True,
+    )
+
+    events = db.query(Event).filter(
+        Event.organizer_id == current_user.id
+    ).all()
+    event_ids = [e.id for e in events]
+    if event_ids:
+        event_bookings = (
+            db.query(TicketBooking)
+            .filter(
+                TicketBooking.event_id.in_(event_ids),
+                TicketBooking.status == "confirmed",
+            )
+            .all()
+        )
+    else:
+        event_bookings = []
+
+    event_earnings = sum(
+        b.organizer_amount or 0 for b in event_bookings
+    )
+
+    total_gross = sum(b.total_price or 0 for b in all_bookings)
+    total_commission = round(total_gross * 0.10, 2)
+    total_net = round(total_gross * 0.90, 2)
+
+    return {
+        "totals": {
+            "gross": round(total_gross, 2),
+            "commission": total_commission,
+            "net": total_net,
+            "event_earnings": round(event_earnings, 2),
+            "total_earnings": round(total_net + event_earnings, 2),
+            "bookings_count": len(all_bookings),
+        },
+        "monthly": monthly,
+        "weekly": weekly,
+        "by_service": service_list,
+    }
+
+
 @router.patch("/{booking_id}/cancel", response_model=BookingResponse)
 def cancel_booking(
     booking_id: int,

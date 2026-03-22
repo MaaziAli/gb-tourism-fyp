@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -15,6 +15,7 @@ class Listing(Base):
     service_type = Column(String, nullable=False)
     image_url = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    is_featured = Column(Boolean, default=False)
 
     owner = relationship("User", back_populates="owned_listings")
     bookings = relationship("Booking", back_populates="listing")

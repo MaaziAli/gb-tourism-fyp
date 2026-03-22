@@ -188,6 +188,9 @@ def admin_list_listings(db: Session = Depends(get_db)):
                 "owner_name": owner.full_name if owner else None,
                 "owner_email": owner.email if owner else None,
                 "bookings_count": booking_counts.get(listing.id, 0),
+                "is_featured": bool(
+                    getattr(listing, "is_featured", False)
+                ),
             }
         )
     return result
@@ -599,5 +602,51 @@ def get_analytics_overview(
         "top_listings": listing_stats[:10],
         "service_breakdown": service_breakdown,
         "recent_activity": recent_activity,
+    }
+
+
+@router.get("/listings/featured")
+def get_featured_listings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Admins only")
+    listings = (
+        db.query(Listing)
+        .filter(Listing.is_featured.is_(True))
+        .all()
+    )
+    return [
+        {
+            "id": l.id,
+            "title": l.title,
+            "location": l.location,
+            "service_type": l.service_type,
+            "price_per_night": l.price_per_night,
+            "image_url": l.image_url,
+            "is_featured": bool(l.is_featured),
+        }
+        for l in listings
+    ]
+
+
+@router.patch("/listings/{listing_id}/feature")
+def toggle_listing_featured(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(403, "Admins only")
+    listing = db.query(Listing).filter(Listing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(404, "Not found")
+    listing.is_featured = not bool(listing.is_featured)
+    db.commit()
+    db.refresh(listing)
+    return {
+        "id": listing_id,
+        "is_featured": bool(listing.is_featured),
     }
 
