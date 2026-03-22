@@ -32,14 +32,6 @@ export default function GroupSizeSelector({
   const [showTiers, setShowTiers] = useState(false)
   const tier = getTierForSize(value)
   const discount = tier.discount
-  const discountAmount = Math.round(
-    basePrice * nights * discount / 100
-  )
-  const totalPrice = basePrice * nights
-    - discountAmount
-  const perPerson = value > 0
-    ? Math.round(totalPrice / value)
-    : totalPrice
 
   return (
     <div>
@@ -148,22 +140,19 @@ export default function GroupSizeSelector({
         <div style={{
           background: '#dcfce7',
           border: '1px solid #86efac',
-          borderRadius: '10px', padding: '12px 14px',
-          marginBottom: '12px',
+          borderRadius: '10px', padding: '10px 14px',
+          marginBottom: '10px',
         }}>
           <div style={{
             fontWeight: 700, color: '#16a34a',
-            fontSize: '0.9rem', marginBottom: '4px',
+            fontSize: '0.875rem', marginBottom: '2px',
           }}>
-            🎉 {discount}% Group Discount Applied!
+            🎉 {discount}% Group Discount!
           </div>
           <div style={{
-            fontSize: '0.8rem', color: '#15803d',
+            fontSize: '0.75rem', color: '#15803d',
           }}>
-            Saving PKR {discountAmount
-              .toLocaleString('en-PK')} ·
-            PKR {perPerson.toLocaleString('en-PK')}
-            /person
+            See exact savings in the price summary →
           </div>
         </div>
       )}

@@ -112,46 +112,83 @@ export default function GroupBookingForm() {
           : groupSize >= 10 ? 10
           : groupSize >= 5 ? 5 : 0
         : 0
-      const base = basePrice * nightsCount
+
+      const serviceType = (
+        listing?.service_type || 'hotel'
+      ).toLowerCase()
+
+      let unitsNeeded = 1
+      let unitLabel = 'unit'
+      let baseCalc = 0
+
+      if ([
+        'tour', 'activity', 'horse_riding',
+        'guide', 'boat_trip', 'medical',
+      ].includes(serviceType)) {
+        unitsNeeded = groupSize
+        unitLabel = 'person'
+        baseCalc = basePrice * groupSize * nightsCount
+      } else if (['hotel', 'camping'].includes(serviceType)) {
+        const roomCap = 2
+        unitsNeeded = Math.ceil(groupSize / roomCap)
+        unitLabel = 'room'
+        baseCalc = basePrice * unitsNeeded * nightsCount
+      } else {
+        unitsNeeded = 1
+        unitLabel = 'vehicle'
+        baseCalc = basePrice * nightsCount
+      }
+
       const discountAmt = Math.round(
-        base * discountRate / 100
+        baseCalc * discountRate / 100
       )
-      const total = base - discountAmt
+      const total = baseCalc - discountAmt
 
       setPriceCalc({
         listing_title: listing?.title || '',
-        service_type: listing?.service_type || '',
+        service_type: serviceType,
         price_per_night: basePrice,
+        price_label: unitLabel,
+        unit_label: unitLabel,
+        units_needed: unitsNeeded,
+        room_capacity:
+          serviceType === 'hotel' ||
+          serviceType === 'camping' ? 2 : null,
         nights: nightsCount,
         check_in: checkIn,
         check_out: checkOut,
         group_size: groupSize,
-        base_price: base,
+        base_price: baseCalc,
         discount_rate: discountRate,
         discount_amount: discountAmt,
         total_price: total,
         price_per_person: Math.round(
           total / groupSize
         ),
-        room_capacity: null,
-        units_needed: 1,
         breakdown_text: [
-          `Estimate (offline): PKR ${basePrice.toLocaleString(
-            'en-PK'
-          )}/night × ${nightsCount} nights`,
-          `Subtotal ≈ PKR ${base.toLocaleString('en-PK')}`,
+          serviceType === 'hotel' ||
+          serviceType === 'camping'
+            ? `${unitsNeeded} room(s) for ${groupSize} people (2/room)`
+            : serviceType === 'tour' ||
+              serviceType === 'activity' ||
+              serviceType === 'horse_riding' ||
+              serviceType === 'guide' ||
+              serviceType === 'boat_trip' ||
+              serviceType === 'medical'
+              ? `PKR ${basePrice.toLocaleString('en-PK')}/person × ${groupSize} people × ${nightsCount} nights`
+              : `PKR ${basePrice.toLocaleString('en-PK')} × ${nightsCount} nights`,
+          `Subtotal: PKR ${baseCalc.toLocaleString('en-PK')}`,
           discountRate > 0
-            ? `Group discount ${discountRate}% ≈ -PKR ${
-                discountAmt.toLocaleString('en-PK')
-              }`
+            ? `Group discount ${discountRate}% = -PKR ${discountAmt.toLocaleString('en-PK')}`
             : null,
-          `Total ≈ PKR ${total.toLocaleString('en-PK')}`,
+          `Total: PKR ${total.toLocaleString('en-PK')}`,
+          `Per person: PKR ${Math.round(total / groupSize).toLocaleString('en-PK')}`,
         ].filter(Boolean),
         breakdown: {
           base: `PKR ${basePrice.toLocaleString(
             'en-PK'
           )} × ${nightsCount} night(s)`,
-          subtotal: `PKR ${base.toLocaleString(
+          subtotal: `PKR ${baseCalc.toLocaleString(
             'en-PK'
           )}`,
           group_discount: discountRate > 0

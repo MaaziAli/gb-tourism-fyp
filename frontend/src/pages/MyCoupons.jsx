@@ -21,8 +21,9 @@ export default function MyCoupons() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [formError, setFormError] = useState('')
+  const [formSuccess, setFormSuccess] = useState('')
+  const [pageError, setPageError] = useState('')
   const { isMobile } = useWindowSize()
 
   const [code, setCode] = useState('')
@@ -62,11 +63,16 @@ export default function MyCoupons() {
     try {
       const res = await api.get('/coupons/my-coupons')
       setCoupons(res.data)
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
+      setPageError('')
+    } catch (e) {
+      console.error(e)
+      setPageError('Could not load coupons. Try again later.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  function resetForm() {
+  function resetFormFields() {
     setCode(''); setTitle(''); setDescription('')
     setCouponType('general')
     setDiscountType('percentage')
@@ -74,7 +80,12 @@ export default function MyCoupons() {
     setMaxDiscount(''); setMaxUses('')
     setMaxPerUser('1'); setValidFrom('')
     setValidUntil(''); setIsPublic(true)
-    setError(''); setSuccess('')
+  }
+
+  function resetForm() {
+    resetFormFields()
+    setFormError('')
+    setFormSuccess('')
   }
 
   function generateCode() {
@@ -93,19 +104,19 @@ export default function MyCoupons() {
 
   async function handleCreate() {
     if (!code.trim()) {
-      setError('Coupon code is required')
+      setFormError('Coupon code is required')
       return
     }
     if (!title.trim()) {
-      setError('Title is required')
+      setFormError('Title is required')
       return
     }
     if (!discountValue ||
         parseFloat(discountValue) <= 0) {
-      setError('Discount value is required')
+      setFormError('Discount value is required')
       return
     }
-    setError('')
+    setFormError('')
     setCreating(true)
     try {
       const res = await api.post('/coupons/', {
@@ -126,13 +137,14 @@ export default function MyCoupons() {
         is_public: isPublic,
       })
       setCoupons(prev => [res.data, ...prev])
-      setSuccess(
+      resetFormFields()
+      setFormError('')
+      setFormSuccess(
         `✅ Coupon "${res.data.code}" created!`
       )
-      resetForm()
       setShowForm(false)
     } catch (e) {
-      setError(apiErrorDetail(e))
+      setFormError(apiErrorDetail(e))
     } finally {
       setCreating(false)
     }
@@ -214,7 +226,8 @@ export default function MyCoupons() {
             type="button"
             onClick={() => {
               setShowForm(true)
-              setSuccess('')
+              setFormSuccess('')
+              setFormError('')
             }}
             style={{
               background: 'white',
@@ -236,7 +249,19 @@ export default function MyCoupons() {
         padding: '0 16px',
       }}>
 
-        {success && (
+        {pageError && (
+          <div style={{
+            background: 'var(--danger-bg)',
+            color: 'var(--danger)', padding: '12px 16px',
+            borderRadius: '10px',
+            marginBottom: '16px',
+            fontWeight: 600, fontSize: '0.9rem',
+          }}>
+            ⚠️ {pageError}
+          </div>
+        )}
+
+        {formSuccess && (
           <div style={{
             background: '#dcfce7',
             color: '#16a34a', padding: '12px 16px',
@@ -244,7 +269,7 @@ export default function MyCoupons() {
             marginBottom: '16px',
             fontWeight: 600, fontSize: '0.9rem',
           }}>
-            {success}
+            {formSuccess}
           </div>
         )}
 
@@ -275,6 +300,7 @@ export default function MyCoupons() {
                 onClick={() => {
                   setShowForm(false)
                   resetForm()
+                  setFormError('')
                 }}
                 style={{
                   background: 'transparent',
@@ -287,7 +313,7 @@ export default function MyCoupons() {
               </button>
             </div>
 
-            {error && (
+            {formError && (
               <div style={{
                 background: 'var(--danger-bg)',
                 color: 'var(--danger)',
@@ -296,7 +322,7 @@ export default function MyCoupons() {
                 marginBottom: '16px',
                 fontWeight: 600, fontSize: '0.875rem',
               }}>
-                ⚠️ {error}
+                ⚠️ {formError}
               </div>
             )}
 
@@ -799,6 +825,7 @@ export default function MyCoupons() {
                 onClick={() => {
                   setShowForm(false)
                   resetForm()
+                  setFormError('')
                 }}
                 style={{
                   flex: 1, padding: '12px',
