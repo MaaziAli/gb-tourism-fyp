@@ -45,6 +45,9 @@ def create_listing(
     price_per_night: float = Form(...),
     service_type: str = Form(...),
     description: str | None = Form(None),
+    cancellation_policy: str = Form("moderate"),
+    cancellation_hours_free: int = Form(48),
+    rooms_available: int = Form(10),
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -64,6 +67,9 @@ def create_listing(
         service_type=service_type,
         image_url=image_filename,
         description=description,
+        cancellation_policy=cancellation_policy or "moderate",
+        cancellation_hours_free=cancellation_hours_free or 48,
+        rooms_available=rooms_available if rooms_available is not None else 10,
     )
     db.add(listing)
     db.commit()
@@ -655,7 +661,49 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
     avg_rating = 0.0
     if review_count > 0:
         avg_rating = sum(r.rating for r in reviews) / review_count
-    return {
+
+    owner = db.query(User).filter(User.id == listing.owner_id).first()
+
+    cancel_policy = getattr(listing, "cancellation_policy", None) or "moderate"
+    cancel_hours = getattr(listing, "cancellation_hours_free", None) or 48
+    rooms_left = getattr(listing, "rooms_available", None)
+    if rooms_left is None:
+        rooms_left = 10
+
+    policy_map = {
+        "flexible": {
+            "label": "Flexible",
+            "color": "#16a34a",
+            "description": (
+                f"Free cancellation up to {cancel_hours}h before check-in. "
+                "50% refund after that."
+            ),
+            "emoji": "✅",
+        },
+        "moderate": {
+            "label": "Moderate",
+            "color": "#d97706",
+            "description": (
+                f"Free cancellation up to {cancel_hours}h before check-in. "
+                "No refund within 24h."
+            ),
+            "emoji": "⚠️",
+        },
+        "strict": {
+            "label": "Strict",
+            "color": "#dc2626",
+            "description": (
+                "50% refund up to 1 week before. No refund after that."
+            ),
+            "emoji": "❌",
+        },
+    }
+
+    price = listing.price_per_night or 0
+    taxes = round(price * 0.10, 2)
+    service_fee = round(price * 0.05, 2)
+
+    listing_data = {
         "id": listing.id,
         "title": listing.title,
         "description": listing.description,
@@ -664,12 +712,34 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
         "service_type": listing.service_type,
         "image_url": listing.image_url,
         "owner_id": listing.owner_id,
+        "owner_name": owner.full_name if owner else "Provider",
         "average_rating": round(avg_rating, 1),
         "review_count": review_count,
         "is_featured": bool(
             getattr(listing, "is_featured", False)
         ),
+        "cancellation_policy": cancel_policy,
+        "cancellation_policy_info": policy_map.get(
+            cancel_policy,
+            policy_map["moderate"],
+        ),
+        "rooms_available": rooms_left,
+        "urgency": (
+            f"Only {rooms_left} rooms left!"
+            if rooms_left is not None and rooms_left <= 5
+            else None
+        ),
+        "price_breakdown_sample": {
+            "base_price": price,
+            "taxes": taxes,
+            "service_fee": service_fee,
+            "total_per_night": round(price + taxes + service_fee, 2),
+            "tax_rate": 10,
+            "service_fee_rate": 5,
+            "note": "Taxes & fees included in final total",
+        },
     }
+    return listing_data
 
 
 @router.put("/{listing_id}", response_model=ListingResponse)
@@ -680,6 +750,9 @@ def update_listing(
     price_per_night: float = Form(...),
     service_type: str = Form(...),
     description: str | None = Form(None),
+    cancellation_policy: str | None = Form(None),
+    cancellation_hours_free: int | None = Form(None),
+    rooms_available: int | None = Form(None),
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -699,6 +772,12 @@ def update_listing(
     listing.service_type = service_type
     if description is not None:
         listing.description = description
+    if cancellation_policy is not None:
+        listing.cancellation_policy = cancellation_policy
+    if cancellation_hours_free is not None:
+        listing.cancellation_hours_free = cancellation_hours_free
+    if rooms_available is not None:
+        listing.rooms_available = rooms_available
 
     # When a new image is uploaded, replace the old file on disk and update image_url.
     if image is not None:

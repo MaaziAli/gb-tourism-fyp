@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import useWindowSize from '../hooks/useWindowSize'
+import RecentlyViewed from '../components/RecentlyViewed'
 
 function getServiceBadge(type) {
   switch(type) {
@@ -528,6 +529,14 @@ export default function Home() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div style={{
+        maxWidth: '1100px',
+        margin: '0 auto',
+        padding: '0 16px',
+      }}>
+        <RecentlyViewed />
       </div>
 
       {/* ══════════════════════════════════════

@@ -5,6 +5,8 @@ import useWindowSize from '../hooks/useWindowSize'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
 import CouponInput from '../components/CouponInput'
 import PointsEarnedPopup from '../components/PointsEarnedPopup'
+import PriceBreakdown from '../components/PriceBreakdown'
+import CancellationPolicy from '../components/CancellationPolicy'
 
 function getPriceLabel(serviceType) {
   const perDay = [
@@ -560,6 +562,13 @@ export default function BookingForm() {
             }}>
               📋 Booking Policies
             </h3>
+            <div style={{ marginBottom: '16px' }}>
+              <CancellationPolicy
+                policy={listing?.cancellation_policy || 'moderate'}
+                policyInfo={listing?.cancellation_policy_info}
+                compact={false}
+              />
+            </div>
             {[
               { icon: '✅', text: 'Free cancellation anytime before check-in' },
               { icon: '💳', text: 'No payment required now — pay at property' },
@@ -654,88 +663,44 @@ export default function BookingForm() {
               }} />
 
               {/* Price breakdown */}
-              <div style={{marginBottom: '16px'}}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '8px'
-                }}>
-                  <span style={{
-                    fontSize: '0.875rem',
-                    color: 'var(--text-secondary)'
-                  }}>
-                    PKR {pricePerNight.toLocaleString('en-PK')}
-                    {priceLabel}
-                    {' '}× {nights || '?'}{' '}
-                    {durationUnit}
-                    {nights > 1 ? 's' : ''}
-                  </span>
-                  <span style={{
-                    fontSize: '0.875rem',
-                    color: 'var(--text-primary)',
-                    fontWeight: 600
-                  }}>
-                    PKR {nights > 0
-                      ? subtotal.toLocaleString('en-PK')
-                      : '—'
-                    }
-                  </span>
-                </div>
-                {nights > 0 && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <CouponInput
-                      key={`${subtotal}-${checkIn}-${checkOut}`}
-                      listingId={parseInt(listingId, 10)}
-                      listingOwnerId={listing?.owner_id || null}
-                      bookingAmount={subtotal}
-                      onApply={(data) => {
-                        setCouponDiscount(data.discount_amount)
-                        setAppliedCoupon(data)
-                      }}
-                      onRemove={() => {
-                        setCouponDiscount(0)
-                        setAppliedCoupon(null)
-                      }}
+              <div style={{ marginBottom: '16px' }}>
+                {nights > 0 ? (
+                  <>
+                    <PriceBreakdown
+                      pricePerNight={pricePerNight}
+                      nights={nights}
+                      groupSize={1}
+                      serviceType={listing?.service_type}
+                      couponDiscount={couponDiscount}
+                      compact={false}
                     />
-                  </div>
-                )}
-                {couponDiscount > 0 && (
+                    <div style={{ marginTop: '12px' }}>
+                      <CouponInput
+                        key={`${subtotal}-${checkIn}-${checkOut}`}
+                        listingId={parseInt(listingId, 10)}
+                        listingOwnerId={listing?.owner_id || null}
+                        bookingAmount={subtotal}
+                        onApply={(data) => {
+                          setCouponDiscount(data.discount_amount)
+                          setAppliedCoupon(data)
+                        }}
+                        onRemove={() => {
+                          setCouponDiscount(0)
+                          setAppliedCoupon(null)
+                        }}
+                      />
+                    </div>
+                  </>
+                ) : (
                   <div style={{
-                    display: 'flex', justifyContent: 'space-between',
-                    padding: '8px 0', fontSize: '0.875rem',
-                    color: '#16a34a',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.875rem',
+                    padding: '12px',
                   }}>
-                    <span>🎟️ Coupon Discount</span>
-                    <span style={{ fontWeight: 700 }}>
-                      - PKR {couponDiscount.toLocaleString('en-PK')}
-                    </span>
+                    Select dates to see price breakdown
                   </div>
                 )}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '12px 0',
-                  borderTop: '1px solid var(--border-color)',
-                  marginTop: '8px'
-                }}>
-                  <span style={{
-                    fontWeight: 800,
-                    color: 'var(--text-primary)',
-                    fontSize: '1rem'
-                  }}>
-                    Total
-                  </span>
-                  <span style={{
-                    fontWeight: 800,
-                    color: 'var(--accent)',
-                    fontSize: '1.15rem'
-                  }}>
-                    PKR {nights > 0
-                      ? discountedTotal.toLocaleString('en-PK')
-                      : '—'
-                    }
-                  </span>
-                </div>
               </div>
 
               {/* Error */}

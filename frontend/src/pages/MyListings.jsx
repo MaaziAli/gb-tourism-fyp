@@ -12,6 +12,8 @@ export default function MyListings() {
   const [reviewsMap, setReviewsMap] = useState({})
   const [expandedReviews, setExpandedReviews] = useState(null)
   const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [replyingTo, setReplyingTo] = useState(null)
+  const [replyText, setReplyText] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -69,6 +71,18 @@ export default function MyListings() {
       }))
     } catch(e) { console.error(e) }
     finally { setReviewsLoading(false) }
+  }
+
+  async function refreshReviewsForListing(listingId) {
+    try {
+      const res = await api.get(`/reviews/listing/${listingId}`)
+      setReviewsMap((prev) => ({
+        ...prev,
+        [listingId]: res.data,
+      }))
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   async function deleteListing(id) {
@@ -885,6 +899,118 @@ export default function MyListings() {
                                   }}>
                                     No comment left.
                                   </p>
+                                )}
+                                {!r.provider_reply ? (
+                                  <div style={{ marginTop: '8px' }}>
+                                    {replyingTo === r.id ? (
+                                      <div>
+                                        <textarea
+                                          value={replyText}
+                                          onChange={(e) =>
+                                            setReplyText(e.target.value)
+                                          }
+                                          placeholder="Write your public reply..."
+                                          rows={2}
+                                          style={{
+                                            width: '100%',
+                                            padding: '8px 10px',
+                                            borderRadius: '8px',
+                                            border: '1px solid var(--border-color)',
+                                            background: 'var(--bg-secondary)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.82rem', outline: 'none',
+                                            resize: 'vertical', marginBottom: '6px',
+                                            fontFamily: 'var(--font-primary)',
+                                            boxSizing: 'border-box'
+                                          }}
+                                        />
+                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                          <button
+                                            type="button"
+                                            onClick={async () => {
+                                              try {
+                                                await api.post(
+                                                  `/reviews/${r.id}/reply`,
+                                                  { reply: replyText }
+                                                )
+                                                setReplyingTo(null)
+                                                setReplyText('')
+                                                refreshReviewsForListing(listing.id)
+                                              } catch (e) {
+                                                console.error(e)
+                                              }
+                                            }}
+                                            style={{
+                                              padding: '6px 14px',
+                                              borderRadius: '8px', border: 'none',
+                                              background: 'var(--accent)',
+                                              color: 'white', cursor: 'pointer',
+                                              fontWeight: 600, fontSize: '0.78rem'
+                                            }}
+                                          >
+                                            Submit Reply
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setReplyingTo(null)
+                                              setReplyText('')
+                                            }}
+                                            style={{
+                                              padding: '6px 14px',
+                                              borderRadius: '8px',
+                                              border: '1px solid var(--border-color)',
+                                              background: 'transparent',
+                                              color: 'var(--text-secondary)',
+                                              cursor: 'pointer', fontSize: '0.78rem'
+                                            }}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setReplyingTo(r.id)
+                                          setReplyText('')
+                                        }}
+                                        style={{
+                                          padding: '5px 12px',
+                                          borderRadius: '7px',
+                                          border: '1px solid var(--accent)',
+                                          background: 'var(--accent-light)',
+                                          color: 'var(--accent)',
+                                          cursor: 'pointer',
+                                          fontSize: '0.75rem', fontWeight: 600
+                                        }}
+                                      >
+                                        💬 Reply to Review
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div style={{
+                                    marginTop: '8px',
+                                    background: 'var(--accent-light)',
+                                    borderRadius: '8px',
+                                    padding: '8px 10px',
+                                    borderLeft: '3px solid var(--accent)',
+                                    fontSize: '0.78rem'
+                                  }}>
+                                    <div style={{
+                                      fontWeight: 700, color: 'var(--accent)',
+                                      marginBottom: '3px'
+                                    }}>
+                                      ✅ Your Reply:
+                                    </div>
+                                    <span style={{
+                                      color: 'var(--text-secondary)'
+                                    }}>
+                                      {r.provider_reply}
+                                    </span>
+                                  </div>
                                 )}
                               </div>
                             </div>

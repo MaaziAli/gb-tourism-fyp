@@ -28,6 +28,8 @@ from app.models import wishlist as _w_model  # noqa
 from app.models import availability as _av_model  # noqa
 from app.models import coupon as _coupon_model  # noqa
 from app.models import loyalty as _loyalty_model  # noqa
+from app.models import message as _message_model  # noqa
+from app.models import recently_viewed as _recently_viewed_model  # noqa
 from app.routers import (
     auth,
     bookings,
@@ -50,6 +52,8 @@ from app.routers import (
 )
 from app.routers import coupons as coupons_router
 from app.routers import loyalty as loyalty_router
+from app.routers import messages as messages_router
+from app.routers import recently_viewed as recently_viewed_router
 
 
 # Save and serve uploads from backend/uploads/
@@ -99,6 +103,8 @@ def create_app() -> FastAPI:
     app.include_router(coupons_router.router)
     app.include_router(group_bookings_router.router)
     app.include_router(loyalty_router.router)
+    app.include_router(messages_router.router)
+    app.include_router(recently_viewed_router.router)
 
     # Static files for uploaded images
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

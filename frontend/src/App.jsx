@@ -42,6 +42,7 @@ import Wishlist from './pages/Wishlist'
 import PublicCoupons from './pages/PublicCoupons'
 import MyCoupons from './pages/MyCoupons'
 import LoyaltyPage from './pages/LoyaltyPage'
+import MessagesPage from './pages/MessagesPage'
 import CompareBar from './components/CompareBar'
 import ComparePage from './pages/ComparePage'
 
@@ -92,6 +93,14 @@ function App() {
             element={
               <PrivateRoute>
                 <MyBookings />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <PrivateRoute>
+                <MessagesPage />
               </PrivateRoute>
             }
           />

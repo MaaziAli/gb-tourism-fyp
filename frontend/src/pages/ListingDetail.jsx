@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
@@ -8,6 +8,9 @@ import WishlistButton from '../components/WishlistButton'
 import CompareButton from '../components/CompareButton'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
 import PointsEarnedPopup from '../components/PointsEarnedPopup'
+import PriceBreakdown from '../components/PriceBreakdown'
+import CancellationPolicy from '../components/CancellationPolicy'
+import UrgencyBanner from '../components/UrgencyBanner'
 
 function getServiceBadge(type) {
   switch (type) {
@@ -191,6 +194,24 @@ export default function ListingDetail() {
   const [resError, setResError] = useState('')
   const [pointsPopup, setPointsPopup] = useState(null)
 
+  const [subRatings, setSubRatings] = useState({
+    cleanliness_rating: 0,
+    location_rating: 0,
+    value_rating: 0,
+    staff_rating: 0,
+    facilities_rating: 0,
+  })
+  const [sidebarCheckIn, setSidebarCheckIn] = useState('')
+  const [sidebarCheckOut, setSidebarCheckOut] = useState('')
+
+  const sidebarNights = useMemo(() => {
+    if (!sidebarCheckIn || !sidebarCheckOut) return 0
+    const d1 = new Date(sidebarCheckIn)
+    const d2 = new Date(sidebarCheckOut)
+    const n = Math.round((d2 - d1) / (1000 * 60 * 60 * 24))
+    return n > 0 ? n : 0
+  }, [sidebarCheckIn, sidebarCheckOut])
+
   const currentUser = getUser()
   const userRole = getRole()
   const isAdmin = userRole === 'admin'
@@ -302,11 +323,19 @@ export default function ListingDetail() {
       const res = await api.post(`/reviews/listing/${id}`, {
         rating,
         comment,
+        ...subRatings,
       })
       setReviews((prev) => [res.data, ...prev])
       setAlreadyReviewed(true)
       setReviewMsg('✅ Review submitted!')
       setComment('')
+      setSubRatings({
+        cleanliness_rating: 0,
+        location_rating: 0,
+        value_rating: 0,
+        staff_rating: 0,
+        facilities_rating: 0,
+      })
       const sRes = await api.get(`/reviews/listing/${id}/summary`)
       setSummary(sRes.data)
       const lRes = await api.get(`/listings/${id}`)
@@ -1239,6 +1268,74 @@ export default function ListingDetail() {
                         }
                       </span>
                     </div>
+                    {[
+                      {
+                        key: 'cleanliness_rating',
+                        label: '🧹 Cleanliness',
+                      },
+                      {
+                        key: 'location_rating',
+                        label: '📍 Location',
+                      },
+                      {
+                        key: 'value_rating',
+                        label: '💰 Value for Money',
+                      },
+                      {
+                        key: 'staff_rating',
+                        label: '👥 Staff',
+                      },
+                      {
+                        key: 'facilities_rating',
+                        label: '🏨 Facilities',
+                      },
+                    ].map((sub) => (
+                      <div key={sub.key} style={{
+                        marginBottom: '10px',
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '4px',
+                          fontSize: '0.82rem',
+                          color: 'var(--text-secondary)',
+                        }}>
+                          <span>{sub.label}</span>
+                          <span style={{ fontWeight: 600 }}>
+                            {subRatings[sub.key] || 0}/5
+                          </span>
+                        </div>
+                        <div style={{
+                          display: 'flex', gap: '4px',
+                        }}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => setSubRatings(
+                                (prev) => ({ ...prev, [sub.key]: star }),
+                              )}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  setSubRatings(
+                                    (prev) => ({ ...prev, [sub.key]: star }),
+                                  )
+                                }
+                              }}
+                              style={{
+                                cursor: 'pointer', fontSize: '1.2rem',
+                                color: star <=
+                                  (subRatings[sub.key] || 0)
+                                  ? '#f59e0b' : '#d1d5db',
+                                transition: 'color 0.1s',
+                              }}
+                            >★</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                     <textarea
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
@@ -1429,6 +1526,80 @@ export default function ListingDetail() {
                           {review.comment}
                         </p>
                       )}
+                      {(review.cleanliness_rating > 0 ||
+                        review.location_rating > 0) && (
+                        <div style={{
+                          marginTop: '10px',
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(2, 1fr)',
+                          gap: '6px',
+                        }}>
+                          {[
+                            { key: 'cleanliness_rating',
+                              label: '🧹 Clean' },
+                            { key: 'location_rating',
+                              label: '📍 Location' },
+                            { key: 'value_rating',
+                              label: '💰 Value' },
+                            { key: 'staff_rating',
+                              label: '👥 Staff' },
+                            { key: 'facilities_rating',
+                              label: '🏨 Facilities' },
+                          ].filter((s) => (review[s.key] || 0) > 0)
+                            .map((sub) => (
+                              <div key={sub.key} style={{
+                                fontSize: '0.72rem',
+                              }}>
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  marginBottom: '2px',
+                                  color: 'var(--text-muted)',
+                                }}>
+                                  <span>{sub.label}</span>
+                                  <span style={{ fontWeight: 600 }}>
+                                    {Number(review[sub.key]).toFixed(1)}
+                                  </span>
+                                </div>
+                                <div style={{
+                                  height: '4px',
+                                  background: 'var(--border-color)',
+                                  borderRadius: '2px', overflow: 'hidden',
+                                }}>
+                                  <div style={{
+                                    width: `${(Number(review[sub.key]) / 5) * 100}%`,
+                                    height: '100%',
+                                    background: '#f59e0b',
+                                    borderRadius: '2px',
+                                  }} />
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                      {review.provider_reply && (
+                        <div style={{
+                          marginTop: '10px',
+                          background: 'var(--accent-light)',
+                          borderRadius: '8px',
+                          padding: '10px 12px',
+                          borderLeft: '3px solid var(--accent)',
+                        }}>
+                          <div style={{
+                            fontSize: '0.72rem', fontWeight: 700,
+                            color: 'var(--accent)', marginBottom: '4px',
+                          }}>
+                            🏨 Provider Response
+                          </div>
+                          <p style={{
+                            margin: 0, fontSize: '0.8rem',
+                            color: 'var(--text-secondary)',
+                            lineHeight: 1.5,
+                          }}>
+                            {review.provider_reply}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1506,8 +1677,18 @@ export default function ListingDetail() {
             </div>
 
             <div style={{ padding: '20px' }}>
+              <UrgencyBanner
+                roomsLeft={listing?.rooms_available}
+              />
               {listing.service_type === 'restaurant' ? (
                 <div>
+                  <div style={{ marginBottom: '14px' }}>
+                    <CancellationPolicy
+                      policy={listing?.cancellation_policy}
+                      policyInfo={listing?.cancellation_policy_info}
+                      compact={false}
+                    />
+                  </div>
                   {diningPackages.length > 0 && (
                     <div style={{ marginBottom: '16px' }}>
                       <label
@@ -1881,6 +2062,37 @@ export default function ListingDetail() {
                     </button>
                   )}
 
+                  {!isOwner &&
+                    isLoggedIn() &&
+                    currentUser?.id &&
+                    currentUser?.role !== 'admin' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate(
+                          `/messages?listing_id=${listing.id}`
+                          + `&user_id=${listing.owner_id}`
+                          + `&name=${encodeURIComponent(
+                            listing?.owner_name || 'Provider'
+                          )}`
+                        )
+                      }}
+                      style={{
+                        width: '100%', padding: '11px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer', fontWeight: 600,
+                        fontSize: '0.875rem', marginTop: '10px',
+                        display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', gap: '6px',
+                      }}
+                    >
+                      💬 Message Provider
+                    </button>
+                  )}
+
                   {isOwner && (
                     <button
                       onClick={() => navigate(`/edit-listing/${id}`)}
@@ -1903,6 +2115,90 @@ export default function ListingDetail() {
                 </div>
               ) : (
                 <div>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '8px',
+                    marginBottom: '14px',
+                  }}>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '4px',
+                      }}
+                      >
+                        Check-in
+                      </label>
+                      <input
+                        type="date"
+                        value={sidebarCheckIn}
+                        min={today}
+                        onChange={(e) => setSidebarCheckIn(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.82rem',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '4px',
+                      }}
+                      >
+                        Check-out
+                      </label>
+                      <input
+                        type="date"
+                        value={sidebarCheckOut}
+                        min={sidebarCheckIn || today}
+                        onChange={(e) => setSidebarCheckOut(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.82rem',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '14px' }}>
+                    <CancellationPolicy
+                      policy={listing?.cancellation_policy}
+                      policyInfo={listing?.cancellation_policy_info}
+                      compact={false}
+                    />
+                  </div>
+                  {sidebarNights > 0 && (
+                    <div style={{ marginBottom: '14px' }}>
+                      <PriceBreakdown
+                        pricePerNight={
+                          selectedRoom?.price_per_night
+                          || listing?.price_per_night
+                        }
+                        nights={sidebarNights}
+                        groupSize={1}
+                        serviceType={listing?.service_type}
+                        compact={false}
+                      />
+                    </div>
+                  )}
                   {listing.service_type === 'hotel' &&
                     roomTypes.length > 0 && (
                       <div style={{ marginBottom: '14px' }}>
@@ -2024,6 +2320,37 @@ export default function ListingDetail() {
                     serviceType={listing?.service_type}
                   />
 
+                  {!isOwner &&
+                    isLoggedIn() &&
+                    currentUser?.id &&
+                    currentUser?.role !== 'admin' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate(
+                          `/messages?listing_id=${listing.id}`
+                          + `&user_id=${listing.owner_id}`
+                          + `&name=${encodeURIComponent(
+                            listing?.owner_name || 'Provider'
+                          )}`
+                        )
+                      }}
+                      style={{
+                        width: '100%', padding: '11px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer', fontWeight: 600,
+                        fontSize: '0.875rem', marginTop: '8px',
+                        display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', gap: '6px',
+                      }}
+                    >
+                      💬 Message Provider
+                    </button>
+                  )}
+
                   {isOwner && (
                     <button
                       onClick={() => navigate(`/edit-listing/${id}`)}
@@ -2055,8 +2382,8 @@ export default function ListingDetail() {
                 }}
               >
                 {listing.service_type === 'restaurant'
-                  ? '🍽️ Free cancellation · No prepayment'
-                  : '✅ Free cancellation · Pay at property'}
+                  ? '🍽️ See cancellation policy above'
+                  : '✅ Taxes & fees shown in price breakdown when dates selected'}
               </p>
             </div>
           </div>

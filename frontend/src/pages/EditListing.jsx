@@ -43,6 +43,9 @@ function EditListing() {
   })
   const [pkgMsg, setPkgMsg] = useState('')
   const [addingPkg, setAddingPkg] = useState(false)
+  const [cancelPolicy, setCancelPolicy] = useState('moderate')
+  const [cancelHours, setCancelHours] = useState(48)
+  const [roomsAvailable, setRoomsAvailable] = useState(10)
 
   useEffect(() => {
     let isMounted = true
@@ -63,6 +66,15 @@ function EditListing() {
         )
         setServiceType(data.service_type || 'hotel')
         setCurrentImageUrl(data.image_url || '')
+        setCancelPolicy(data.cancellation_policy || 'moderate')
+        setCancelHours(
+          data.cancellation_hours_free != null
+            ? data.cancellation_hours_free
+            : 48,
+        )
+        setRoomsAvailable(
+          data.rooms_available != null ? data.rooms_available : 10,
+        )
       })
       .catch((err) => {
         if (!isMounted) return
@@ -234,6 +246,9 @@ function EditListing() {
       formData.append('description', description)
       formData.append('price_per_night', pricePerNight)
       formData.append('service_type', serviceType)
+      formData.append('cancellation_policy', cancelPolicy)
+      formData.append('cancellation_hours_free', String(cancelHours))
+      formData.append('rooms_available', String(roomsAvailable))
       if (imageFile) {
         formData.append('image', imageFile)
       }
@@ -1040,6 +1055,121 @@ function EditListing() {
                 color: 'var(--text-primary)',
               }}
             />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{
+              display: 'block', fontWeight: 700,
+              marginBottom: '8px', fontSize: '0.85rem',
+              color: 'var(--text-primary)',
+            }}
+            >
+              ❌ Cancellation Policy
+            </label>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '8px',
+            }}
+            >
+              {[
+                {
+                  key: 'flexible', emoji: '✅',
+                  label: 'Flexible',
+                  desc: 'Free cancel 48h before',
+                },
+                {
+                  key: 'moderate', emoji: '⚠️',
+                  label: 'Moderate',
+                  desc: 'Free cancel 5 days before',
+                },
+                {
+                  key: 'strict', emoji: '❌',
+                  label: 'Strict',
+                  desc: '50% refund 1 week before',
+                },
+              ].map((p) => (
+                <div
+                  key={p.key}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setCancelPolicy(p.key)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') setCancelPolicy(p.key)
+                  }}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '10px', cursor: 'pointer',
+                    border: cancelPolicy === p.key
+                      ? '2px solid var(--accent)'
+                      : '1px solid var(--border-color)',
+                    background: cancelPolicy === p.key
+                      ? 'var(--accent-light)'
+                      : 'var(--bg-secondary)',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: '1.3rem' }}>
+                    {p.emoji}
+                  </div>
+                  <div style={{
+                    fontWeight: 700, fontSize: '0.82rem',
+                    color: cancelPolicy === p.key
+                      ? 'var(--accent)'
+                      : 'var(--text-primary)',
+                    marginTop: '4px',
+                  }}
+                  >
+                    {p.label}
+                  </div>
+                  <div style={{
+                    fontSize: '0.68rem',
+                    color: 'var(--text-muted)', marginTop: '2px',
+                  }}
+                  >
+                    {p.desc}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{
+              display: 'block', fontWeight: 700,
+              marginBottom: '6px', fontSize: '0.85rem',
+              color: 'var(--text-primary)',
+            }}
+            >
+              🛏️ Rooms Available
+            </label>
+            <input
+              type="number"
+              value={roomsAvailable}
+              onChange={(e) =>
+                setRoomsAvailable(
+                  parseInt(e.target.value, 10) || 1
+                )
+              }
+              min={1}
+              max={999}
+              style={{
+                width: '100%', padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                fontSize: '0.9rem', outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <p style={{
+              margin: '4px 0 0', fontSize: '0.72rem',
+              color: 'var(--text-muted)',
+            }}
+            >
+              Shows &quot;Only X left&quot; when ≤ 5 rooms
+            </p>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

@@ -24,5 +24,8 @@ class ListingUpdate(BaseModel):
 class ListingResponse(ListingBase):
     id: int
     owner_id: int
+    cancellation_policy: str | None = "moderate"
+    cancellation_hours_free: int | None = 48
+    rooms_available: int | None = 10
 
     model_config = {"from_attributes": True}

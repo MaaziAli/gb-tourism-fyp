@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { isLoggedIn, getUser, getRole } from '../utils/role'
+import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import NotificationBell from './NotificationBell'
 import LoyaltyBadge from './LoyaltyBadge'
@@ -233,16 +234,61 @@ const PUBLIC_LINKS = [
   { icon: '🔍', label: 'Search', path: '/search' },
 ]
 
+function travelerGroupsWithUnread(unread) {
+  return [
+    TRAVELER_GROUPS[0],
+    {
+      label: '📅 My Bookings',
+      items: [
+        { icon: '📅', label: 'My Bookings', path: '/my-bookings' },
+        { icon: '💬', label: unread > 0 ? `Messages (${unread})` : 'Messages', path: '/messages' },
+        { icon: '🎟️', label: 'My Tickets', path: '/my-tickets' },
+        { icon: '🍽️', label: 'Reservations', path: '/my-reservations' },
+        { icon: '💳', label: 'Spending', path: '/my-spending' },
+      ],
+    },
+    TRAVELER_GROUPS[2],
+  ]
+}
+
+function providerGroupsWithUnread(unread) {
+  return [
+    PROVIDER_GROUPS[0],
+    {
+      label: '🏨 My Services',
+      items: [
+        { icon: '📊', label: 'Dashboard', path: '/provider-dashboard' },
+        { icon: '📈', label: 'Earnings Chart', path: '/earnings-chart' },
+        { icon: '📋', label: 'My Listings', path: '/my-listings' },
+        { icon: '➕', label: 'Add Service', path: '/add-listing' },
+        { icon: '💬', label: unread > 0 ? `Messages (${unread})` : 'Messages', path: '/messages' },
+        { icon: '📊', label: 'Analytics', path: '/my-analytics' },
+        { icon: '💰', label: 'Payments', path: '/provider-payments' },
+        { icon: '🎟️', label: 'My Coupons', path: '/my-coupons' },
+      ],
+    },
+    PROVIDER_GROUPS[2],
+  ]
+}
+
 export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isMobile } = useWindowSize()
   const [menuOpen, setMenuOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   const user = getUser()
   const role = getRole()
   const loggedIn = isLoggedIn()
+
+  useEffect(() => {
+    if (!loggedIn) return
+    api.get('/messages/unread-count')
+      .then((r) => setUnreadMessages(r.data?.unread ?? 0))
+      .catch(() => {})
+  }, [location.pathname, loggedIn])
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -262,7 +308,11 @@ export default function Navbar() {
     setMenuOpen(false)
   }, [location.pathname])
 
-  const groups = role === 'provider' ? PROVIDER_GROUPS : role === 'user' ? TRAVELER_GROUPS : []
+  const groups = useMemo(() => {
+    if (role === 'provider') return providerGroupsWithUnread(unreadMessages)
+    if (role === 'user') return travelerGroupsWithUnread(unreadMessages)
+    return []
+  }, [role, unreadMessages])
 
   return (
     <>

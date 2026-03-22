@@ -16,6 +16,9 @@ class Listing(Base):
     image_url = Column(String, nullable=True)
     description = Column(String, nullable=True)
     is_featured = Column(Boolean, default=False)
+    cancellation_policy = Column(String, default="moderate")
+    cancellation_hours_free = Column(Integer, default=48)
+    rooms_available = Column(Integer, default=10)
 
     owner = relationship("User", back_populates="owned_listings")
     bookings = relationship("Booking", back_populates="listing")
