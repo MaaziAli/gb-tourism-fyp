@@ -691,6 +691,107 @@ def get_earnings_breakdown(
     }
 
 
+@router.get("/provider/analytics")
+def get_provider_analytics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role not in ["provider", "admin"]:
+        raise HTTPException(status_code=403, detail="Providers only")
+
+    # Get all listings owned by this provider
+    listings = db.query(Listing).filter(
+        Listing.owner_id == current_user.id
+    ).all()
+
+    listing_ids = [l.id for l in listings]
+
+    if not listing_ids:
+        return {
+            "total_listings": 0,
+            "total_bookings": 0,
+            "active_bookings": 0,
+            "cancelled_bookings": 0,
+            "total_revenue": 0,
+            "avg_revenue_per_listing": 0,
+            "total_reviews": 0,
+            "average_rating": 0,
+            "listings_analytics": [],
+        }
+
+    # Get all bookings for those listings
+    all_bookings = db.query(Booking).filter(
+        Booking.listing_id.in_(listing_ids)
+    ).all()
+
+    active_bookings = [b for b in all_bookings if b.status == "active"]
+    cancelled_bookings = [b for b in all_bookings if b.status == "cancelled"]
+    total_revenue = sum(b.total_price or 0 for b in active_bookings)
+
+    # Get all reviews for those listings
+    all_reviews = db.query(Review).filter(
+        Review.listing_id.in_(listing_ids)
+    ).all()
+
+    avg_rating = (
+        round(
+            sum(r.rating for r in all_reviews) / len(all_reviews),
+            1,
+        )
+        if all_reviews
+        else 0
+    )
+
+    # Per-listing breakdown
+    listings_analytics = []
+    for listing in listings:
+        l_bookings = [b for b in all_bookings if b.listing_id == listing.id]
+        l_active = [b for b in l_bookings if b.status == "active"]
+        l_revenue = sum(b.total_price or 0 for b in l_active)
+        l_reviews = [r for r in all_reviews if r.listing_id == listing.id]
+        l_avg = (
+            round(
+                sum(r.rating for r in l_reviews) / len(l_reviews),
+                1,
+            )
+            if l_reviews
+            else 0
+        )
+
+        listings_analytics.append(
+            {
+                "id": listing.id,
+                "title": listing.title,
+                "location": listing.location,
+                "service_type": listing.service_type,
+                "price_per_night": listing.price_per_night,
+                "image_url": listing.image_url,
+                "total_bookings": len(l_bookings),
+                "active_bookings": len(l_active),
+                "total_revenue": l_revenue,
+                "total_reviews": len(l_reviews),
+                "average_rating": l_avg,
+            }
+        )
+
+    # Sort by revenue descending
+    listings_analytics.sort(key=lambda x: x["total_revenue"], reverse=True)
+
+    return {
+        "total_listings": len(listings),
+        "total_bookings": len(all_bookings),
+        "active_bookings": len(active_bookings),
+        "cancelled_bookings": len(cancelled_bookings),
+        "total_revenue": total_revenue,
+        "avg_revenue_per_listing": (
+            round(total_revenue / len(listings), 0) if listings else 0
+        ),
+        "total_reviews": len(all_reviews),
+        "average_rating": avg_rating,
+        "listings_analytics": listings_analytics,
+    }
+
+
 @router.get("/{booking_id}/voucher")
 def get_booking_voucher(
     booking_id: int,
@@ -831,104 +932,3 @@ def cancel_booking(
         )
 
     return booking
-
-
-@router.get("/provider/analytics")
-def get_provider_analytics(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    if current_user.role not in ["provider", "admin"]:
-        raise HTTPException(status_code=403, detail="Providers only")
-
-    # Get all listings owned by this provider
-    listings = db.query(Listing).filter(
-        Listing.owner_id == current_user.id
-    ).all()
-
-    listing_ids = [l.id for l in listings]
-
-    if not listing_ids:
-        return {
-            "total_listings": 0,
-            "total_bookings": 0,
-            "active_bookings": 0,
-            "cancelled_bookings": 0,
-            "total_revenue": 0,
-            "avg_revenue_per_listing": 0,
-            "total_reviews": 0,
-            "average_rating": 0,
-            "listings_analytics": [],
-        }
-
-    # Get all bookings for those listings
-    all_bookings = db.query(Booking).filter(
-        Booking.listing_id.in_(listing_ids)
-    ).all()
-
-    active_bookings = [b for b in all_bookings if b.status == "active"]
-    cancelled_bookings = [b for b in all_bookings if b.status == "cancelled"]
-    total_revenue = sum(b.total_price or 0 for b in active_bookings)
-
-    # Get all reviews for those listings
-    all_reviews = db.query(Review).filter(
-        Review.listing_id.in_(listing_ids)
-    ).all()
-
-    avg_rating = (
-        round(
-            sum(r.rating for r in all_reviews) / len(all_reviews),
-            1,
-        )
-        if all_reviews
-        else 0
-    )
-
-    # Per-listing breakdown
-    listings_analytics = []
-    for listing in listings:
-        l_bookings = [b for b in all_bookings if b.listing_id == listing.id]
-        l_active = [b for b in l_bookings if b.status == "active"]
-        l_revenue = sum(b.total_price or 0 for b in l_active)
-        l_reviews = [r for r in all_reviews if r.listing_id == listing.id]
-        l_avg = (
-            round(
-                sum(r.rating for r in l_reviews) / len(l_reviews),
-                1,
-            )
-            if l_reviews
-            else 0
-        )
-
-        listings_analytics.append(
-            {
-                "id": listing.id,
-                "title": listing.title,
-                "location": listing.location,
-                "service_type": listing.service_type,
-                "price_per_night": listing.price_per_night,
-                "image_url": listing.image_url,
-                "total_bookings": len(l_bookings),
-                "active_bookings": len(l_active),
-                "total_revenue": l_revenue,
-                "total_reviews": len(l_reviews),
-                "average_rating": l_avg,
-            }
-        )
-
-    # Sort by revenue descending
-    listings_analytics.sort(key=lambda x: x["total_revenue"], reverse=True)
-
-    return {
-        "total_listings": len(listings),
-        "total_bookings": len(all_bookings),
-        "active_bookings": len(active_bookings),
-        "cancelled_bookings": len(cancelled_bookings),
-        "total_revenue": total_revenue,
-        "avg_revenue_per_listing": (
-            round(total_revenue / len(listings), 0) if listings else 0
-        ),
-        "total_reviews": len(all_reviews),
-        "average_rating": avg_rating,
-        "listings_analytics": listings_analytics,
-    }
