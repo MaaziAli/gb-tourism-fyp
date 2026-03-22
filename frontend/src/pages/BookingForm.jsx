@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
+import CouponInput from '../components/CouponInput'
 
 function getPriceLabel(serviceType) {
   const perDay = [
@@ -38,6 +39,9 @@ export default function BookingForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [bookingId, setBookingId] = useState(null)
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [confirmedTotal, setConfirmedTotal] = useState(null)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -77,6 +81,14 @@ export default function BookingForm() {
     }
   }, [checkIn, checkOut, roomPrice, listing])
 
+  useEffect(() => {
+    setCouponDiscount(0)
+    setAppliedCoupon(null)
+  }, [totalPrice])
+
+  const subtotal = totalPrice
+  const discountedTotal = Math.max(0, subtotal - couponDiscount)
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!checkIn || !checkOut) {
@@ -91,13 +103,15 @@ export default function BookingForm() {
     setSubmitting(true)
     try {
       const res = await api.post('/bookings/', {
-        listing_id: parseInt(listingId),
+        listing_id: parseInt(listingId, 10),
         check_in: checkIn,
         check_out: checkOut,
         room_type_id: roomTypeId
-          ? parseInt(roomTypeId) : null
+          ? parseInt(roomTypeId, 10) : null,
+        coupon_code: appliedCoupon?.code || null,
       })
       setBookingId(res.data.id)
+      setConfirmedTotal(res.data.total_price)
       setSuccess(true)
     } catch(e) {
       setError(e.response?.data?.detail || 'Booking failed')
@@ -197,7 +211,7 @@ export default function BookingForm() {
                   fontWeight: 700, color: 'var(--accent)',
                   fontSize: '1rem', marginTop: '4px'
                 }}>
-                  PKR {totalPrice.toLocaleString('en-PK')} total
+                  PKR {(confirmedTotal ?? discountedTotal).toLocaleString('en-PK')} total
                 </span>
               </div>
             </div>
@@ -216,7 +230,7 @@ export default function BookingForm() {
                   fontSize: '1rem', cursor: 'pointer'
                 }}
               >
-                💳 Pay Now — PKR {totalPrice.toLocaleString('en-PK')}
+                💳 Pay Now — PKR {(confirmedTotal ?? discountedTotal).toLocaleString('en-PK')}
               </button>
               <button
                 onClick={() => navigate('/my-bookings')}
@@ -472,7 +486,7 @@ export default function BookingForm() {
                   fontWeight: 800, fontSize: '1.1rem',
                   color: 'var(--accent)'
                 }}>
-                  PKR {totalPrice.toLocaleString('en-PK')}
+                  PKR {discountedTotal.toLocaleString('en-PK')}
                 </span>
               </div>
             ) : (
@@ -619,11 +633,40 @@ export default function BookingForm() {
                     fontWeight: 600
                   }}>
                     PKR {nights > 0
-                      ? totalPrice.toLocaleString('en-PK')
+                      ? subtotal.toLocaleString('en-PK')
                       : '—'
                     }
                   </span>
                 </div>
+                {nights > 0 && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <CouponInput
+                      key={`${subtotal}-${checkIn}-${checkOut}`}
+                      listingId={parseInt(listingId, 10)}
+                      bookingAmount={subtotal}
+                      onApply={(data) => {
+                        setCouponDiscount(data.discount_amount)
+                        setAppliedCoupon(data)
+                      }}
+                      onRemove={() => {
+                        setCouponDiscount(0)
+                        setAppliedCoupon(null)
+                      }}
+                    />
+                  </div>
+                )}
+                {couponDiscount > 0 && (
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between',
+                    padding: '8px 0', fontSize: '0.875rem',
+                    color: '#16a34a',
+                  }}>
+                    <span>🎟️ Coupon Discount</span>
+                    <span style={{ fontWeight: 700 }}>
+                      - PKR {couponDiscount.toLocaleString('en-PK')}
+                    </span>
+                  </div>
+                )}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -644,7 +687,7 @@ export default function BookingForm() {
                     fontSize: '1.15rem'
                   }}>
                     PKR {nights > 0
-                      ? totalPrice.toLocaleString('en-PK')
+                      ? discountedTotal.toLocaleString('en-PK')
                       : '—'
                     }
                   </span>
@@ -687,7 +730,7 @@ export default function BookingForm() {
                 {submitting
                   ? '⏳ Confirming...'
                   : nights > 0
-                  ? `Confirm Booking — PKR ${totalPrice.toLocaleString('en-PK')}`
+                  ? `Confirm Booking — PKR ${discountedTotal.toLocaleString('en-PK')}`
                   : 'Select dates to continue'
                 }
               </button>

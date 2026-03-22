@@ -305,6 +305,52 @@ export default function Home() {
               </div>
             ))}
           </div>
+
+          <div
+            onClick={() => navigate('/deals')}
+            style={{
+              maxWidth: '900px', margin: '20px auto 0',
+              padding: '0 16px',
+            }}
+          >
+            <div style={{
+              background:
+                'linear-gradient(135deg, #f59e0b22, #d9770622)',
+              border: '1px solid #f59e0b44',
+              borderRadius: 'var(--radius-md)',
+              padding: '14px 20px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', gap: '12px',
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center',
+                gap: '10px',
+              }}>
+                <span style={{ fontSize: '1.5rem' }}>🎟️</span>
+                <div>
+                  <div style={{
+                    fontWeight: 700, fontSize: '0.9rem',
+                    color: '#d97706',
+                  }}>
+                    Exclusive Deals Available!
+                  </div>
+                  <div style={{
+                    fontSize: '0.78rem',
+                    color: 'var(--text-secondary)',
+                  }}>
+                    Use coupon codes for discounts on
+                    hotels, tours & events
+                  </div>
+                </div>
+              </div>
+              <span style={{
+                color: '#d97706', fontWeight: 700,
+                fontSize: '0.875rem', whiteSpace: 'nowrap',
+              }}>
+                View Deals →
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

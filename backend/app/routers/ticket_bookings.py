@@ -5,8 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.coupon_helpers import record_coupon_use, validate_coupon_logic
 from app.database import get_db
 from app.dependencies.auth import get_current_user
+from app.models.coupon import Coupon
 from app.models.event import Event
 from app.models.ticket_booking import TicketBooking
 from app.models.ticket_type import TicketType
@@ -30,6 +32,7 @@ class BookTicketRequest(BaseModel):
     card_expiry: Optional[str] = None
     card_cvv: Optional[str] = None
     card_name: Optional[str] = None
+    coupon_code: Optional[str] = None
 
 
 @router.post("/book")
@@ -73,7 +76,26 @@ def book_tickets(
             )
 
     unit_price = tt.price
-    total_price = unit_price * body.quantity
+    subtotal = unit_price * body.quantity
+    total_price = subtotal
+    discount = 0.0
+    coupon_obj = None
+    if body.coupon_code and body.coupon_code.strip():
+        code_norm = body.coupon_code.upper().strip()
+        coupon_obj = db.query(Coupon).filter(Coupon.code == code_norm).first()
+        if not coupon_obj:
+            raise HTTPException(400, "Invalid coupon code")
+        ok, msg, discount = validate_coupon_logic(
+            coupon_obj,
+            current_user.id,
+            subtotal,
+            None,
+            db,
+        )
+        if not ok:
+            raise HTTPException(400, msg)
+        total_price = max(0, round(subtotal - discount, 2))
+
     commission = (
         round(total_price * COMMISSION_RATE, 2) if total_price > 0 else 0
     )
@@ -109,6 +131,16 @@ def book_tickets(
     db.add(booking)
 
     tt.sold_count += body.quantity
+    db.flush()
+    if coupon_obj:
+        record_coupon_use(
+            db,
+            coupon_obj,
+            current_user.id,
+            booking.id,
+            discount,
+        )
+
     db.commit()
     db.refresh(booking)
 

@@ -7,9 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.coupon_helpers import record_coupon_use, validate_coupon_logic
 from app.dependencies.auth import get_current_user
 from app.database import get_db
 from app.models.booking import Booking
+from app.models.coupon import Coupon
 from app.models.listing import Listing
 from app.models.review import Review
 from app.models.user import User
@@ -86,7 +88,25 @@ def create_booking(
         room_type.price_per_night if room_type else listing.price_per_night
     )
     nights = (body.check_out - body.check_in).days
-    total_price = nights * price_per_night
+    subtotal = nights * price_per_night
+    total_price = subtotal
+    discount = 0.0
+    coupon_obj = None
+    if body.coupon_code and body.coupon_code.strip():
+        code_norm = body.coupon_code.upper().strip()
+        coupon_obj = db.query(Coupon).filter(Coupon.code == code_norm).first()
+        if not coupon_obj:
+            raise HTTPException(status_code=400, detail="Invalid coupon code")
+        ok, msg, discount = validate_coupon_logic(
+            coupon_obj,
+            current_user.id,
+            subtotal,
+            body.listing_id,
+            db,
+        )
+        if not ok:
+            raise HTTPException(status_code=400, detail=msg)
+        total_price = max(0, round(subtotal - discount, 2))
 
     booking = Booking(
         listing_id=body.listing_id,
@@ -99,6 +119,9 @@ def create_booking(
         room_type_name=room_type.name if room_type else None,
     )
     db.add(booking)
+    db.flush()
+    if coupon_obj:
+        record_coupon_use(db, coupon_obj, current_user.id, booking.id, discount)
     db.commit()
     db.refresh(booking)
 

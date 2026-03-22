@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
+import CouponInput from '../components/CouponInput'
 
 function getCategoryColor(cat) {
   const colors = {
@@ -39,6 +40,8 @@ export default function EventTickets() {
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
 
   useEffect(() => {
     api
@@ -51,6 +54,11 @@ export default function EventTickets() {
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    setCouponDiscount(0)
+    setAppliedCoupon(null)
+  }, [selectedTicket?.id, quantity])
 
   function formatCard(val) {
     return val
@@ -84,8 +92,9 @@ export default function EventTickets() {
 
   const totalPrice = selectedTicket ? selectedTicket.price * quantity : 0
   const isFreeTicket = selectedTicket?.is_free || totalPrice === 0
-  const commission = isFreeTicket ? 0 : Math.round(totalPrice * 0.1)
-  const organizerGets = totalPrice - commission
+  const discountedTotal = Math.max(0, totalPrice - couponDiscount)
+  const commission = isFreeTicket ? 0 : Math.round(discountedTotal * 0.1)
+  const organizerGets = discountedTotal - commission
 
   async function handleBook() {
     if (!selectedTicket) {
@@ -134,6 +143,10 @@ export default function EventTickets() {
         card_expiry: cardExpiry || null,
         card_cvv: cardCvv || null,
         card_name: cardName || null,
+        coupon_code:
+          !isFreeTicket && appliedCoupon?.code
+            ? appliedCoupon.code
+            : null,
       })
       setSuccess(res.data)
     } catch (e) {
@@ -1122,6 +1135,39 @@ export default function EventTickets() {
                   </span>
                 </div>
 
+                {!isFreeTicket && selectedTicket && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <CouponInput
+                      key={`${selectedTicket.id}-${quantity}-${totalPrice}`}
+                      listingId={null}
+                      bookingAmount={totalPrice}
+                      onApply={(data) => {
+                        setCouponDiscount(data.discount_amount)
+                        setAppliedCoupon(data)
+                      }}
+                      onRemove={() => {
+                        setCouponDiscount(0)
+                        setAppliedCoupon(null)
+                      }}
+                    />
+                  </div>
+                )}
+
+                {couponDiscount > 0 && !isFreeTicket && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.85rem',
+                    color: '#16a34a',
+                    padding: '6px 0',
+                  }}>
+                    <span>🎟️ Coupon Discount</span>
+                    <span style={{ fontWeight: 700 }}>
+                      - PKR {couponDiscount.toLocaleString('en-PK')}
+                    </span>
+                  </div>
+                )}
+
                 {!isFreeTicket && (
                   <div
                     style={{
@@ -1166,10 +1212,10 @@ export default function EventTickets() {
                   >
                     {isFreeTicket
                       ? 'FREE'
-                      : `PKR ${totalPrice.toLocaleString('en-PK')}`}
+                      : `PKR ${discountedTotal.toLocaleString('en-PK')}`}
                   </span>
                 </div>
-              </div>
+                </div>
             ) : (
               <div
                 style={{
@@ -1225,7 +1271,7 @@ export default function EventTickets() {
                 ? '⏳ Processing...'
                 : isFreeTicket
                   ? '🎟️ Get Free Tickets'
-                  : `🔒 Pay PKR ${totalPrice.toLocaleString('en-PK')}`}
+                  : `🔒 Pay PKR ${discountedTotal.toLocaleString('en-PK')}`}
             </button>
 
             <p

@@ -17,6 +17,8 @@ function AdminDashboard() {
   const [paymentsLoading, setPaymentsLoading] = useState(false)
   const [adminEvents, setAdminEvents] = useState([])
   const [eventsLoading, setEventsLoading] = useState(false)
+  const [adminCoupons, setAdminCoupons] = useState([])
+  const [couponsLoading, setCouponsLoading] = useState(false)
 
   useEffect(() => {
     const loadAll = async () => {
@@ -55,6 +57,9 @@ function AdminDashboard() {
     if (activeSection === 'events') {
       fetchAdminEvents()
     }
+    if (activeSection === 'coupons') {
+      fetchAdminCoupons()
+    }
   }, [activeSection])
 
   async function fetchReviews() {
@@ -90,6 +95,18 @@ function AdminDashboard() {
       console.error(e)
     } finally {
       setEventsLoading(false)
+    }
+  }
+
+  async function fetchAdminCoupons() {
+    setCouponsLoading(true)
+    try {
+      const res = await api.get('/coupons/admin/all')
+      setAdminCoupons(res.data)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setCouponsLoading(false)
     }
   }
 
@@ -314,6 +331,22 @@ function AdminDashboard() {
             }}
           >
             🎪 Events
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('coupons')}
+            style={{
+              textAlign: 'left',
+              padding: '8px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor:
+                activeSection === 'coupons' ? '#1f2937' : 'transparent',
+              color: '#e5e7eb',
+            }}
+          >
+            🎟️ Coupons
           </button>
         </nav>
       </aside>
@@ -2209,6 +2242,127 @@ function AdminDashboard() {
                     </div>
                   )
                 })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeSection === 'coupons' && (
+          <div>
+            <h2 style={{
+              margin: '0 0 20px', fontSize: '1.4rem',
+              fontWeight: 800,
+              color: 'var(--text-primary)',
+            }}>
+              🎟️ All Coupons
+            </h2>
+            {couponsLoading ? (
+              <div style={{
+                textAlign: 'center', padding: '40px',
+                color: 'var(--text-secondary)',
+              }}>
+                Loading...
+              </div>
+            ) : adminCoupons.length === 0 ? (
+              <div style={{
+                textAlign: 'center', padding: '48px',
+                color: 'var(--text-secondary)',
+              }}>
+                No coupons created yet
+              </div>
+            ) : (
+              <div style={{
+                background: 'var(--bg-card)',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-color)',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns:
+                    '1.2fr 1fr 1fr 0.8fr 0.8fr 0.8fr',
+                  padding: '10px 16px',
+                  fontSize: '0.72rem', fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  background: 'var(--bg-secondary)',
+                  borderBottom:
+                    '1px solid var(--border-color)',
+                }}>
+                  <span>Code / Title</span>
+                  <span>Creator</span>
+                  <span>Discount</span>
+                  <span>Used</span>
+                  <span>Valid Until</span>
+                  <span>Status</span>
+                </div>
+                {adminCoupons.map((c, i) => (
+                  <div key={c.id} style={{
+                    display: 'grid',
+                    gridTemplateColumns:
+                      '1.2fr 1fr 1fr 0.8fr 0.8fr 0.8fr',
+                    padding: '12px 16px',
+                    borderBottom: i < adminCoupons.length - 1
+                      ? '1px solid var(--border-color)'
+                      : 'none',
+                    alignItems: 'center', fontSize: '0.85rem',
+                  }}>
+                    <div>
+                      <div style={{
+                        fontFamily: 'monospace',
+                        fontWeight: 800, color: '#d97706',
+                        fontSize: '0.9rem',
+                      }}>
+                        {c.code}
+                      </div>
+                      <div style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                      }}>
+                        {c.title}
+                      </div>
+                    </div>
+                    <div style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.82rem',
+                    }}>
+                      {c.creator_name}
+                    </div>
+                    <div style={{
+                      fontWeight: 700, color: '#f59e0b',
+                    }}>
+                      {c.discount_type === 'percentage'
+                        ? `${c.discount_value}%`
+                        : `PKR ${c.discount_value
+                            .toLocaleString('en-PK')}`
+                      }
+                    </div>
+                    <div style={{
+                      color: 'var(--text-secondary)',
+                    }}>
+                      {c.used_count}
+                      {c.max_uses ? `/${c.max_uses}` : ''}
+                    </div>
+                    <div style={{
+                      fontSize: '0.78rem',
+                      color: 'var(--text-muted)',
+                    }}>
+                      {c.valid_until || '∞'}
+                    </div>
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      fontSize: '0.7rem', fontWeight: 700,
+                      background: c.is_active
+                        ? '#dcfce7' : '#f3f4f6',
+                      color: c.is_active
+                        ? '#16a34a' : '#6b7280',
+                    }}>
+                      {c.is_active ? '✅ Active' : '⏸️ Off'}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>

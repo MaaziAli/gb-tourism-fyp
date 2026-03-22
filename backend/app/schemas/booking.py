@@ -8,6 +8,7 @@ class BookingCreate(BaseModel):
     check_in: date
     check_out: date
     room_type_id: int | None = None
+    coupon_code: str | None = None
 
 
 class BookingResponse(BaseModel):

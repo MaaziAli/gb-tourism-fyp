@@ -33,6 +33,8 @@ import MyEvents from './pages/MyEvents'
 import EventAttendees from './pages/EventAttendees'
 import EventAnalytics from './pages/EventAnalytics'
 import Wishlist from './pages/Wishlist'
+import PublicCoupons from './pages/PublicCoupons'
+import MyCoupons from './pages/MyCoupons'
 
 function App() {
   return (
@@ -43,6 +45,7 @@ function App() {
           <Route path="/" element={<Listings />} />
           <Route path="/listings" element={<Listings />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/deals" element={<PublicCoupons />} />
           <Route path="/map" element={<MapView />} />
           <Route path="/events" element={<Events />} />
           <Route path="/events/:id" element={<EventDetail />} />
@@ -197,6 +200,14 @@ function App() {
             element={
               <ProviderRoute>
                 <MyEvents />
+              </ProviderRoute>
+            }
+          />
+          <Route
+            path="/my-coupons"
+            element={
+              <ProviderRoute>
+                <MyCoupons />
               </ProviderRoute>
             }
           />

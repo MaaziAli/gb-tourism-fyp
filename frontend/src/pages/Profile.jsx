@@ -576,10 +576,20 @@ export default function Profile() {
               emoji: '📍',
               path: '/map',
             },
+            role === 'user' && {
+              label: 'Deals & Coupons',
+              emoji: '🎟️',
+              path: '/deals',
+            },
             role === 'provider' && {
               label: 'My Services',
               emoji: '🏨',
               path: '/my-listings',
+            },
+            role === 'provider' && {
+              label: 'My Coupons',
+              emoji: '🎟️',
+              path: '/my-coupons',
             },
             role === 'provider' && {
               label: 'Analytics',

@@ -110,6 +110,15 @@ function Navbar() {
             >
               🎪 Events
             </NavLink>
+            <NavLink
+              to="/deals"
+              className={({ isActive }) =>
+                'nav-link' + (isActive ? ' active' : '')
+              }
+              onClick={() => setMenuOpen(false)}
+            >
+              🎟️ Deals
+            </NavLink>
             {loggedIn && role !== 'admin' && (
               <Link
                 to="/recommendations"
@@ -179,6 +188,17 @@ function Navbar() {
                 >
                   + Create Event
                 </NavLink>
+                {role === 'provider' && (
+                  <NavLink
+                    to="/my-coupons"
+                    className={({ isActive }) =>
+                      'nav-link' + (isActive ? ' active' : '')
+                    }
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    🎟️ My Coupons
+                  </NavLink>
+                )}
                 <Link
                   to="/my-analytics"
                   className={`nav-link${
