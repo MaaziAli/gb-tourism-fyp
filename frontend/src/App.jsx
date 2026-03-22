@@ -42,15 +42,19 @@ import Wishlist from './pages/Wishlist'
 import PublicCoupons from './pages/PublicCoupons'
 import MyCoupons from './pages/MyCoupons'
 import LoyaltyPage from './pages/LoyaltyPage'
+import CompareBar from './components/CompareBar'
+import ComparePage from './pages/ComparePage'
 
 function App() {
   return (
     <BrowserRouter>
       <div style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
         <Navbar />
+        <CompareBar />
         <Routes>
           <Route path="/" element={<Listings />} />
           <Route path="/listings" element={<Listings />} />
+          <Route path="/compare" element={<ComparePage />} />
           <Route path="/home" element={<Home />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/deals" element={<PublicCoupons />} />

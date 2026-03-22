@@ -4,6 +4,7 @@ import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import useWindowSize from '../hooks/useWindowSize'
 import WishlistButton from '../components/WishlistButton'
+import CompareButton from '../components/CompareButton'
 
 const SERVICE_TYPES = [
   { value: '', label: 'All Types' },
@@ -507,6 +508,17 @@ export default function Listings() {
                         ⭐
                       </div>
                     )}
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: isMobile ? '38px' : '42px',
+                      zIndex: 2
+                    }}>
+                      <CompareButton
+                        listing={listing}
+                        size="sm"
+                      />
+                    </div>
                     <div style={{
                       position: 'absolute',
                       top: '10px', right: '10px',

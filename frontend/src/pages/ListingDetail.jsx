@@ -5,6 +5,7 @@ import { getImageUrl } from '../utils/image'
 import { getUser, getRole, isLoggedIn } from '../utils/role'
 import useWindowSize from '../hooks/useWindowSize'
 import WishlistButton from '../components/WishlistButton'
+import CompareButton from '../components/CompareButton'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
 import PointsEarnedPopup from '../components/PointsEarnedPopup'
 
@@ -502,6 +503,7 @@ export default function ListingDetail() {
             alignItems: 'center',
           }}
         >
+          <CompareButton listing={listing} size="md" />
           <WishlistButton listingId={parseInt(id, 10)} />
           {isOwner && (
             <button

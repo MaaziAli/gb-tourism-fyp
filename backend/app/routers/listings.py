@@ -457,6 +457,189 @@ def search_suggestions(
     return {"suggestions": suggestions[:8]}
 
 
+@router.get("/compare")
+def compare_listings(
+    ids: str,
+    db: Session = Depends(get_db),
+):
+    """Compare multiple listings side by side.
+
+    ids = comma-separated listing IDs, e.g. ?ids=1,2,3
+    """
+    from app.models.review import Review
+    from app.models.room_type import RoomType
+
+    id_list: list[int] = []
+    for id_str in ids.split(","):
+        try:
+            id_list.append(int(id_str.strip()))
+        except ValueError:
+            pass
+
+    if not id_list:
+        raise HTTPException(
+            status_code=400,
+            detail="No valid IDs provided",
+        )
+
+    if len(id_list) > 3:
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum 3 listings to compare",
+        )
+
+    listings = db.query(Listing).filter(Listing.id.in_(id_list)).all()
+    id_order = {lid: idx for idx, lid in enumerate(id_list)}
+    listings = sorted(listings, key=lambda x: id_order.get(x.id, 999))
+
+    results = []
+    for listing in listings:
+        stats = (
+            db.query(
+                func.avg(Review.rating).label("avg"),
+                func.count(Review.id).label("count"),
+            )
+            .filter(Review.listing_id == listing.id)
+            .first()
+        )
+
+        avg_rating = round(float(stats.avg or 0), 1)
+        review_count = stats.count or 0
+
+        distribution: dict[str, int] = {}
+        for star in range(1, 6):
+            c = (
+                db.query(Review)
+                .filter(
+                    Review.listing_id == listing.id,
+                    Review.rating == star,
+                )
+                .count()
+            )
+            distribution[str(star)] = c
+
+        total_bookings = (
+            db.query(Booking)
+            .filter(
+                Booking.listing_id == listing.id,
+                Booking.status != "cancelled",
+            )
+            .count()
+        )
+
+        room_types: list[dict] = []
+        if listing.service_type == "hotel":
+            rooms = (
+                db.query(RoomType)
+                .filter(RoomType.listing_id == listing.id)
+                .all()
+            )
+            room_types = [
+                {
+                    "name": r.name,
+                    "price": r.price_per_night,
+                    "capacity": r.capacity,
+                }
+                for r in rooms
+            ]
+
+        recent_reviews = (
+            db.query(Review)
+            .filter(Review.listing_id == listing.id)
+            .order_by(Review.created_at.desc())
+            .limit(3)
+            .all()
+        )
+
+        reviews_data = []
+        for r in recent_reviews:
+            reviewer = (
+                db.query(User).filter(User.id == r.user_id).first()
+            )
+            reviews_data.append(
+                {
+                    "rating": r.rating,
+                    "comment": r.comment,
+                    "reviewer_name": reviewer.full_name
+                    if reviewer
+                    else "Guest",
+                }
+            )
+
+        price_labels = {
+            "hotel": "/night",
+            "tour": "/person",
+            "activity": "/person",
+            "horse_riding": "/person",
+            "guide": "/day",
+            "boat_trip": "/person",
+            "car_rental": "/day",
+            "bike_rental": "/day",
+            "jeep_safari": "/day",
+            "camping": "/night",
+            "restaurant": "/person",
+            "transport": "/trip",
+            "medical": "/visit",
+        }
+        price_label = price_labels.get(listing.service_type, "/night")
+
+        results.append(
+            {
+                "id": listing.id,
+                "title": listing.title,
+                "description": listing.description,
+                "location": listing.location,
+                "service_type": listing.service_type,
+                "price_per_night": listing.price_per_night,
+                "price_label": price_label,
+                "image_url": listing.image_url,
+                "is_featured": bool(
+                    getattr(listing, "is_featured", False)
+                ),
+                "average_rating": avg_rating,
+                "review_count": review_count,
+                "total_bookings": total_bookings,
+                "rating_distribution": distribution,
+                "room_types": room_types,
+                "recent_reviews": reviews_data,
+                "highlights": {
+                    "best_value": False,
+                    "most_popular": False,
+                    "top_rated": False,
+                },
+            }
+        )
+
+    if results:
+        if len(results) > 1:
+            prices = [
+                (r["price_per_night"] or 0, i)
+                for i, r in enumerate(results)
+            ]
+            prices.sort()
+            if prices[0][0] > 0:
+                results[prices[0][1]]["highlights"]["best_value"] = True
+
+        max_bookings = max(r["total_bookings"] for r in results)
+        if max_bookings > 0:
+            for r in results:
+                if r["total_bookings"] == max_bookings:
+                    r["highlights"]["most_popular"] = True
+                    break
+
+        max_rating = max(r["average_rating"] for r in results)
+        if max_rating > 0:
+            for r in results:
+                if r["average_rating"] == max_rating:
+                    r["highlights"]["top_rated"] = True
+                    break
+
+    return {
+        "count": len(results),
+        "listings": results,
+    }
+
+
 @router.get("/{listing_id}")
 def get_listing(listing_id: int, db: Session = Depends(get_db)):
     """Get a single listing by ID with average_rating and review_count."""
