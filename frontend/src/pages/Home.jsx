@@ -88,6 +88,7 @@ export default function Home() {
   const [stats, setStats] = useState({
     listings: 0, locations: 0, events: 0
   })
+  const [homeSearch, setHomeSearch] = useState('')
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
 
@@ -205,6 +206,80 @@ export default function Home() {
             Gilgit-Baltistan. Your complete journey,
             planned in minutes.
           </p>
+
+          {/* Hero Search Bar */}
+          <div
+            style={{
+              maxWidth: '600px',
+              margin: '0 auto 24px',
+              display: 'flex',
+              gap: '8px',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+            }}
+          >
+            <div style={{ flex: 1, position: 'relative' }}>
+              <span
+                style={{
+                  position: 'absolute',
+                  left: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '1.1rem',
+                  pointerEvents: 'none',
+                }}
+              >
+                🔍
+              </span>
+              <input
+                type="text"
+                placeholder="Search hotels, tours, activities..."
+                value={homeSearch}
+                onChange={(e) => setHomeSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && homeSearch.trim()) {
+                    navigate(`/search?q=${encodeURIComponent(homeSearch.trim())}`)
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '14px 14px 14px 44px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  fontSize: '0.95rem',
+                  outline: 'none',
+                  background: 'rgba(255,255,255,0.95)',
+                  color: '#111827',
+                  boxSizing: 'border-box',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (homeSearch.trim()) {
+                  navigate(`/search?q=${encodeURIComponent(homeSearch.trim())}`)
+                } else {
+                  navigate('/search')
+                }
+              }}
+              style={{
+                padding: '14px 20px',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#f59e0b',
+                color: 'white',
+                fontWeight: 800,
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 12px rgba(245,158,11,0.4)',
+              }}
+            >
+              Search
+            </button>
+          </div>
 
           {/* CTA buttons */}
           <div style={{

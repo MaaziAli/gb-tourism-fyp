@@ -83,6 +83,28 @@ function Navbar() {
             }}
             className={!isMobile ? 'nav-links nav-links-scroll' : ''}
           >
+            <button
+              type="button"
+              onClick={() => {
+                navigate('/search')
+                setMenuOpen(false)
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              🔍
+            </button>
             <NavLink
               to="/"
               className={({ isActive: navActive }) =>

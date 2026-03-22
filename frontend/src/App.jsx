@@ -6,6 +6,7 @@ import AdminRoute from './components/AdminRoute'
 import Listings from './pages/Listings'
 import MapView from './pages/MapView'
 import Home from './pages/Home'
+import SearchPage from './pages/SearchPage'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import MyBookings from './pages/MyBookings'
@@ -48,6 +49,7 @@ function App() {
           <Route path="/" element={<Listings />} />
           <Route path="/listings" element={<Listings />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/deals" element={<PublicCoupons />} />
           <Route path="/map" element={<MapView />} />
           <Route path="/events" element={<Events />} />

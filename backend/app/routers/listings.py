@@ -221,6 +221,193 @@ def clear_missing_listing_images(db: Session = Depends(get_db)):
     return {"cleared": len(cleared_ids), "listing_ids_cleared": cleared_ids}
 
 
+@router.get("/search")
+def smart_search(
+    q: str = "",
+    service_type: str | None = None,
+    location: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    min_rating: float | None = None,
+    sort_by: str = "relevance",
+    limit: int = 20,
+    db: Session = Depends(get_db),
+):
+    """Smart search with filters and scoring."""
+    from sqlalchemy import and_, func, or_
+
+    from app.models.review import Review
+
+    query = db.query(Listing)
+
+    if q and q.strip():
+        q_lower = q.strip().lower()
+        search_terms = q_lower.split()
+
+        conditions = []
+        for term in search_terms:
+            conditions.append(
+                or_(
+                    Listing.title.ilike(f"%{term}%"),
+                    Listing.location.ilike(f"%{term}%"),
+                    Listing.description.ilike(f"%{term}%"),
+                    Listing.service_type.ilike(f"%{term}%"),
+                )
+            )
+        if conditions:
+            query = query.filter(and_(*conditions))
+
+    if service_type:
+        types = [t.strip() for t in service_type.split(",") if t.strip()]
+        if types:
+            query = query.filter(Listing.service_type.in_(types))
+
+    if location:
+        query = query.filter(Listing.location.ilike(f"%{location}%"))
+
+    if min_price is not None:
+        query = query.filter(Listing.price >= min_price)
+
+    if max_price is not None:
+        query = query.filter(Listing.price <= max_price)
+
+    listings = query.all()
+
+    results = []
+    for listing in listings:
+        review_stats = (
+            db.query(
+                func.avg(Review.rating).label("avg"),
+                func.count(Review.id).label("count"),
+            )
+            .filter(Review.listing_id == listing.id)
+            .first()
+        )
+
+        avg_rating = round(float(review_stats.avg or 0), 1)
+        review_count = review_stats.count or 0
+
+        if min_rating is not None and min_rating > 0 and avg_rating < min_rating:
+            continue
+
+        score = 0
+        if q and q.strip():
+            q_lower = q.strip().lower()
+            title_l = (listing.title or "").lower()
+            loc_l = (listing.location or "").lower()
+            desc_l = (listing.description or "").lower()
+            if q_lower in title_l:
+                score += 10
+            if q_lower in loc_l:
+                score += 5
+            if q_lower in desc_l:
+                score += 3
+
+        score += avg_rating * 2
+        score += min(review_count * 0.1, 5)
+
+        desc = listing.description or ""
+        results.append(
+            {
+                "id": listing.id,
+                "title": listing.title,
+                "location": listing.location,
+                "description": desc[:120] + ("..." if len(desc) > 120 else ""),
+                "service_type": listing.service_type,
+                "price_per_night": listing.price_per_night,
+                "image_url": listing.image_url,
+                "average_rating": avg_rating,
+                "review_count": review_count,
+                "relevance_score": score,
+            }
+        )
+
+    if sort_by == "relevance":
+        results.sort(key=lambda x: x["relevance_score"], reverse=True)
+    elif sort_by == "price_low":
+        results.sort(key=lambda x: x["price_per_night"] or 0)
+    elif sort_by == "price_high":
+        results.sort(key=lambda x: x["price_per_night"] or 0, reverse=True)
+    elif sort_by == "rating":
+        results.sort(key=lambda x: x["average_rating"], reverse=True)
+    elif sort_by == "newest":
+        results.sort(key=lambda x: x["id"], reverse=True)
+
+    return {
+        "query": q,
+        "total": len(results),
+        "results": results[:limit],
+        "filters_applied": {
+            "service_type": service_type,
+            "location": location,
+            "min_price": min_price,
+            "max_price": max_price,
+            "min_rating": min_rating,
+            "sort_by": sort_by,
+        },
+    }
+
+
+@router.get("/search/suggestions")
+def search_suggestions(
+    q: str = "",
+    db: Session = Depends(get_db),
+):
+    """Return search suggestions as user types."""
+    if not q or len(q.strip()) < 2:
+        return {"suggestions": []}
+
+    q_lower = q.strip().lower()
+
+    titles = (
+        db.query(Listing.title, Listing.service_type)
+        .filter(Listing.title.ilike(f"%{q_lower}%"))
+        .limit(4)
+        .all()
+    )
+
+    locations = (
+        db.query(Listing.location)
+        .filter(Listing.location.isnot(None), Listing.location.ilike(f"%{q_lower}%"))
+        .distinct()
+        .limit(4)
+        .all()
+    )
+
+    suggestions = []
+
+    for t in titles:
+        suggestions.append(
+            {
+                "type": "service",
+                "text": t.title,
+                "service_type": t.service_type,
+                "icon": "🏨",
+            }
+        )
+
+    for l in locations:
+        loc = l.location
+        if loc and not any(s["text"] == loc for s in suggestions):
+            suggestions.append({"type": "location", "text": loc, "icon": "📍"})
+
+    gb_places = [
+        "Hunza",
+        "Skardu",
+        "Gilgit",
+        "Nagar",
+        "Ghizer",
+        "Naltar",
+        "Fairy Meadows",
+        "Deosai",
+    ]
+    for place in gb_places:
+        if q_lower in place.lower() and not any(s["text"] == place for s in suggestions):
+            suggestions.append({"type": "destination", "text": place, "icon": "🗺️"})
+
+    return {"suggestions": suggestions[:8]}
+
+
 @router.get("/{listing_id}")
 def get_listing(listing_id: int, db: Session = Depends(get_db)):
     """Get a single listing by ID with average_rating and review_count."""
