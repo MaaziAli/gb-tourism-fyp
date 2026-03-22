@@ -30,6 +30,40 @@ const FEATURES = [
     color: '#7c3aed' },
 ]
 
+function getCategoryColor(cat) {
+  const colors = {
+    'Music & Cultural Festival': '#7c3aed',
+    'Polo & Horse Events': '#0369a1',
+    'Guided Trek & Expedition': '#16a34a',
+    'Art & Photography': '#d97706',
+    'Local Festival & Fair': '#e11d48',
+    'Sports Event': '#2563eb',
+    'Food & Dining Event': '#f97316',
+    'Community Gathering': '#0891b2',
+    'Horse Riding & Adventure': '#92400e',
+  }
+  return colors[cat] || '#7c3aed'
+}
+
+function formatEventDate(dateStr) {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString(
+    'en-PK', {
+      weekday: 'short', day: 'numeric',
+      month: 'short'
+    }
+  )
+}
+
+function formatEventTime(timeStr) {
+  if (!timeStr) return ''
+  const [h, m] = timeStr.split(':')
+  const hour = parseInt(h)
+  return `${hour % 12 || 12}:${m} ${
+    hour >= 12 ? 'PM' : 'AM'
+  }`
+}
+
 const DESTINATIONS = [
   { name: 'Hunza Valley', desc: 'Cherry blossoms & forts', emoji: '🌸', color: '#fdf2f8' },
   { name: 'Skardu', desc: 'Gateway to K2', emoji: '🏔️', color: '#f0f9ff' },
@@ -41,7 +75,11 @@ const DESTINATIONS = [
 
 export default function Home() {
   const [featuredListings, setFeaturedListings] = useState([])
-  const [stats, setStats] = useState({ listings: 0, locations: 0 })
+  const [upcomingEvents, setUpcomingEvents] =
+    useState([])
+  const [stats, setStats] = useState({
+    listings: 0, locations: 0, events: 0
+  })
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
 
@@ -50,9 +88,30 @@ export default function Home() {
       const data = res.data || []
       setFeaturedListings(data.slice(0, 6))
       const locs = new Set(
-        data.map(l => l.location?.split(',')[0]?.trim())
+        data.map(l =>
+          l.location?.split(',')[0]?.trim()
+        )
       ).size
-      setStats({ listings: data.length, locations: locs })
+      setStats(prev => ({
+        ...prev,
+        listings: data.length,
+        locations: locs
+      }))
+    }).catch(() => {})
+
+    api.get('/events/').then(res => {
+      const data = res.data || []
+      setStats(prev => ({
+        ...prev, events: data.length
+      }))
+      const sorted = data
+        .filter(e => e.status === 'active')
+        .sort((a, b) =>
+          new Date(a.event_date) -
+          new Date(b.event_date)
+        )
+        .slice(0, 4)
+      setUpcomingEvents(sorted)
     }).catch(() => {})
   }, [])
 
@@ -212,6 +271,7 @@ export default function Home() {
             {[
               { v: stats.listings + '+', l: 'Services' },
               { v: stats.locations + '+', l: 'Locations' },
+              { v: stats.events + '+', l: 'Events' },
               { v: '4', l: 'Categories' },
               { v: '100%', l: 'GB Coverage' },
             ].map((s, i, arr) => (
@@ -585,6 +645,345 @@ export default function Home() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════
+          UPCOMING EVENTS SECTION
+      ══════════════════════════════════════ */}
+      {upcomingEvents.length > 0 && (
+        <div style={{
+          background: 'var(--bg-primary)',
+          padding: '80px 16px'
+        }}>
+          <div style={{
+            maxWidth: '1100px', margin: '0 auto'
+          }}>
+
+            {/* Section header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-end',
+              marginBottom: '32px',
+              flexWrap: 'wrap', gap: '12px'
+            }}>
+              <div>
+                <p style={{
+                  margin: '0 0 8px',
+                  fontSize: '0.8rem',
+                  color: '#7c3aed', fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase'
+                }}>
+                  ✦ Happening in GB
+                </p>
+                <h2 style={{
+                  margin: '0 0 6px',
+                  fontSize: '1.9rem', fontWeight: 800,
+                  color: 'var(--text-primary)',
+                  letterSpacing: '-0.02em'
+                }}>
+                  Upcoming Events
+                </h2>
+                <p style={{
+                  margin: 0,
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.9rem'
+                }}>
+                  Polo, music, treks, festivals & more
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/events')}
+                style={{
+                  background: 'transparent',
+                  color: '#7c3aed',
+                  border:
+                    '1px solid rgba(124,58,237,0.3)',
+                  borderRadius: '10px',
+                  padding: '10px 22px',
+                  cursor: 'pointer', fontWeight: 600,
+                  fontSize: '0.875rem',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => {
+                  e.target.style.background =
+                    'rgba(124,58,237,0.08)'
+                  e.target.style.borderColor =
+                    'rgba(124,58,237,0.6)'
+                }}
+                onMouseLeave={e => {
+                  e.target.style.background =
+                    'transparent'
+                  e.target.style.borderColor =
+                    'rgba(124,58,237,0.3)'
+                }}
+              >
+                All Events →
+              </button>
+            </div>
+
+            {/* Events grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns:
+                'repeat(auto-fill, minmax(260px, 1fr))',
+              gap: '20px'
+            }}>
+              {upcomingEvents.map(event => {
+                const color =
+                  getCategoryColor(event.category)
+                const isFree = event.is_free
+                const spotsLeft = event.spots_remaining
+                const isSoldOut = spotsLeft <= 0
+
+                return (
+                  <div key={event.id}
+                    onClick={() =>
+                      navigate(`/events/${event.id}`)
+                    }
+                    style={{
+                      background: 'var(--bg-card)',
+                      borderRadius: 'var(--radius-lg)',
+                      border:
+                        '1px solid var(--border-color)',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      boxShadow: 'var(--shadow-sm)',
+                      transition:
+                        'transform 0.18s, box-shadow 0.18s'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform =
+                        'translateY(-6px)'
+                      e.currentTarget.style.boxShadow =
+                        `0 16px 40px ${color}22`
+                      e.currentTarget.style.borderColor =
+                        color + '44'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform =
+                        'translateY(0)'
+                      e.currentTarget.style.boxShadow =
+                        'var(--shadow-sm)'
+                      e.currentTarget.style.borderColor =
+                        'var(--border-color)'
+                    }}
+                  >
+                    {/* Event image / color block */}
+                    <div style={{
+                      position: 'relative',
+                      height: '160px',
+                      background: color + '22',
+                      overflow: 'hidden'
+                    }}>
+                      {event.image_url ? (
+                        <img
+                          src={`http://127.0.0.1:8000/uploads/${event.image_url}`}
+                          alt={event.title}
+                          onError={e => {
+                            e.target.style.display = 'none'
+                          }}
+                          style={{
+                            width: '100%', height: '100%',
+                            objectFit: 'cover',
+                            display: 'block'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%', height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '3.5rem'
+                        }}>
+                          🎪
+                        </div>
+                      )}
+
+                      {/* Gradient overlay */}
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        background:
+                          'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)'
+                      }} />
+
+                      {/* Category badge */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '10px', left: '10px',
+                        background: color,
+                        color: 'white',
+                        padding: '3px 10px',
+                        borderRadius: '999px',
+                        fontSize: '0.7rem', fontWeight: 700
+                      }}>
+                        {event.category}
+                      </div>
+
+                      {/* Free / Sold Out badge */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '10px', right: '10px',
+                        display: 'flex', gap: '4px'
+                      }}>
+                        {isFree && (
+                          <span style={{
+                            background: '#16a34a',
+                            color: 'white',
+                            padding: '3px 8px',
+                            borderRadius: '999px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700
+                          }}>
+                            FREE
+                          </span>
+                        )}
+                        {isSoldOut && (
+                          <span style={{
+                            background: '#dc2626',
+                            color: 'white',
+                            padding: '3px 8px',
+                            borderRadius: '999px',
+                            fontSize: '0.68rem',
+                            fontWeight: 700
+                          }}>
+                            SOLD OUT
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Date on image */}
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '8px', left: '10px',
+                        color: 'white', fontSize: '0.78rem',
+                        fontWeight: 600,
+                        textShadow:
+                          '0 1px 4px rgba(0,0,0,0.5)'
+                      }}>
+                        📅 {formatEventDate(event.event_date)}
+                        {' · '}
+                        {formatEventTime(event.event_time)}
+                      </div>
+                    </div>
+
+                    {/* Card body */}
+                    <div style={{padding: '14px 16px'}}>
+                      <h3 style={{
+                        margin: '0 0 5px',
+                        fontWeight: 700, fontSize: '0.95rem',
+                        color: 'var(--text-primary)',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
+                        {event.title}
+                      </h3>
+
+                      <p style={{
+                        margin: '0 0 10px',
+                        fontSize: '0.8rem',
+                        color: 'var(--text-secondary)'
+                      }}>
+                        📍 {event.venue}, {event.location}
+                      </p>
+
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div style={{
+                          fontWeight: 800,
+                          fontSize: '1rem',
+                          color: isFree ? '#16a34a' : color
+                        }}>
+                          {isFree ? 'FREE'
+                            : event.starting_price === 0
+                            ? 'FREE'
+                            : `PKR ${event.starting_price
+                                ?.toLocaleString('en-PK')}+`
+                          }
+                        </div>
+                        <div style={{
+                          fontSize: '0.72rem',
+                          color: spotsLeft <= 10
+                            ? '#dc2626'
+                            : 'var(--text-muted)'
+                        }}>
+                          {isSoldOut
+                            ? '❌ Sold Out'
+                            : spotsLeft <= 10
+                            ? `🔥 ${spotsLeft} left`
+                            : `${spotsLeft} spots`
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom action bar */}
+                    <div style={{
+                      padding: '10px 16px',
+                      borderTop:
+                        '1px solid var(--border-color)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: 'var(--bg-secondary)'
+                    }}>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)'
+                      }}>
+                        By {event.organizer_name}
+                      </span>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600, color: color
+                      }}>
+                        Get Tickets →
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Bottom CTA */}
+            <div style={{
+              marginTop: '32px', textAlign: 'center'
+            }}>
+              <button
+                onClick={() => navigate('/events')}
+                style={{
+                  background:
+                    'linear-gradient(135deg, #4c1d95, #7c3aed)',
+                  color: 'white', border: 'none',
+                  borderRadius: '12px',
+                  padding: '13px 36px',
+                  cursor: 'pointer', fontWeight: 700,
+                  fontSize: '0.95rem',
+                  boxShadow:
+                    '0 8px 24px rgba(124,58,237,0.3)',
+                  transition: 'transform 0.2s'
+                }}
+                onMouseEnter={e =>
+                  e.target.style.transform =
+                    'translateY(-2px)'
+                }
+                onMouseLeave={e =>
+                  e.target.style.transform =
+                    'translateY(0)'
+                }
+              >
+                🎪 Explore All Events
+              </button>
             </div>
           </div>
         </div>
