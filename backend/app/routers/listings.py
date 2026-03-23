@@ -654,9 +654,7 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
     listing = db.get(Listing, listing_id)
     if listing is None:
         raise HTTPException(status_code=404, detail="Listing not found")
-    reviews = (
-        db.query(Review).filter(Review.listing_id == listing_id).all()
-    )
+    reviews = db.query(Review).filter(Review.listing_id == listing_id).all()
     review_count = len(reviews)
     avg_rating = 0.0
     if review_count > 0:
@@ -673,29 +671,39 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
     policy_map = {
         "flexible": {
             "label": "Flexible",
-            "color": "#16a34a",
-            "description": (
-                f"Free cancellation up to {cancel_hours}h before check-in. "
-                "50% refund after that."
-            ),
             "emoji": "✅",
+            "color": "#16a34a",
+            "bg": "#dcfce7",
+            "border": "#86efac",
+            "rules": [
+                "Full refund if cancelled 48h+ before",
+                "50% refund if cancelled within 48h",
+                "No refund for no-shows",
+            ],
         },
         "moderate": {
             "label": "Moderate",
-            "color": "#d97706",
-            "description": (
-                f"Free cancellation up to {cancel_hours}h before check-in. "
-                "No refund within 24h."
-            ),
             "emoji": "⚠️",
+            "color": "#d97706",
+            "bg": "#fef3c7",
+            "border": "#fcd34d",
+            "rules": [
+                "Full refund if cancelled 5+ days before",
+                "No refund within 5 days of check-in",
+                "No refund for no-shows",
+            ],
         },
         "strict": {
             "label": "Strict",
-            "color": "#dc2626",
-            "description": (
-                "50% refund up to 1 week before. No refund after that."
-            ),
             "emoji": "❌",
+            "color": "#dc2626",
+            "bg": "#fee2e2",
+            "border": "#fca5a5",
+            "rules": [
+                "50% refund if cancelled 1 week before",
+                "No refund within 1 week",
+                "No refund for no-shows",
+            ],
         },
     }
 
@@ -719,9 +727,21 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
             getattr(listing, "is_featured", False)
         ),
         "cancellation_policy": cancel_policy,
+        "cancellation_hours_free": cancel_hours,
         "cancellation_policy_info": policy_map.get(
             cancel_policy,
-            policy_map["moderate"],
+            {
+                "label": "Moderate",
+                "emoji": "⚠️",
+                "color": "#d97706",
+                "bg": "#fef3c7",
+                "border": "#fcd34d",
+                "rules": [
+                    "Full refund if cancelled 5+ days before",
+                    "No refund within 5 days of check-in",
+                    "No refund for no-shows",
+                ],
+            },
         ),
         "rooms_available": rooms_left,
         "urgency": (
@@ -738,6 +758,28 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
             "service_fee_rate": 5,
             "note": "Taxes & fees included in final total",
         },
+        "reviews": [
+            {
+                "id": r.id,
+                "user_id": r.user_id,
+                "user_name": r.user.full_name if getattr(r, "user", None) else "User",
+                "rating": r.rating,
+                "comment": r.comment,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "cleanliness_rating": getattr(r, "cleanliness_rating", 0) or 0,
+                "location_rating": getattr(r, "location_rating", 0) or 0,
+                "value_rating": getattr(r, "value_rating", 0) or 0,
+                "staff_rating": getattr(r, "staff_rating", 0) or 0,
+                "facilities_rating": getattr(r, "facilities_rating", 0) or 0,
+                "provider_reply": getattr(r, "provider_reply", None),
+                "provider_reply_at": (
+                    r.provider_reply_at.isoformat()
+                    if getattr(r, "provider_reply_at", None)
+                    else None
+                ),
+            }
+            for r in reviews
+        ],
     }
     return listing_data
 
