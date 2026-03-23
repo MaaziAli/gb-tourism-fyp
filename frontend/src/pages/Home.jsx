@@ -585,6 +585,7 @@ export default function Home() {
               {featuredListings.map(listing => {
                 return (
                   <div key={listing.id}
+                    onClick={() => navigate(`/listing/${listing.id}`)}
                     style={{
                       background: 'var(--bg-card)',
                       borderRadius: 'var(--radius-lg)',
@@ -595,35 +596,29 @@ export default function Home() {
                       transition: 'all 0.2s ease'
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.transform =
-                        'translateY(-4px)'
-                      e.currentTarget.style.boxShadow =
-                        '0 12px 32px rgba(0,0,0,0.12)'
+                      e.currentTarget.style.transform = 'translateY(-4px)'
+                      e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.12)'
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.transform =
-                        'translateY(0)'
-                      e.currentTarget.style.boxShadow =
-                        'var(--shadow-sm)'
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
                     }}
-                    onClick={() => navigate(`/listing/${listing.id}`)}
                   >
-                    {/* Top image */}
                     <div style={{
-                      height: 200,
+                      height: '200px',
                       overflow: 'hidden',
                       position: 'relative',
                       background: '#e0f2fe'
                     }}>
                       <img
                         src={
-                          !listing.image_url
-                            ? `https://placehold.co/400x200/1e3a5f/ffffff?text=${encodeURIComponent(listing.service_type || 'Hotel')}`
-                            : listing.image_url.startsWith('http')
-                            ? listing.image_url
-                            : `http://127.0.0.1:8000/uploads/${listing.image_url}`
+                          listing.image_url
+                            ? (listing.image_url.startsWith('http')
+                                ? listing.image_url
+                                : 'http://127.0.0.1:8000/uploads/' + listing.image_url)
+                            : 'https://placehold.co/400x200/1e3a5f/ffffff?text=GB+Tourism'
                         }
-                        alt={listing.title}
+                        alt={listing.title || 'Hotel'}
                         onError={e => {
                           e.target.onerror = null
                           e.target.src = 'https://placehold.co/400x200/1e3a5f/ffffff?text=GB+Tourism'
@@ -633,58 +628,56 @@ export default function Home() {
                           height: '100%',
                           objectFit: 'cover',
                           display: 'block'
-                        }
+                        }}
                       />
                       <div style={{
                         position: 'absolute',
-                        top: 10,
-                        left: 10,
+                        top: '10px',
+                        left: '10px',
                         background: '#0ea5e9',
                         color: 'white',
                         padding: '3px 9px',
-                        borderRadius: 999,
+                        borderRadius: '999px',
                         fontSize: '0.68rem',
-                        fontWeight: 700
+                        fontWeight: '700'
                       }}>
                         {(listing.service_type || '').replace(/_/g, ' ')}
                       </div>
-                      {listing.is_featured && (
+                      {listing.is_featured ? (
                         <div style={{
                           position: 'absolute',
-                          top: 10,
-                          right: 10,
+                          top: '10px',
+                          right: '10px',
                           background: '#f59e0b',
                           color: 'white',
                           padding: '3px 8px',
-                          borderRadius: 999,
+                          borderRadius: '999px',
                           fontSize: '0.65rem',
-                          fontWeight: 700
+                          fontWeight: '700'
                         }}>
                           Featured
                         </div>
-                      )}
-                      {listing.average_rating > 0 && (
+                      ) : null}
+                      {listing.average_rating > 0 ? (
                         <div style={{
                           position: 'absolute',
-                          bottom: 10,
-                          left: 10,
+                          bottom: '10px',
+                          left: '10px',
                           background: '#16a34a',
                           color: 'white',
                           padding: '3px 9px',
-                          borderRadius: 6,
+                          borderRadius: '6px',
                           fontSize: '0.75rem',
-                          fontWeight: 700
+                          fontWeight: '700'
                         }}>
-                          {listing.average_rating.toFixed(1)}
+                          {Number(listing.average_rating).toFixed(1)}
                         </div>
-                      )}
+                      ) : null}
                     </div>
-
-                    {/* Bottom details */}
                     <div style={{padding: '14px 16px'}}>
                       <h3 style={{
-                        margin: '0 0 4px',
-                        fontWeight: 700,
+                        margin: '0 0 4px 0',
+                        fontWeight: '700',
                         fontSize: '0.95rem',
                         color: 'var(--text-primary)',
                         overflow: 'hidden',
@@ -696,7 +689,7 @@ export default function Home() {
                       <div style={{
                         fontSize: '0.78rem',
                         color: 'var(--text-secondary)',
-                        marginBottom: 10
+                        marginBottom: '10px'
                       }}>
                         {listing.location}
                       </div>
@@ -709,23 +702,22 @@ export default function Home() {
                           <div style={{
                             fontSize: '0.65rem',
                             color: 'var(--text-muted)',
-                            marginBottom: 1
+                            marginBottom: '1px'
                           }}>
                             from
                           </div>
                           <div style={{
                             fontSize: '1.1rem',
-                            fontWeight: 800,
+                            fontWeight: '800',
                             color: '#0ea5e9',
-                            lineHeight: 1
+                            lineHeight: '1'
                           }}>
-                            PKR {(listing.price_per_night || 0)
-                              .toLocaleString('en-PK')}
+                            PKR {(listing.price_per_night || 0).toLocaleString('en-PK')}
                             <span style={{
                               fontSize: '0.68rem',
-                              fontWeight: 400,
+                              fontWeight: '400',
                               color: 'var(--text-muted)',
-                              marginLeft: 3
+                              marginLeft: '3px'
                             }}>
                               /night
                             </span>
@@ -734,15 +726,15 @@ export default function Home() {
                         <button
                           onClick={e => {
                             e.stopPropagation()
-                            navigate(`/listing/${listing.id}`)
+                            navigate('/listing/' + listing.id)
                           }}
                           style={{
                             padding: '7px 14px',
-                            borderRadius: 8,
+                            borderRadius: '8px',
                             border: 'none',
                             background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
                             color: 'white',
-                            fontWeight: 700,
+                            fontWeight: '700',
                             cursor: 'pointer',
                             fontSize: '0.8rem'
                           }}

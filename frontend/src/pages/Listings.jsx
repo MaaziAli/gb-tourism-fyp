@@ -474,6 +474,7 @@ export default function Listings() {
               {/* Vertical hotel card */}
               <div
                 key={listing.id}
+                onClick={() => navigate('/listing/' + listing.id)}
                 style={{
                   background: 'var(--bg-card)',
                   borderRadius: 'var(--radius-lg)',
@@ -493,30 +494,28 @@ export default function Listings() {
                   e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
                   e.currentTarget.style.transform = 'translateY(0)'
                 }}
-                onClick={() => navigate(`/listing/${listing.id}`)}
               >
-                {/* Image side */}
                 <div style={{
-                  width: isMobile ? '100%' : 220,
-                  height: isMobile ? 190 : 'auto',
-                  flexShrink: 0,
+                  width: isMobile ? '100%' : '220px',
+                  height: isMobile ? '190px' : 'auto',
+                  flexShrink: '0',
                   position: 'relative',
                   overflow: 'hidden',
                   background: '#e0f2fe',
-                  minHeight: 160
+                  minHeight: '160px'
                 }}>
                   <img
                     src={
-                      !listing.image_url
-                        ? `https://placehold.co/220x160/1e3a5f/ffffff?text=${encodeURIComponent(listing.service_type || 'Service')}`
-                        : listing.image_url.startsWith('http')
-                        ? listing.image_url
-                        : `http://127.0.0.1:8000/uploads/${listing.image_url}`
+                      listing.image_url
+                        ? (listing.image_url.startsWith('http')
+                            ? listing.image_url
+                            : 'http://127.0.0.1:8000/uploads/' + listing.image_url)
+                        : 'https://placehold.co/220x160/1e3a5f/ffffff?text=GB+Tourism'
                     }
-                    alt={listing.title}
+                    alt={listing.title || 'Listing'}
                     onError={e => {
                       e.target.onerror = null
-                      e.target.src = `https://placehold.co/220x160/1e3a5f/ffffff?text=GB+Tourism`
+                      e.target.src = 'https://placehold.co/220x160/1e3a5f/ffffff?text=GB+Tourism'
                     }}
                     style={{
                       width: '100%',
@@ -527,47 +526,45 @@ export default function Listings() {
                   />
                   <div style={{
                     position: 'absolute',
-                    top: 10,
-                    left: 10,
+                    top: '10px',
+                    left: '10px',
                     background: '#0ea5e9',
                     color: 'white',
                     padding: '3px 9px',
-                    borderRadius: 999,
+                    borderRadius: '999px',
                     fontSize: '0.68rem',
-                    fontWeight: 700
+                    fontWeight: '700'
                   }}>
                     {(listing.service_type || '').replace(/_/g, ' ')}
                   </div>
-                  {listing.is_featured && (
+                  {listing.is_featured ? (
                     <div style={{
                       position: 'absolute',
-                      top: 10,
-                      right: 10,
+                      top: '10px',
+                      right: '10px',
                       background: '#f59e0b',
                       color: 'white',
                       padding: '3px 8px',
-                      borderRadius: 999,
+                      borderRadius: '999px',
                       fontSize: '0.65rem',
-                      fontWeight: 700
+                      fontWeight: '700'
                     }}>
                       Featured
                     </div>
-                  )}
+                  ) : null}
                 </div>
-
-                {/* Details side */}
                 <div style={{
-                  flex: 1,
+                  flex: '1',
                   padding: '16px 18px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  minWidth: 0
+                  minWidth: '0'
                 }}>
                   <div>
                     <h3 style={{
-                      margin: '0 0 4px',
-                      fontWeight: 700,
+                      margin: '0 0 4px 0',
+                      fontWeight: '700',
                       fontSize: '1rem',
                       color: 'var(--text-primary)',
                       overflow: 'hidden',
@@ -580,27 +577,27 @@ export default function Listings() {
                     <div style={{
                       fontSize: '0.8rem',
                       color: 'var(--text-secondary)',
-                      marginBottom: 8
+                      marginBottom: '8px'
                     }}>
                       {listing.location}
                     </div>
 
-                    {listing.average_rating > 0 && (
+                    {listing.average_rating > 0 ? (
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 8,
-                        marginBottom: 8
+                        gap: '8px',
+                        marginBottom: '8px'
                       }}>
                         <span style={{
                           background: '#16a34a',
                           color: 'white',
                           padding: '2px 8px',
-                          borderRadius: 5,
+                          borderRadius: '5px',
                           fontSize: '0.78rem',
-                          fontWeight: 700
+                          fontWeight: '700'
                         }}>
-                          {listing.average_rating.toFixed(1)}
+                          {Number(listing.average_rating).toFixed(1)}
                         </span>
                         <span style={{
                           fontSize: '0.75rem',
@@ -609,29 +606,29 @@ export default function Listings() {
                           {listing.review_count || 0} reviews
                         </span>
                       </div>
-                    )}
+                    ) : null}
 
-                    {listing.description && (
+                    {listing.description ? (
                       <p style={{
-                        margin: '0 0 8px',
+                        margin: '0 0 8px 0',
                         fontSize: '0.8rem',
                         color: 'var(--text-muted)',
-                        lineHeight: 1.5,
+                        lineHeight: '1.5',
                         display: '-webkit-box',
-                        WebkitLineClamp: 2,
+                        WebkitLineClamp: '2',
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden'
                       }}>
                         {listing.description}
                       </p>
-                    )}
+                    ) : null}
 
-                    {Array.isArray(listing.amenities_list) && listing.amenities_list.length > 0 && (
+                    {Array.isArray(listing.amenities_list) && listing.amenities_list.length > 0 ? (
                       <div style={{
                         display: 'flex',
-                        gap: 4,
+                        gap: '4px',
                         flexWrap: 'wrap',
-                        marginBottom: 8
+                        marginBottom: '8px'
                       }}>
                         {listing.amenities_list.slice(0, 4).map(key => {
                           const info = getAmenityInfo(key)
@@ -641,23 +638,23 @@ export default function Listings() {
                               background: 'var(--bg-secondary)',
                               color: 'var(--text-muted)',
                               padding: '2px 7px',
-                              borderRadius: 999,
+                              borderRadius: '999px',
                               border: '1px solid var(--border-color)'
                             }}>
                               {info.icon} {info.label}
                             </span>
                           )
                         })}
-                        {listing.amenities_list.length > 4 && (
+                        {listing.amenities_list.length > 4 ? (
                           <span style={{
                             fontSize: '0.68rem',
                             color: 'var(--text-muted)'
                           }}>
                             +{listing.amenities_list.length - 4} more
                           </span>
-                        )}
+                        ) : null}
                       </div>
-                    )}
+                    ) : null}
                   </div>
 
                   <div style={{
@@ -665,31 +662,31 @@ export default function Listings() {
                     justifyContent: 'space-between',
                     alignItems: 'flex-end',
                     flexWrap: 'wrap',
-                    gap: 10,
-                    marginTop: 8,
-                    paddingTop: 10,
+                    gap: '10px',
+                    marginTop: '8px',
+                    paddingTop: '10px',
                     borderTop: '1px solid var(--border-color)'
                   }}>
                     <div>
                       <div style={{
                         fontSize: '0.68rem',
                         color: 'var(--text-muted)',
-                        marginBottom: 2
+                        marginBottom: '2px'
                       }}>
                         Starting from
                       </div>
                       <div style={{
                         fontSize: '1.25rem',
-                        fontWeight: 900,
+                        fontWeight: '900',
                         color: '#0ea5e9',
-                        lineHeight: 1
+                        lineHeight: '1'
                       }}>
                         PKR {(listing.price_per_night || 0).toLocaleString('en-PK')}
                         <span style={{
                           fontSize: '0.72rem',
-                          fontWeight: 400,
+                          fontWeight: '400',
                           color: 'var(--text-muted)',
-                          marginLeft: 4
+                          marginLeft: '4px'
                         }}>
                           / night
                         </span>
@@ -699,15 +696,15 @@ export default function Listings() {
                     <button
                       onClick={e => {
                         e.stopPropagation()
-                        navigate(`/listing/${listing.id}`)
+                        navigate('/listing/' + listing.id)
                       }}
                       style={{
                         padding: '9px 18px',
-                        borderRadius: 10,
+                        borderRadius: '10px',
                         border: 'none',
                         background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
                         color: 'white',
-                        fontWeight: 700,
+                        fontWeight: '700',
                         cursor: 'pointer',
                         fontSize: '0.85rem',
                         whiteSpace: 'nowrap'
