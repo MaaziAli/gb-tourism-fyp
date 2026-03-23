@@ -585,9 +585,6 @@ export default function Home() {
               {featuredListings.map(listing => {
                 return (
                   <div key={listing.id}
-                    onClick={() =>
-                      navigate(`/listing/${listing.id}`)
-                    }
                     style={{
                       background: 'var(--bg-card)',
                       borderRadius: 'var(--radius-lg)',
@@ -595,7 +592,7 @@ export default function Home() {
                       overflow: 'hidden',
                       cursor: 'pointer',
                       boxShadow: 'var(--shadow-sm)',
-                      transition: 'transform 0.15s, box-shadow 0.15s'
+                      transition: 'all 0.2s ease'
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.transform =
@@ -609,90 +606,81 @@ export default function Home() {
                       e.currentTarget.style.boxShadow =
                         'var(--shadow-sm)'
                     }}
+                    onClick={() => navigate(`/listing/${listing.id}`)}
                   >
-                    {/* Image on TOP */}
+                    {/* Top image */}
                     <div style={{
-                      height: 200, overflow: 'hidden',
+                      height: 200,
+                      overflow: 'hidden',
                       position: 'relative',
                       background: '#e0f2fe'
                     }}>
                       <img
-                        src={(() => {
-                          const url = listing.image_url
-                          if (!url) return `https://placehold.co/400x200/1e3a5f/ffffff?text=${encodeURIComponent(listing.service_type || 'Hotel')}`
-                          if (url.startsWith('http')) return url
-                          return `http://127.0.0.1:8000/uploads/${url}`
-                        })()}
+                        src={
+                          !listing.image_url
+                            ? `https://placehold.co/400x200/1e3a5f/ffffff?text=${encodeURIComponent(listing.service_type || 'Hotel')}`
+                            : listing.image_url.startsWith('http')
+                            ? listing.image_url
+                            : `http://127.0.0.1:8000/uploads/${listing.image_url}`
+                        }
                         alt={listing.title}
                         onError={e => {
                           e.target.onerror = null
-                          e.target.src = `https://placehold.co/400x200/1e3a5f/ffffff?text=GB+Tourism`
+                          e.target.src = 'https://placehold.co/400x200/1e3a5f/ffffff?text=GB+Tourism'
                         }}
                         style={{
-                          width: '100%', height: '100%',
-                          objectFit: 'cover', display: 'block',
-                          transition: 'transform 0.4s ease'
-                        }}
-                        onMouseEnter={e =>
-                          e.target.style.transform = 'scale(1.06)'
-                        }
-                        onMouseLeave={e =>
-                          e.target.style.transform = 'scale(1)'
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block'
                         }
                       />
-                      {/* Badges */}
                       <div style={{
                         position: 'absolute',
-                        top: '10px', left: '10px',
+                        top: 10,
+                        left: 10,
                         background: '#0ea5e9',
                         color: 'white',
                         padding: '3px 9px',
-                        borderRadius: '999px',
+                        borderRadius: 999,
                         fontSize: '0.68rem',
-                        fontWeight: 700,
-                        textTransform: 'capitalize'
+                        fontWeight: 700
                       }}>
-                        {(listing.service_type || '')
-                          .replace(/_/g, ' ')}
+                        {(listing.service_type || '').replace(/_/g, ' ')}
                       </div>
                       {listing.is_featured && (
                         <div style={{
                           position: 'absolute',
-                          top: '10px', right: '10px',
-                          background: '#f59e0b', color: 'white',
+                          top: 10,
+                          right: 10,
+                          background: '#f59e0b',
+                          color: 'white',
                           padding: '3px 8px',
-                          borderRadius: '999px',
+                          borderRadius: 999,
                           fontSize: '0.65rem',
                           fontWeight: 700
                         }}>
-                          ⭐ Featured
+                          Featured
                         </div>
                       )}
-                      {/* Rating overlay bottom */}
                       {listing.average_rating > 0 && (
                         <div style={{
                           position: 'absolute',
-                          bottom: '10px', left: '10px',
+                          bottom: 10,
+                          left: 10,
                           background: '#16a34a',
                           color: 'white',
-                          padding: '3px 8px',
-                          borderRadius: '5px',
+                          padding: '3px 9px',
+                          borderRadius: 6,
                           fontSize: '0.75rem',
                           fontWeight: 700
                         }}>
-                          ★ {listing.average_rating.toFixed(1)}
-                          <span style={{
-                            fontWeight: 400, opacity: 0.85,
-                            marginLeft: '4px',
-                            fontSize: '0.68rem'
-                          }}>
-                            ({listing.review_count || 0})
-                          </span>
+                          {listing.average_rating.toFixed(1)}
                         </div>
                       )}
                     </div>
 
-                    {/* Details BELOW image */}
+                    {/* Bottom details */}
                     <div style={{padding: '14px 16px'}}>
                       <h3 style={{
                         margin: '0 0 4px',
@@ -708,12 +696,9 @@ export default function Home() {
                       <div style={{
                         fontSize: '0.78rem',
                         color: 'var(--text-secondary)',
-                        marginBottom: '10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
+                        marginBottom: 10
                       }}>
-                        📍 {listing.location}
+                        {listing.location}
                       </div>
                       <div style={{
                         display: 'flex',
@@ -724,7 +709,7 @@ export default function Home() {
                           <div style={{
                             fontSize: '0.65rem',
                             color: 'var(--text-muted)',
-                            marginBottom: '1px'
+                            marginBottom: 1
                           }}>
                             from
                           </div>
@@ -740,7 +725,7 @@ export default function Home() {
                               fontSize: '0.68rem',
                               fontWeight: 400,
                               color: 'var(--text-muted)',
-                              marginLeft: '3px'
+                              marginLeft: 3
                             }}>
                               /night
                             </span>
@@ -753,7 +738,7 @@ export default function Home() {
                           }}
                           style={{
                             padding: '7px 14px',
-                            borderRadius: '8px',
+                            borderRadius: 8,
                             border: 'none',
                             background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
                             color: 'white',
