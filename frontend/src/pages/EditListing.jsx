@@ -3,7 +3,7 @@ import {
   useNavigate,
   useParams,
   useSearchParams,
-  useLocation
+  useLocation as useRouterLocation
 } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
@@ -14,7 +14,7 @@ function EditListing() {
   const { listingId } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const routerLocation = useLocation()
+  const routerLocation = useRouterLocation()
 
   const [title, setTitle] = useState('')
   const [location, setLocation] = useState('')

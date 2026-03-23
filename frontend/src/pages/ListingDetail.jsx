@@ -614,10 +614,12 @@ export default function ListingDetail() {
 
   const allGalleryImages = [
     listing?.image_url,
-    ...listingImages.map(
-      img => img.image_url || img
+    ...(listingImages || []).map(
+      img => img?.image_url || img
     )
-  ].filter(Boolean)
+  ].filter(img =>
+    img && typeof img === 'string'
+  )
 
   function handleBookNow() {
     if (['hotel','camping'].includes(
@@ -983,7 +985,7 @@ export default function ListingDetail() {
                     'repeat(auto-fill, minmax(150px, 1fr))',
                   gap: '8px'
                 }}>
-                  {listing.amenities_list.map(key => {
+                  {listing?.amenities_list?.map(key => {
                     const info = getAmenityInfo(key)
                     return (
                       <div key={key} style={{
