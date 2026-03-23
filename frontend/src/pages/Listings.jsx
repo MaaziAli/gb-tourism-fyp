@@ -470,8 +470,7 @@ export default function Listings() {
                 : 'repeat(3, 1fr)',
             gap: '16px'
           }}>
-            {filtered.map(listing => (
-              {/* Vertical hotel card */}
+            {(filtered || listings || []).map(listing => (
               <div
                 key={listing.id}
                 onClick={() => navigate('/listing/' + listing.id)}
@@ -484,7 +483,8 @@ export default function Listings() {
                   flexDirection: isMobile ? 'column' : 'row',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
-                  boxShadow: 'var(--shadow-sm)'
+                  boxShadow: 'var(--shadow-sm)',
+                  marginBottom: '12px'
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.1)'
@@ -509,13 +509,15 @@ export default function Listings() {
                       listing.image_url
                         ? (listing.image_url.startsWith('http')
                             ? listing.image_url
-                            : 'http://127.0.0.1:8000/uploads/' + listing.image_url)
-                        : 'https://placehold.co/220x160/1e3a5f/ffffff?text=GB+Tourism'
+                            : 'http://127.0.0.1:8000/uploads/'
+                              + listing.image_url)
+                        : 'https://placehold.co/220x160/1e3a5f/ffffff?text=Hotel'
                     }
                     alt={listing.title || 'Listing'}
                     onError={e => {
                       e.target.onerror = null
-                      e.target.src = 'https://placehold.co/220x160/1e3a5f/ffffff?text=GB+Tourism'
+                      e.target.src =
+                        'https://placehold.co/220x160/1e3a5f/ffffff?text=Hotel'
                     }}
                     style={{
                       width: '100%',
@@ -535,7 +537,8 @@ export default function Listings() {
                     fontSize: '0.68rem',
                     fontWeight: '700'
                   }}>
-                    {(listing.service_type || '').replace(/_/g, ' ')}
+                    {(listing.service_type || '')
+                      .replace(/_/g, ' ')}
                   </div>
                   {listing.is_featured ? (
                     <div style={{
@@ -553,6 +556,7 @@ export default function Listings() {
                     </div>
                   ) : null}
                 </div>
+
                 <div style={{
                   flex: '1',
                   padding: '16px 18px',
@@ -597,7 +601,8 @@ export default function Listings() {
                           fontSize: '0.78rem',
                           fontWeight: '700'
                         }}>
-                          {Number(listing.average_rating).toFixed(1)}
+                          {Number(listing.average_rating)
+                            .toFixed(1)}
                         </span>
                         <span style={{
                           fontSize: '0.75rem',
@@ -622,48 +627,13 @@ export default function Listings() {
                         {listing.description}
                       </p>
                     ) : null}
-
-                    {Array.isArray(listing.amenities_list) && listing.amenities_list.length > 0 ? (
-                      <div style={{
-                        display: 'flex',
-                        gap: '4px',
-                        flexWrap: 'wrap',
-                        marginBottom: '8px'
-                      }}>
-                        {listing.amenities_list.slice(0, 4).map(key => {
-                          const info = getAmenityInfo(key)
-                          return (
-                            <span key={key} style={{
-                              fontSize: '0.68rem',
-                              background: 'var(--bg-secondary)',
-                              color: 'var(--text-muted)',
-                              padding: '2px 7px',
-                              borderRadius: '999px',
-                              border: '1px solid var(--border-color)'
-                            }}>
-                              {info.icon} {info.label}
-                            </span>
-                          )
-                        })}
-                        {listing.amenities_list.length > 4 ? (
-                          <span style={{
-                            fontSize: '0.68rem',
-                            color: 'var(--text-muted)'
-                          }}>
-                            +{listing.amenities_list.length - 4} more
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : null}
                   </div>
 
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'flex-end',
-                    flexWrap: 'wrap',
-                    gap: '10px',
-                    marginTop: '8px',
+                    alignItems: 'center',
+                    marginTop: '10px',
                     paddingTop: '10px',
                     borderTop: '1px solid var(--border-color)'
                   }}>
@@ -673,22 +643,23 @@ export default function Listings() {
                         color: 'var(--text-muted)',
                         marginBottom: '2px'
                       }}>
-                        Starting from
+                        from
                       </div>
                       <div style={{
-                        fontSize: '1.25rem',
+                        fontSize: '1.2rem',
                         fontWeight: '900',
                         color: '#0ea5e9',
                         lineHeight: '1'
                       }}>
-                        PKR {(listing.price_per_night || 0).toLocaleString('en-PK')}
+                        PKR {(listing.price_per_night || 0)
+                          .toLocaleString('en-PK')}
                         <span style={{
-                          fontSize: '0.72rem',
+                          fontSize: '0.7rem',
                           fontWeight: '400',
                           color: 'var(--text-muted)',
                           marginLeft: '4px'
                         }}>
-                          / night
+                          /night
                         </span>
                       </div>
                     </div>
@@ -699,15 +670,15 @@ export default function Listings() {
                         navigate('/listing/' + listing.id)
                       }}
                       style={{
-                        padding: '9px 18px',
-                        borderRadius: '10px',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
                         border: 'none',
-                        background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                        background:
+                          'linear-gradient(135deg,#1e3a5f,#0ea5e9)',
                         color: 'white',
                         fontWeight: '700',
                         cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        whiteSpace: 'nowrap'
+                        fontSize: '0.82rem'
                       }}
                     >
                       View and Book
