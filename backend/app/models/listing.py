@@ -15,6 +15,7 @@ class Listing(Base):
     service_type = Column(String, nullable=False)
     image_url = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    amenities = Column(String, nullable=True)
     is_featured = Column(Boolean, default=False)
     cancellation_policy = Column(String, default="moderate")
     cancellation_hours_free = Column(Integer, default=48)

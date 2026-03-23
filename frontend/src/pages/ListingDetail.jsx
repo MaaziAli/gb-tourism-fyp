@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
-import { getImageUrl } from '../utils/image'
 import { getUser, getRole, isLoggedIn } from '../utils/role'
 import useWindowSize from '../hooks/useWindowSize'
 import WishlistButton from '../components/WishlistButton'
@@ -10,8 +9,7 @@ import PointsEarnedPopup from '../components/PointsEarnedPopup'
 import PriceBreakdown from '../components/PriceBreakdown'
 import CancellationPolicy from '../components/CancellationPolicy'
 import UrgencyBanner from '../components/UrgencyBanner'
-import RoomSelector from '../components/RoomSelector'
-import PhotoGallery from '../components/PhotoGallery'
+import { getAmenityInfo } from '../utils/amenities'
 
 const SERVICE_LABELS = {
   hotel: '🏨 Hotel',
@@ -121,7 +119,7 @@ function BookButton({
     if (['hotel', 'camping'].includes(serviceType) &&
       rooms.length > 0 && !selectedRoom) {
       document.querySelector(
-        '[data-room-selector="true"]'
+        '[data-rooms-section="true"]'
       )?.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
@@ -221,6 +219,7 @@ export default function ListingDetail() {
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryActiveImg, setGalleryActiveImg] = useState(null)
   const [listingImages, setListingImages] = useState([])
+  const [heroImg, setHeroImg] = useState(null)
   const [rooms, setRooms] = useState([])
   const [selectedRoom, setSelectedRoom] = useState(null)
   const [roomsLoading, setRoomsLoading] = useState(false)
@@ -613,12 +612,21 @@ export default function ListingDetail() {
     }
   })
 
+  const allGalleryImages = [
+    listing?.image_url,
+    ...(listingImages || []).map(img =>
+      typeof img === 'string'
+        ? img
+        : img?.image_url || null
+    ),
+  ].filter(Boolean)
+
   function handleBookNow() {
     if (['hotel','camping'].includes(
       listing?.service_type
     ) && rooms.length > 0 && !selectedRoom) {
       document.querySelector(
-        '[data-room-selector]'
+        '[data-rooms-section]'
       )?.scrollIntoView({
         behavior: 'smooth', block: 'center'
       })
@@ -746,21 +754,184 @@ export default function ListingDetail() {
         </div>
       </div>
 
+      {/* ── FULL WIDTH HERO ── */}
       <div style={{
-        maxWidth: '1100px', margin: '0 auto',
-        padding: isMobile ? '0' : '16px 16px 0'
+        position: 'relative',
+        width: '100%',
+        height: isMobile ? 260 : 480,
+        overflow: 'hidden',
+        background: '#1e3a5f'
       }}>
-        <PhotoGallery
-          mainImage={listing?.image_url}
-          extraImages={listingImages}
-          title={listing?.title || ''}
-          isMobile={isMobile}
-          onImageClick={img => {
-            setGalleryActiveImg(img)
-            setGalleryOpen(true)
+        {/* Hero image */}
+        <img
+          src={(() => {
+            const url = heroImg || listing?.image_url
+            if (!url) return `https://placehold.co/1200x480/1e3a5f/ffffff?text=GB+Tourism`
+            if (url.startsWith('http')) return url
+            return `http://127.0.0.1:8000/uploads/${url}`
+          })()}
+          alt={listing?.title}
+          onError={e => {
+            e.target.onerror = null
+            e.target.src =
+              'https://placehold.co/1200x480/1e3a5f/ffffff?text=GB+Tourism'
+          }}
+          style={{
+            width: '100%', height: '100%',
+            objectFit: 'cover', display: 'block'
           }}
         />
+
+        {/* Dark gradient overlay */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background:
+            'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%)'
+        }}/>
+
+        {/* Hotel info overlay — bottom left */}
+        <div style={{
+          position: 'absolute',
+          bottom: '20px', left: '20px',
+          right: '20px',
+          color: 'white'
+        }}>
+          {listing?.is_featured && (
+            <div style={{
+              display: 'inline-block',
+              background: '#f59e0b',
+              padding: '3px 10px',
+              borderRadius: '999px',
+              fontSize: '0.72rem', fontWeight: 700,
+              marginBottom: '6px'
+            }}>
+              ⭐ Featured Property
+            </div>
+          )}
+          <h1 style={{
+            margin: '0 0 6px',
+            fontSize: isMobile ? '1.4rem' : '2rem',
+            fontWeight: 900,
+            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            lineHeight: 1.2
+          }}>
+            {listing?.title}
+          </h1>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px', flexWrap: 'wrap'
+          }}>
+            <span style={{
+              fontSize: '0.875rem', opacity: 0.9
+            }}>
+              📍 {listing?.location}
+            </span>
+            {avgRating && (
+              <span style={{
+                background: '#16a34a',
+                padding: '2px 9px',
+                borderRadius: '5px',
+                fontSize: '0.82rem',
+                fontWeight: 700
+              }}>
+                ★ {avgRating}
+                <span style={{
+                  fontWeight: 400, opacity: 0.85,
+                  marginLeft: '4px', fontSize: '0.75rem'
+                }}>
+                  ({reviews.length} reviews)
+                </span>
+              </span>
+            )}
+            <span style={{
+              background: 'rgba(255,255,255,0.2)',
+              padding: '2px 9px',
+              borderRadius: '999px',
+              fontSize: '0.75rem'
+            }}>
+              {(listing?.service_type || '')
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, c => c.toUpperCase())}
+            </span>
+          </div>
+        </div>
+
+        {/* Photo count badge top-right */}
+        {allGalleryImages.length > 1 && (
+          <div
+            onClick={() => {
+              setGalleryActiveImg(heroImg || listing?.image_url)
+              setGalleryOpen(true)
+            }}
+            style={{
+              position: 'absolute',
+              top: '16px', right: '16px',
+              background: 'rgba(0,0,0,0.55)',
+              color: 'white',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '0.78rem', fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            📷 {allGalleryImages.length} photos
+          </div>
+        )}
       </div>
+
+      {/* ── THUMBNAIL STRIP ── */}
+      {allGalleryImages.length > 1 && (
+        <div style={{
+          background: 'var(--bg-secondary)',
+          borderBottom:
+            '1px solid var(--border-color)',
+          padding: '10px 16px',
+          display: 'flex', gap: '8px',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch'
+        }}>
+          {allGalleryImages.map((img, i) => (
+            <div
+              key={i}
+              onClick={() => setHeroImg(img)}
+              style={{
+                width: 72, height: 52,
+                flexShrink: 0, borderRadius: '6px',
+                overflow: 'hidden', cursor: 'pointer',
+                border: heroImg === img ||
+                  (!heroImg && i === 0)
+                  ? '2px solid #0ea5e9'
+                  : '2px solid transparent',
+                opacity: heroImg === img ||
+                  (!heroImg && i === 0) ? 1 : 0.7,
+                transition: 'all 0.15s'
+              }}
+            >
+              <img
+                src={(() => {
+                  if (!img) return ''
+                  if (img.startsWith('http')) return img
+                  return `http://127.0.0.1:8000/uploads/${img}`
+                })()}
+                alt={`Photo ${i + 1}`}
+                onError={e => {
+                  e.target.onerror = null
+                  e.target.src =
+                    'https://placehold.co/72x52/e5e7eb/9ca3af?text=📷'
+                }}
+                style={{
+                  width: '100%', height: '100%',
+                  objectFit: 'cover', display: 'block'
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{
         maxWidth: '1100px', margin: '0 auto',
@@ -796,6 +967,52 @@ export default function ListingDetail() {
                 'Contact the provider for more details about this service.'
               }
             </p>
+
+            {/* Amenities grid */}
+            {listing?.amenities_list?.length > 0 && (
+              <div style={{marginTop: '20px'}}>
+                <div style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  ✨ Amenities & Facilities
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns:
+                    'repeat(auto-fill, minmax(150px, 1fr))',
+                  gap: '8px'
+                }}>
+                  {listing.amenities_list.map(key => {
+                    const info = getAmenityInfo(key)
+                    return (
+                      <div key={key} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        background: 'var(--bg-secondary)',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        color: 'var(--text-secondary)'
+                      }}>
+                        <span style={{fontSize: '1rem'}}>
+                          {info.icon}
+                        </span>
+                        <span style={{fontWeight: 500}}>
+                          {info.label}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <div style={{
               display: 'grid',
@@ -835,6 +1052,383 @@ export default function ListingDetail() {
               ))}
             </div>
           </div>
+
+            {/* ── CHOOSE YOUR ROOM SECTION ── */}
+            {['hotel', 'camping'].includes(
+              listing?.service_type
+            ) && (
+              <div
+                data-rooms-section="true"
+                style={{
+                  background: 'var(--bg-card)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--border-color)',
+                  padding: '24px',
+                  marginBottom: '16px'
+                }}
+              >
+                <h2 style={{
+                  margin: '0 0 4px',
+                  fontSize: '1.05rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)'
+                }}>
+                  🛏️ Choose Your Room
+                </h2>
+                <p style={{
+                  margin: '0 0 16px',
+                  fontSize: '0.82rem',
+                  color: 'var(--text-secondary)'
+                }}>
+                  {checkIn && checkOut
+                    ? `Available for ${nights} night${nights > 1 ? 's' : ''} · ${checkIn} → ${checkOut}`
+                    : 'Select dates in the booking panel to check availability'}
+                </p>
+
+                {roomsLoading ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '32px',
+                    color: 'var(--text-muted)'
+                  }}>
+                    <div style={{
+                      fontSize: '2rem',
+                      marginBottom: '8px'
+                    }}>
+                      🛏️
+                    </div>
+                    Loading available rooms...
+                  </div>
+                ) : rooms.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '24px',
+                    color: 'var(--text-muted)',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: '10px'
+                  }}>
+                    <div style={{fontSize: '1.5rem'}}>
+                      🏨
+                    </div>
+                    <p style={{
+                      margin: '8px 0 0',
+                      fontSize: '0.85rem'
+                    }}>
+                      Standard room available.
+                      Contact provider for details.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    {rooms.map(room => {
+                      const isSelected =
+                        selectedRoom?.id === room.id
+                      const isUnavailable =
+                        !room.is_available ||
+                        room.available_count === 0
+
+                      const amenityList = (() => {
+                        if (!room.amenities) return []
+                        if (Array.isArray(room.amenities)) return room.amenities
+                        try {
+                          const p = JSON.parse(room.amenities)
+                          return Array.isArray(p) ? p : []
+                        } catch {
+                          return String(room.amenities)
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(Boolean)
+                        }
+                      })()
+
+                      return (
+                        <div
+                          key={room.id}
+                          style={{
+                            borderRadius: '12px',
+                            border: isSelected
+                              ? '2px solid #0ea5e9'
+                              : '1px solid var(--border-color)',
+                            background: isSelected
+                              ? '#f0f9ff'
+                              : 'var(--bg-card)',
+                            overflow: 'hidden',
+                            opacity: isUnavailable ? 0.5 : 1,
+                            boxShadow: isSelected
+                              ? '0 0 0 3px #bae6fd'
+                              : 'none',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'stretch'
+                          }}>
+                            {/* Room image */}
+                            <div style={{
+                              width: 140,
+                              flexShrink: 0,
+                              background: '#dbeafe',
+                              overflow: 'hidden',
+                              position: 'relative'
+                            }}>
+                              {room.image_url ? (
+                                <img
+                                  src={
+                                    room.image_url.startsWith('http')
+                                      ? room.image_url
+                                      : `http://127.0.0.1:8000/uploads/${room.image_url}`
+                                  }
+                                  alt={room.name}
+                                  onError={e => {
+                                    e.target.onerror = null
+                                    e.target.style.display = 'none'
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    display: 'block',
+                                    minHeight: 120
+                                  }}
+                                />
+                              ) : (
+                                <div style={{
+                                  width: '100%',
+                                  minHeight: 120,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '2rem'
+                                }}>
+                                  🛏️
+                                </div>
+                              )}
+                              {isSelected && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '8px', right: '8px',
+                                  width: 24, height: 24,
+                                  borderRadius: '50%',
+                                  background: '#0ea5e9',
+                                  color: 'white',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 800
+                                }}>
+                                  ✓
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Room details */}
+                            <div style={{
+                              flex: 1,
+                              padding: '14px 16px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between'
+                            }}>
+                              <div>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  marginBottom: '4px',
+                                  flexWrap: 'wrap'
+                                }}>
+                                  <h4 style={{
+                                    margin: 0,
+                                    fontSize: '0.95rem',
+                                    fontWeight: 700,
+                                    color: isSelected
+                                      ? '#0369a1'
+                                      : 'var(--text-primary)'
+                                  }}>
+                                    {room.name}
+                                  </h4>
+                                  {room.bed_type && (
+                                    <span style={{
+                                      fontSize: '0.68rem',
+                                      background: '#f3f4f6',
+                                      color: '#6b7280',
+                                      padding: '2px 7px',
+                                      borderRadius: '999px'
+                                    }}>
+                                      🛏️ {room.bed_type}
+                                    </span>
+                                  )}
+                                  {room.capacity && (
+                                    <span style={{
+                                      fontSize: '0.68rem',
+                                      background: '#f3f4f6',
+                                      color: '#6b7280',
+                                      padding: '2px 7px',
+                                      borderRadius: '999px'
+                                    }}>
+                                      👥 {room.capacity} guests
+                                    </span>
+                                  )}
+                                </div>
+
+                                {room.description && (
+                                  <p style={{
+                                    margin: '0 0 6px',
+                                    fontSize: '0.78rem',
+                                    color: 'var(--text-secondary)',
+                                    lineHeight: 1.5
+                                  }}>
+                                    {room.description}
+                                  </p>
+                                )}
+
+                                {/* Amenity tags */}
+                                {amenityList.length > 0 && (
+                                  <div style={{
+                                    display: 'flex',
+                                    gap: '4px',
+                                    flexWrap: 'wrap'
+                                  }}>
+                                    {amenityList
+                                      .slice(0, 4)
+                                      .map((a, i) => (
+                                        <span
+                                          key={i}
+                                          style={{
+                                            fontSize: '0.68rem',
+                                            background: isSelected
+                                              ? '#e0f2fe'
+                                              : 'var(--bg-secondary)',
+                                            color: isSelected
+                                              ? '#0369a1'
+                                              : 'var(--text-muted)',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            border: '1px solid',
+                                            borderColor: isSelected
+                                              ? '#bae6fd'
+                                              : 'var(--border-color)'
+                                          }}
+                                        >
+                                          {a}
+                                        </span>
+                                      ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Price + button row */}
+                              <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-end',
+                                marginTop: '10px',
+                                paddingTop: '10px',
+                                borderTop:
+                                  '1px solid var(--border-color)'
+                              }}>
+                                <div>
+                                  {room.available_count > 0 &&
+                                   room.available_count <= 3 && (
+                                    <div style={{
+                                      fontSize: '0.72rem',
+                                      color: '#dc2626',
+                                      fontWeight: 700,
+                                      marginBottom: '3px'
+                                    }}>
+                                      🔥 Only{' '}
+                                      {room.available_count} left!
+                                    </div>
+                                  )}
+                                  <div style={{
+                                    fontSize: '1.2rem',
+                                    fontWeight: 800,
+                                    color: isSelected
+                                      ? '#0369a1'
+                                      : '#0ea5e9',
+                                    lineHeight: 1
+                                  }}>
+                                    PKR{' '}
+                                    {room.price_per_night
+                                      ?.toLocaleString('en-PK')}
+                                    <span style={{
+                                      fontSize: '0.72rem',
+                                      fontWeight: 400,
+                                      color: 'var(--text-muted)',
+                                      marginLeft: '3px'
+                                    }}>
+                                      /night
+                                    </span>
+                                  </div>
+                                  {nights > 0 && (
+                                    <div style={{
+                                      fontSize: '0.72rem',
+                                      color: 'var(--text-muted)'
+                                    }}>
+                                      PKR{' '}
+                                      {(
+                                        room.price_per_night *
+                                        nights
+                                      ).toLocaleString('en-PK')}
+                                      {' '}total
+                                    </div>
+                                  )}
+                                </div>
+
+                                <button
+                                  onClick={() => {
+                                    if (!isUnavailable) {
+                                      setSelectedRoom(
+                                        isSelected
+                                          ? null
+                                          : room
+                                      )
+                                    }
+                                  }}
+                                  disabled={isUnavailable}
+                                  style={{
+                                    padding: '8px 18px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: isSelected
+                                      ? '#0ea5e9'
+                                      : 'var(--bg-secondary)',
+                                    color: isSelected
+                                      ? 'white'
+                                      : 'var(--text-secondary)',
+                                    fontWeight: 700,
+                                    cursor: isUnavailable
+                                      ? 'not-allowed'
+                                      : 'pointer',
+                                    fontSize: '0.82rem',
+                                    border: isSelected
+                                      ? 'none'
+                                      : '1px solid var(--border-color)',
+                                    transition: 'all 0.15s'
+                                  }}
+                                >
+                                  {isUnavailable
+                                    ? 'Unavailable'
+                                    : isSelected
+                                      ? '✓ Selected'
+                                      : 'Select Room'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
           {listing?.cancellation_policy_info && (
             <div style={{marginBottom: '20px'}}>
@@ -1290,30 +1884,115 @@ export default function ListingDetail() {
                 </div>
               )}
 
+              {/* Selected room summary in sidebar */}
               {['hotel','camping'].includes(
                 listing?.service_type
               ) && (
-                <div style={{marginBottom: '14px'}}
-                  data-room-selector="true"
-                >
-                  {roomsLoading ? (
+                <div style={{
+                  marginBottom: '12px',
+                  padding: '10px 12px',
+                  background: selectedRoom
+                    ? '#f0f9ff'
+                    : 'var(--bg-secondary)',
+                  borderRadius: '10px',
+                  border: selectedRoom
+                    ? '1px solid #bae6fd'
+                    : '1px solid var(--border-color)'
+                }}>
+                  {selectedRoom ? (
+                    <div>
+                      <div style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: '#0369a1',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '4px'
+                      }}>
+                        Selected Room
+                      </div>
+                      <div style={{
+                        fontWeight: 700,
+                        fontSize: '0.875rem',
+                        color: '#0369a1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        🛏️ {selectedRoom.name}
+                      </div>
+                      {selectedRoom.bed_type && (
+                        <div style={{
+                          fontSize: '0.72rem',
+                          color: '#0ea5e9',
+                          marginTop: '2px'
+                        }}>
+                          {selectedRoom.bed_type}
+                          {selectedRoom.capacity
+                            ? ` · ${selectedRoom.capacity} guests`
+                            : ''}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => {
+                          document
+                            .querySelector(
+                              '[data-rooms-section]'
+                            )
+                            ?.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'center'
+                            })
+                        }}
+                        style={{
+                          marginTop: '6px',
+                          fontSize: '0.72rem',
+                          color: '#0ea5e9',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                          fontWeight: 600
+                        }}
+                      >
+                        Change room ↓
+                      </button>
+                    </div>
+                  ) : (
                     <div style={{
                       textAlign: 'center',
-                      padding: '16px',
-                      color: 'var(--text-muted)',
-                      fontSize: '0.82rem'
+                      fontSize: '0.8rem',
+                      color: 'var(--text-muted)'
                     }}>
-                      🛏️ Loading rooms...
+                      <div>🛏️</div>
+                      <div style={{marginTop: '4px'}}>
+                        Select a room below
+                      </div>
+                      <button
+                        onClick={() => {
+                          document
+                            .querySelector(
+                              '[data-rooms-section]'
+                            )
+                            ?.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'center'
+                            })
+                        }}
+                        style={{
+                          marginTop: '6px',
+                          fontSize: '0.72rem',
+                          color: '#0ea5e9',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                      >
+                        View rooms ↓
+                      </button>
                     </div>
-                  ) : rooms.length > 0 ? (
-                    <RoomSelector
-                      rooms={rooms}
-                      selectedRoom={selectedRoom}
-                      onSelectRoom={setSelectedRoom}
-                      nights={nights || 1}
-                      isMobile={true}
-                    />
-                  ) : null}
+                  )}
                 </div>
               )}
 
@@ -1460,14 +2139,16 @@ export default function ListingDetail() {
             }}
           >
             <img
-              src={
-                galleryActiveImg
-                  ? (galleryActiveImg.startsWith('http')
-                      ? galleryActiveImg
-                      : `http://127.0.0.1:8000/uploads/${galleryActiveImg}`
-                    )
-                  : `http://127.0.0.1:8000/uploads/${listing?.image_url}`
-              }
+              src={(() => {
+                const raw =
+                  galleryActiveImg ||
+                  heroImg ||
+                  listing?.image_url
+                if (!raw) return ''
+                return raw.startsWith('http')
+                  ? raw
+                  : `http://127.0.0.1:8000/uploads/${raw}`
+              })()}
               alt={listing?.title}
               onError={e => {
                 e.target.onerror = null

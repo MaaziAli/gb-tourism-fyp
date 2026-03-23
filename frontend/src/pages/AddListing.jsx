@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
+import AmenitiesSelector from '../components/AmenitiesSelector'
 
 function AddListing() {
   const [title, setTitle] = useState('')
@@ -11,6 +12,7 @@ function AddListing() {
   const [cuisineType, setCuisineType] = useState('')
   const [openingHours, setOpeningHours] = useState('')
   const [diningAmenities, setDiningAmenities] = useState([])
+  const [amenities, setAmenities] = useState([])
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [message, setMessage] = useState('')
@@ -37,24 +39,41 @@ function AddListing() {
       formData.append('cancellation_policy', cancelPolicy)
       formData.append('cancellation_hours_free', String(cancelHours))
       formData.append('rooms_available', String(roomsAvailable))
+      formData.append(
+        'amenities',
+        JSON.stringify(amenities)
+      )
       if (imageFile) {
         formData.append('image', imageFile)
       }
 
-      await api.post('/listings/', formData, {
+      const res = await api.post('/listings/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      setMessage('Listing created successfully!')
-      setTitle('')
-      setLocation('')
-      setDescription('')
-      setPricePerNight('')
-      setServiceType('hotel')
-      setCuisineType('')
-      setOpeningHours('')
-      setDiningAmenities([])
-      setImageFile(null)
-      setImagePreview(null)
+      const newId = res.data?.id || res.data
+
+      const hotelTypes = ['hotel', 'camping']
+      if (hotelTypes.includes(serviceType)) {
+        // Go to edit page so provider can add room types immediately
+        navigate(
+          `/edit-listing/${newId}?tab=rooms`,
+          {
+            state: {
+              showRoomsFirst: true,
+              message:
+                'Listing created! Now add room types for your hotel.'
+            }
+          }
+        )
+        return
+      }
+
+      navigate('/my-listings', {
+        state: {
+          message: 'Listing created successfully!'
+        }
+      })
+      return
     } catch (err) {
       console.error('Failed to create listing', {
         message: err.message,
@@ -302,6 +321,27 @@ function AddListing() {
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
               }}
+            />
+          </div>
+
+          {/* Amenities */}
+          <div style={{marginBottom: '20px'}}>
+            <label style={{
+              display: 'block', fontWeight: 700,
+              marginBottom: '8px', fontSize: '0.9rem',
+              color: 'var(--text-primary)'
+            }}>
+              ✨ Amenities & Features
+            </label>
+            <p style={{
+              margin: '0 0 10px', fontSize: '0.78rem',
+              color: 'var(--text-secondary)'
+            }}>
+              Select everything your property offers
+            </p>
+            <AmenitiesSelector
+              selected={amenities}
+              onChange={setAmenities}
             />
           </div>
 

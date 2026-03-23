@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+  useLocation
+} from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
+import AmenitiesSelector from '../components/AmenitiesSelector'
 
 function EditListing() {
   const { listingId } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const location = useLocation()
 
   const [title, setTitle] = useState('')
   const [location, setLocation] = useState('')
@@ -49,6 +57,7 @@ function EditListing() {
   const [cancelPolicy, setCancelPolicy] = useState('moderate')
   const [cancelHours, setCancelHours] = useState(48)
   const [roomsAvailable, setRoomsAvailable] = useState(10)
+  const [amenities, setAmenities] = useState([])
 
   useEffect(() => {
     let isMounted = true
@@ -78,6 +87,20 @@ function EditListing() {
         setRoomsAvailable(
           data.rooms_available != null ? data.rooms_available : 10,
         )
+
+        // Amenities
+        if (Array.isArray(data.amenities_list)) {
+          setAmenities(data.amenities_list)
+        } else if (data.amenities) {
+          try {
+            const parsed = JSON.parse(data.amenities)
+            setAmenities(Array.isArray(parsed) ? parsed : [])
+          } catch {
+            setAmenities([])
+          }
+        } else {
+          setAmenities([])
+        }
       })
       .catch((err) => {
         if (!isMounted) return
@@ -92,6 +115,24 @@ function EditListing() {
       isMounted = false
     }
   }, [listingId])
+
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    const msg = location.state?.message
+    if (msg) {
+      alert(msg)
+    }
+    if (tab === 'rooms') {
+      setTimeout(() => {
+        document
+          .querySelector('[data-rooms-tab]')
+          ?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          })
+      }, 800)
+    }
+  }, [])
 
   useEffect(() => {
     if (!listingId) return
@@ -261,6 +302,10 @@ function EditListing() {
       formData.append('cancellation_policy', cancelPolicy)
       formData.append('cancellation_hours_free', String(cancelHours))
       formData.append('rooms_available', String(roomsAvailable))
+      formData.append(
+        'amenities',
+        JSON.stringify(amenities)
+      )
       if (imageFile) {
         formData.append('image', imageFile)
       }
@@ -661,7 +706,10 @@ function EditListing() {
           )}
 
           {/* Room Types Section */}
-          <div style={{ marginBottom: '28px' }}>
+          <div
+            data-rooms-tab="true"
+            style={{ marginBottom: '28px' }}
+          >
             <label
               style={{
                 display: 'block',
@@ -1168,6 +1216,30 @@ function EditListing() {
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
               }}
+            />
+          </div>
+
+          {/* Amenities */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              fontWeight: 700,
+              marginBottom: '8px',
+              fontSize: '0.9rem',
+              color: 'var(--text-primary)'
+            }}>
+              ✨ Amenities & Features
+            </label>
+            <p style={{
+              margin: '0 0 10px',
+              fontSize: '0.78rem',
+              color: 'var(--text-secondary)'
+            }}>
+              Select everything your property offers
+            </p>
+            <AmenitiesSelector
+              selected={amenities}
+              onChange={setAmenities}
             />
           </div>
 

@@ -8,6 +8,7 @@ class ListingBase(BaseModel):
     service_type: str
     image_url: str | None = None
     description: str | None = None
+    amenities: str | None = None
 
 
 class ListingCreate(ListingBase):

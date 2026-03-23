@@ -4,6 +4,7 @@ Listings router - full CRUD operations for tourism listings.
 from pathlib import Path
 from uuid import uuid4
 import shutil
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, File, Form, UploadFile
 from sqlalchemy import func
@@ -38,6 +39,16 @@ def _save_image(image: UploadFile | None) -> str | None:
     return filename
 
 
+def _parse_amenities(amenities_value: str | None) -> list[str]:
+    if not amenities_value:
+        return []
+    try:
+        parsed = json.loads(amenities_value)
+        return parsed if isinstance(parsed, list) else []
+    except Exception:
+        return []
+
+
 @router.post("/", response_model=ListingResponse)
 def create_listing(
     title: str = Form(...),
@@ -45,6 +56,7 @@ def create_listing(
     price_per_night: float = Form(...),
     service_type: str = Form(...),
     description: str | None = Form(None),
+    amenities: str | None = Form(None),
     cancellation_policy: str = Form("moderate"),
     cancellation_hours_free: int = Form(48),
     rooms_available: int = Form(10),
@@ -67,6 +79,7 @@ def create_listing(
         service_type=service_type,
         image_url=image_filename,
         description=description,
+        amenities=amenities or None,
         cancellation_policy=cancellation_policy or "moderate",
         cancellation_hours_free=cancellation_hours_free or 48,
         rooms_available=rooms_available if rooms_available is not None else 10,
@@ -101,6 +114,9 @@ def get_listings(db: Session = Depends(get_db)):
             "service_type": listing.service_type,
             "image_url": listing.image_url,
             "owner_id": listing.owner_id,
+            "amenities_list": _parse_amenities(
+                getattr(listing, "amenities", None)
+            ),
             "average_rating": round(avg_rating, 1),
             "review_count": review_count,
             "is_featured": bool(
@@ -715,6 +731,10 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
         "id": listing.id,
         "title": listing.title,
         "description": listing.description,
+        "amenities": getattr(listing, "amenities", None),
+        "amenities_list": _parse_amenities(
+            getattr(listing, "amenities", None)
+        ),
         "location": listing.location,
         "price_per_night": listing.price_per_night,
         "service_type": listing.service_type,
@@ -792,6 +812,7 @@ def update_listing(
     price_per_night: float = Form(...),
     service_type: str = Form(...),
     description: str | None = Form(None),
+    amenities: str | None = Form(None),
     cancellation_policy: str | None = Form(None),
     cancellation_hours_free: int | None = Form(None),
     rooms_available: int | None = Form(None),
@@ -814,6 +835,8 @@ def update_listing(
     listing.service_type = service_type
     if description is not None:
         listing.description = description
+    if amenities is not None:
+        listing.amenities = amenities
     if cancellation_policy is not None:
         listing.cancellation_policy = cancellation_policy
     if cancellation_hours_free is not None:
