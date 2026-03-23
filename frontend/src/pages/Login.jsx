@@ -9,34 +9,50 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  async function handleSubmit(e) {
+  async function handleLogin(e) {
     e.preventDefault()
     setError('')
     setLoading(true)
-    try {
-      const formData = new URLSearchParams()
-      formData.append('username', email)
-      formData.append('password', password)
-      const res = await api.post('/auth/login', formData)
-      localStorage.setItem('token', res.data.access_token)
 
-      let me = null
-      try {
-        const meRes = await api.get('/users/me')
-        me = meRes.data
-        localStorage.setItem('user', JSON.stringify(meRes.data))
-      } catch {
-        // If /users/me fails, continue with token-only auth
+    try {
+      const res = await api.post('/auth/login', {
+        email: email.trim().toLowerCase(),
+        password: password
+      })
+
+      const { access_token, user } = res.data
+
+      if (!access_token) {
+        setError('Login failed. Try again.')
+        setLoading(false)
+        return
       }
 
-      const role = me?.role
-      if (role === 'admin') navigate('/admin')
-      else if (role === 'provider') navigate('/my-listings')
-      else navigate('/')
-    } catch(e) {
-      setError(
-        e.response?.data?.detail || 'Invalid email or password'
+      // Save to localStorage
+      localStorage.setItem('token', access_token)
+      localStorage.setItem(
+        'user', JSON.stringify(user)
       )
+
+      // Navigate based on role
+      const role = user?.role
+      if (role === 'admin') {
+        navigate('/admin')
+      } else if (role === 'provider') {
+        navigate('/my-listings')
+      } else {
+        navigate('/')
+      }
+    } catch (err) {
+      console.error('Login error:', err)
+
+      // Show specific error message
+      const msg =
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        'Invalid email or password'
+
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -93,18 +109,16 @@ export default function Login() {
               color: 'var(--danger)',
               padding: '10px 14px',
               borderRadius: '8px',
-              marginBottom: '18px',
+              marginBottom: '12px',
               fontSize: '0.875rem',
               fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
+              textAlign: 'center'
             }}>
               ⚠️ {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleLogin}>
             {/* Email */}
             <div style={{marginBottom: '16px'}}>
               <label style={{

@@ -1,15 +1,26 @@
 import { Navigate } from 'react-router-dom'
-import { getRole, isLoggedIn } from '../utils/role'
 
-function AdminRoute({ children }) {
-  if (!isLoggedIn()) {
+export default function AdminRoute({
+  children
+}) {
+  const token = localStorage.getItem('token')
+  const user = (() => {
+    try {
+      const raw = localStorage.getItem('user')
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  })()
+
+  if (!token || !user) {
     return <Navigate to="/login" replace />
   }
-  if (getRole() !== 'admin') {
+
+  if (user.role !== 'admin') {
     return <Navigate to="/" replace />
   }
+
   return children
 }
-
-export default AdminRoute
 

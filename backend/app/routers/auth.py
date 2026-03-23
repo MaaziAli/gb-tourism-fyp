@@ -2,7 +2,6 @@
 Authentication router - registration, login, and logout.
 """
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -43,19 +42,35 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login")
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    body: LoginRequest,
     db: Session = Depends(get_db),
 ):
-    """Authenticate user and return JWT access token."""
-    # OAuth2PasswordRequestForm provides `username` and `password` fields.
-    # In this app, `username` is the user's email.
-    user = db.query(User).filter(User.email == form_data.username).first()
-    if user is None:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token(data={"sub": user.email})
-    return {"access_token": token, "token_type": "bearer"}
+    user = db.query(User).filter(
+        User.email == body.email.lower().strip()
+    ).first()
+
+    if not user or not verify_password(
+        body.password, user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+
+    token = create_access_token(
+        {"sub": str(user.id)}
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role
+        }
+    }
 
 
 @router.post("/logout")
