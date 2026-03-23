@@ -614,11 +614,9 @@ export default function ListingDetail() {
 
   const allGalleryImages = [
     listing?.image_url,
-    ...(listingImages || []).map(img =>
-      typeof img === 'string'
-        ? img
-        : img?.image_url || null
-    ),
+    ...listingImages.map(
+      img => img.image_url || img
+    )
   ].filter(Boolean)
 
   function handleBookNow() {
@@ -860,10 +858,7 @@ export default function ListingDetail() {
         {/* Photo count badge top-right */}
         {allGalleryImages.length > 1 && (
           <div
-            onClick={() => {
-              setGalleryActiveImg(heroImg || listing?.image_url)
-              setGalleryOpen(true)
-            }}
+            onClick={() => setGalleryOpen(true)}
             style={{
               position: 'absolute',
               top: '16px', right: '16px',

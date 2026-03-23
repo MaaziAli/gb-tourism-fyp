@@ -14,7 +14,7 @@ function EditListing() {
   const { listingId } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const location = useLocation()
+  const routerLocation = useLocation()
 
   const [title, setTitle] = useState('')
   const [location, setLocation] = useState('')
@@ -118,7 +118,7 @@ function EditListing() {
 
   useEffect(() => {
     const tab = searchParams.get('tab')
-    const msg = location.state?.message
+    const msg = routerLocation.state?.message
     if (msg) {
       alert(msg)
     }
