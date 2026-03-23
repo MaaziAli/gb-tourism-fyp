@@ -465,10 +465,9 @@ export default function Listings() {
         {!loading && filtered.length > 0 && (
           <div style={{
             display:'grid',
-            gridTemplateColumns:
-              isMobile ? '1fr'
-                : isTablet ? 'repeat(2, 1fr)'
-                  : 'repeat(3, 1fr)',
+            gridTemplateColumns: isMobile ? '1fr'
+              : isTablet ? 'repeat(2, 1fr)'
+                : 'repeat(3, 1fr)',
             gap: '16px'
           }}>
             {filtered.map(listing => (
@@ -485,8 +484,7 @@ export default function Listings() {
                   overflow: 'hidden',
                   cursor: 'pointer',
                   boxShadow: 'var(--shadow-sm)',
-                  transition:
-                    'transform 0.15s, box-shadow 0.15s'
+                  transition: 'transform 0.15s, box-shadow 0.15s'
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.transform =
@@ -632,8 +630,7 @@ export default function Listings() {
                           return (
                             <span key={key} style={{
                               fontSize: '0.68rem',
-                              background:
-                                'var(--bg-secondary)',
+                              background: 'var(--bg-secondary)',
                               color: 'var(--text-muted)',
                               padding: '2px 7px',
                               borderRadius: '999px',
@@ -693,8 +690,7 @@ export default function Listings() {
                         padding: '7px 14px',
                         borderRadius: '8px',
                         border: 'none',
-                        background:
-                          'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                        background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
                         color: 'white',
                         fontWeight: 700,
                         cursor: 'pointer',

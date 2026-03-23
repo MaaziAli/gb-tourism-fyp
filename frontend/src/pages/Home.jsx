@@ -120,8 +120,7 @@ export default function Home() {
           HERO — Full dark immersive section
       ══════════════════════════════════════ */}
       <div style={{
-        background:
-          'linear-gradient(160deg, #0a0f1e 0%, #0f2340 40%, #0c3460 70%, #0ea5e9 100%)',
+        background: 'linear-gradient(160deg, #0a0f1e 0%, #0f2340 40%, #0c3460 70%, #0ea5e9 100%)',
         padding: isMobile ? '48px 16px 72px' : '72px 16px 120px',
         position: 'relative', overflow: 'hidden'
       }}>
@@ -129,15 +128,13 @@ export default function Home() {
         <div style={{
           position: 'absolute', top: '10%', right: '8%',
           width: 400, height: 400, borderRadius: '50%',
-          background:
-            'radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 70%)',
           pointerEvents: 'none'
         }} />
         <div style={{
           position: 'absolute', bottom: '5%', left: '5%',
           width: 300, height: 300, borderRadius: '50%',
-          background:
-            'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)',
           pointerEvents: 'none'
         }} />
 
@@ -172,8 +169,7 @@ export default function Home() {
             </span>
             <br />
             <span style={{
-              background:
-                'linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8)',
+              background: 'linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8)',
               backgroundSize: '200%',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
@@ -279,15 +275,13 @@ export default function Home() {
             <button
               onClick={() => navigate('/listings')}
               style={{
-                background:
-                  'linear-gradient(135deg, #0ea5e9, #6366f1)',
+                background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
                 color: 'white', border: 'none',
                 borderRadius: '14px',
                 padding: '15px 36px',
                 fontWeight: 800, fontSize: '1rem',
                 cursor: 'pointer',
-                boxShadow:
-                  '0 8px 32px rgba(14,165,233,0.35)',
+                boxShadow: '0 8px 32px rgba(14,165,233,0.35)',
                 transition: 'transform 0.2s, box-shadow 0.2s',
                 letterSpacing: '-0.01em'
               }}
@@ -375,8 +369,7 @@ export default function Home() {
             }}
           >
             <div style={{
-              background:
-                'linear-gradient(135deg, #f59e0b22, #d9770622)',
+              background: 'linear-gradient(135deg, #f59e0b22, #d9770622)',
               border: '1px solid #f59e0b44',
               borderRadius: 'var(--radius-md)',
               padding: '14px 20px', cursor: 'pointer',
@@ -584,10 +577,9 @@ export default function Home() {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns:
-                isMobile ? '1fr'
-                  : isTablet ? 'repeat(2, 1fr)'
-                    : 'repeat(3, 1fr)',
+              gridTemplateColumns: isMobile ? '1fr'
+                : isTablet ? 'repeat(2, 1fr)'
+                  : 'repeat(3, 1fr)',
               gap: '16px'
             }}>
               {featuredListings.map(listing => {
@@ -603,8 +595,7 @@ export default function Home() {
                       overflow: 'hidden',
                       cursor: 'pointer',
                       boxShadow: 'var(--shadow-sm)',
-                      transition:
-                        'transform 0.15s, box-shadow 0.15s'
+                      transition: 'transform 0.15s, box-shadow 0.15s'
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.transform =
@@ -764,8 +755,7 @@ export default function Home() {
                             padding: '7px 14px',
                             borderRadius: '8px',
                             border: 'none',
-                            background:
-                              'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                            background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
                             color: 'white',
                             fontWeight: 700,
                             cursor: 'pointer',
@@ -863,8 +853,7 @@ export default function Home() {
             {/* Events grid */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns:
-                'repeat(auto-fill, minmax(260px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
               gap: '20px'
             }}>
               {upcomingEvents.map(event => {
@@ -887,8 +876,7 @@ export default function Home() {
                       overflow: 'hidden',
                       cursor: 'pointer',
                       boxShadow: 'var(--shadow-sm)',
-                      transition:
-                        'transform 0.18s, box-shadow 0.18s'
+                      transition: 'transform 0.18s, box-shadow 0.18s'
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.transform =
@@ -942,8 +930,7 @@ export default function Home() {
                       {/* Gradient overlay */}
                       <div style={{
                         position: 'absolute', inset: 0,
-                        background:
-                          'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)'
+                        background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)'
                       }} />
 
                       {/* Category badge */}
@@ -1096,15 +1083,13 @@ export default function Home() {
               <button
                 onClick={() => navigate('/events')}
                 style={{
-                  background:
-                    'linear-gradient(135deg, #4c1d95, #7c3aed)',
+                  background: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
                   color: 'white', border: 'none',
                   borderRadius: '12px',
                   padding: '13px 36px',
                   cursor: 'pointer', fontWeight: 700,
                   fontSize: '0.95rem',
-                  boxShadow:
-                    '0 8px 24px rgba(124,58,237,0.3)',
+                  boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
                   transition: 'transform 0.2s'
                 }}
                 onMouseEnter={e =>
@@ -1222,15 +1207,13 @@ export default function Home() {
           CTA SECTION
       ══════════════════════════════════════ */}
       <div style={{
-        background:
-          'linear-gradient(135deg, #0c1a35 0%, #0f2d5a 50%, #0369a1 100%)',
+        background: 'linear-gradient(135deg, #0c1a35 0%, #0f2d5a 50%, #0369a1 100%)',
         padding: '80px 16px', textAlign: 'center',
         position: 'relative', overflow: 'hidden'
       }}>
         <div style={{
           position: 'absolute', inset: 0,
-          background:
-            'radial-gradient(ellipse at center, rgba(14,165,233,0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse at center, rgba(14,165,233,0.15) 0%, transparent 70%)',
           pointerEvents: 'none'
         }} />
         <div style={{position: 'relative', zIndex: 1}}>
@@ -1267,15 +1250,13 @@ export default function Home() {
             <button
               onClick={() => navigate('/register')}
               style={{
-                background:
-                  'linear-gradient(135deg, #0ea5e9, #6366f1)',
+                background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
                 color: 'white', border: 'none',
                 borderRadius: '14px',
                 padding: '15px 36px',
                 fontWeight: 800, fontSize: '1rem',
                 cursor: 'pointer',
-                boxShadow:
-                  '0 8px 32px rgba(14,165,233,0.4)',
+                boxShadow: '0 8px 32px rgba(14,165,233,0.4)',
                 transition: 'transform 0.2s'
               }}
               onMouseEnter={e =>

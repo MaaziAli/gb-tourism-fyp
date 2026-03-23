@@ -785,8 +785,7 @@ export default function ListingDetail() {
         {/* Dark gradient overlay */}
         <div style={{
           position: 'absolute', inset: 0,
-          background:
-            'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%)'
+          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%)'
         }}/>
 
         {/* Hotel info overlay — bottom left */}
@@ -981,8 +980,7 @@ export default function ListingDetail() {
                 </div>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns:
-                    'repeat(auto-fill, minmax(150px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
                   gap: '8px'
                 }}>
                   {listing?.amenities_list?.map(key => {
@@ -1013,8 +1011,7 @@ export default function ListingDetail() {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns:
-                'repeat(auto-fill, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
               gap: '12px'
             }}>
               {highlights.map((h, i) => (
@@ -1483,9 +1480,7 @@ export default function ListingDetail() {
             {avgRating > 0 && (
               <div style={{
                 display: 'grid',
-                gridTemplateColumns:
-                  isMobile ? '1fr'
-                  : 'repeat(2, 1fr)',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
                 gap: '10px', marginBottom: '20px'
               }}>
                 {avgSubRatings
@@ -1642,8 +1637,7 @@ export default function ListingDetail() {
                       review.location_rating > 0) && (
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns:
-                          'repeat(2, 1fr)',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
                         gap: '6px', marginBottom: '10px'
                       }}>
                         {SUB_RATING_KEYS
@@ -1670,8 +1664,7 @@ export default function ListingDetail() {
                             </div>
                             <div style={{
                               height: '3px',
-                              background:
-                                'var(--border-color)',
+                              background: 'var(--border-color)',
                               borderRadius: '2px',
                               overflow: 'hidden'
                             }}>
@@ -1733,8 +1726,7 @@ export default function ListingDetail() {
             overflow: 'hidden'
           }}>
             <div style={{
-              background:
-                'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+              background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
               padding: '20px'
             }}>
               <div style={{
@@ -2020,8 +2012,7 @@ export default function ListingDetail() {
                 style={{
                   width: '100%', padding: '14px',
                   borderRadius: '12px', border: 'none',
-                  background:
-                    'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                  background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
                   color: 'white', fontWeight: 800,
                   fontSize: '1rem', cursor: 'pointer',
                   opacity: (!checkIn || !checkOut)
