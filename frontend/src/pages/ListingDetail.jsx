@@ -277,6 +277,7 @@ export default function ListingDetail() {
   async function fetchAll() {
     setLoading(true)
     try {
+      const listingId = parseInt(id, 10)
       const [lRes, rRes, sRes] = await Promise.all([
         api.get(`/listings/${id}`),
         api.get(`/reviews/listing/${id}`),
@@ -286,14 +287,17 @@ export default function ListingDetail() {
       setReviews(rRes.data)
       setSummary(sRes.data)
 
+      // Load gallery images
+      api.get(`/listing-images/${listingId}`)
+        .then(r => setListingImages(r.data || []))
+        .catch(() => setListingImages([]))
+
       try {
         const imgRes = await api.get(`/listing-images/${id}`)
         setExtraImages(imgRes.data || [])
-        setListingImages(imgRes.data || [])
       } catch (e) {
         console.error('Image load error:', e)
         setExtraImages([])
-        setListingImages([])
       }
 
       if (['hotel', 'camping', 'resort'].includes(lRes.data.service_type)) {
@@ -515,24 +519,49 @@ export default function ListingDetail() {
       </div>
     )
 
+  // Computed: effective price from selected room
   const effectivePrice = selectedRoom
     ? selectedRoom.price_per_night
-    : listing?.price_per_night || 0
+    : (listing?.price_per_night || 0)
+
   const checkIn = sidebarCheckIn
   const checkOut = sidebarCheckOut
-  const nights = sidebarNights
   const setCheckIn = setSidebarCheckIn
   const setCheckOut = setSidebarCheckOut
-  const totalGuests =
-    listing?.capacity ||
-    selectedRoom?.capacity || 2
+
+  // Computed: average rating
+  const avgRating = reviews.length > 0
+    ? (
+        reviews.reduce(
+          (sum, r) => sum + (r.rating || 0), 0
+        ) / reviews.length
+      ).toFixed(1)
+    : null
+
+  // Computed: nights between dates
+  const nights = (() => {
+    if (!checkIn || !checkOut) return 0
+    try {
+      const d = (new Date(checkOut) -
+                 new Date(checkIn)) /
+                 (1000 * 60 * 60 * 24)
+      return d > 0 ? d : 0
+    } catch { return 0 }
+  })()
+
+  const CANCEL_EMOJI = {
+    flexible: '✅',
+    moderate: '⚠️',
+    strict: '❌'
+  }
 
   const highlights = [
     listing?.service_type && {
-      icon: '🏨',
-      label: SERVICE_LABELS[
-        listing.service_type
-      ] || listing.service_type,
+      icon: '🏷️',
+      label: (listing.service_type
+        .charAt(0).toUpperCase() +
+        listing.service_type.slice(1))
+        .replace('_', ' '),
       sub: 'Service type'
     },
     listing?.location && {
@@ -546,11 +575,9 @@ export default function ListingDetail() {
       sub: 'Capacity'
     },
     listing?.cancellation_policy && {
-      icon: {
-        flexible: '✅',
-        moderate: '⚠️',
-        strict: '❌'
-      }[listing.cancellation_policy] || '⚠️',
+      icon: CANCEL_EMOJI[
+        listing.cancellation_policy
+      ] || '⚠️',
       label: (
         listing.cancellation_policy
           .charAt(0).toUpperCase() +
@@ -560,13 +587,7 @@ export default function ListingDetail() {
     }
   ].filter(Boolean)
 
-  const avgRating = reviews.length > 0
-    ? (reviews.reduce(
-        (s, r) => s + (r.rating || 0), 0
-      ) / reviews.length).toFixed(1)
-    : 0
-
-  const subRatingKeys = [
+  const SUB_RATING_KEYS = [
     { key: 'cleanliness_rating',
       label: 'Cleanliness' },
     { key: 'location_rating',
@@ -579,7 +600,7 @@ export default function ListingDetail() {
       label: 'Facilities' },
   ]
 
-  const avgSubRatings = subRatingKeys.map(s => {
+  const avgSubRatings = SUB_RATING_KEYS.map(s => {
     const vals = reviews
       .map(r => r[s.key] || 0)
       .filter(v => v > 0)
@@ -604,18 +625,15 @@ export default function ListingDetail() {
       return
     }
 
-    const params = new URLSearchParams({
-      checkIn: checkIn || '',
-      checkOut: checkOut || '',
-    })
+    const params = new URLSearchParams()
+    if (checkIn) params.set('checkIn', checkIn)
+    if (checkOut) params.set('checkOut', checkOut)
     if (selectedRoom) {
       params.set('roomTypeId',
         String(selectedRoom.id))
       params.set('roomName', selectedRoom.name)
       params.set('roomPrice',
         String(selectedRoom.price_per_night))
-      params.set('room_type_id', String(selectedRoom.id))
-      params.set('room_name', selectedRoom.name)
     }
     navigate(
       `/booking/${listing.id}?${params.toString()}`
@@ -625,7 +643,8 @@ export default function ListingDetail() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-primary)'
+      background: 'var(--bg-primary)',
+      paddingBottom: '60px'
     }}>
       <div style={{
         background: 'var(--bg-card)',
@@ -733,10 +752,13 @@ export default function ListingDetail() {
       }}>
         <PhotoGallery
           mainImage={listing?.image_url}
-          extraImages={listingImages || []}
-          title={listing?.title}
+          extraImages={listingImages}
+          title={listing?.title || ''}
           isMobile={isMobile}
-          onViewAll={() => setGalleryOpen(true)}
+          onImageClick={img => {
+            setGalleryActiveImg(img)
+            setGalleryOpen(true)
+          }}
         />
       </div>
 
@@ -1033,7 +1055,7 @@ export default function ListingDetail() {
                           'repeat(2, 1fr)',
                         gap: '6px', marginBottom: '10px'
                       }}>
-                        {subRatingKeys
+                        {SUB_RATING_KEYS
                           .filter(s =>
                             (review[s.key] || 0) > 0
                           )
@@ -1438,10 +1460,14 @@ export default function ListingDetail() {
             }}
           >
             <img
-              src={getImageUrl(
-                galleryActiveImg ||
-                listing?.image_url
-              )}
+              src={
+                galleryActiveImg
+                  ? (galleryActiveImg.startsWith('http')
+                      ? galleryActiveImg
+                      : `http://127.0.0.1:8000/uploads/${galleryActiveImg}`
+                    )
+                  : `http://127.0.0.1:8000/uploads/${listing?.image_url}`
+              }
               alt={listing?.title}
               onError={e => {
                 e.target.onerror = null

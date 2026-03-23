@@ -1,111 +1,164 @@
 import { useState } from 'react'
-import { getImageUrl } from '../utils/image'
 
 const PLACEHOLDER =
   'https://placehold.co/800x500/1e3a5f/ffffff?text=GB+Tourism'
 
+function getImgUrl(raw) {
+  if (!raw) return PLACEHOLDER
+  if (raw.startsWith('http')) return raw
+  return `http://127.0.0.1:8000/uploads/${raw}`
+}
+
 export default function PhotoGallery({
-  mainImage,
+  mainImage = null,
   extraImages = [],
   title = '',
   isMobile = false,
-  onViewAll
+  onImageClick
 }) {
   const [activeIdx, setActiveIdx] = useState(0)
 
-  // Build image list
-  const allImages = [
+  // Build unified image list
+  const allImgs = [
     mainImage,
     ...extraImages.map(img =>
-      img.image_url || img
+      typeof img === 'string'
+        ? img
+        : img?.image_url || null
     )
   ].filter(Boolean)
 
-  if (allImages.length === 0) {
+  function handleClick(img) {
+    if (onImageClick) onImageClick(img)
+  }
+
+  // -- Empty state --
+  if (allImgs.length === 0) {
     return (
       <div style={{
         height: isMobile ? 220 : 400,
         background:
-          'linear-gradient(135deg, #1e3a5f22, #0ea5e922)',
+          'linear-gradient(135deg, #1e3a5f18, #0ea5e918)',
         borderRadius: isMobile ? 0 : '12px',
-        display: 'flex', alignItems: 'center',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '3rem'
+        color: 'var(--text-muted)',
+        flexDirection: 'column',
+        gap: '8px'
       }}>
-        🏔️
+        <div style={{fontSize: '3rem'}}>🏔️</div>
+        <div style={{fontSize: '0.85rem'}}>
+          No photos yet
+        </div>
       </div>
     )
   }
 
-  // Mobile: single image with dots
+  // -- Mobile: slider with dots --
   if (isMobile) {
+    const prev = () => setActiveIdx(
+      i => (i - 1 + allImgs.length)
+        % allImgs.length
+    )
+    const next = () => setActiveIdx(
+      i => (i + 1) % allImgs.length
+    )
+
     return (
       <div style={{
         position: 'relative',
-        height: 240, overflow: 'hidden'
+        height: 250,
+        overflow: 'hidden',
+        background: '#f3f4f6'
       }}>
         <img
-          src={getImageUrl(allImages[activeIdx])}
-          alt={title}
+          src={getImgUrl(allImgs[activeIdx])}
+          alt={`${title} photo ${activeIdx + 1}`}
+          onClick={() =>
+            handleClick(allImgs[activeIdx])
+          }
           onError={e => {
             e.target.onerror = null
             e.target.src = PLACEHOLDER
           }}
           style={{
-            width: '100%', height: '100%',
-            objectFit: 'cover', display: 'block'
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+            cursor: 'pointer'
           }}
         />
-        {/* Nav arrows */}
-        {allImages.length > 1 && (
+
+        {/* Prev / Next arrows */}
+        {allImgs.length > 1 && (
           <>
             <button
-              onClick={() => setActiveIdx(
-                i => (i - 1 + allImages.length)
-                  % allImages.length
-              )}
+              onClick={e => {
+                e.stopPropagation()
+                prev()
+              }}
               style={{
                 position: 'absolute',
-                left: '10px', top: '50%',
+                left: '10px',
+                top: '50%',
                 transform: 'translateY(-50%)',
                 background: 'rgba(0,0,0,0.45)',
-                border: 'none', color: 'white',
+                border: 'none',
+                color: 'white',
                 borderRadius: '50%',
-                width: 32, height: 32,
-                cursor: 'pointer', fontSize: '1rem'
+                width: 34, height: 34,
+                cursor: 'pointer',
+                fontSize: '1.1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >‹</button>
             <button
-              onClick={() => setActiveIdx(
-                i => (i + 1) % allImages.length
-              )}
+              onClick={e => {
+                e.stopPropagation()
+                next()
+              }}
               style={{
                 position: 'absolute',
-                right: '10px', top: '50%',
+                right: '10px',
+                top: '50%',
                 transform: 'translateY(-50%)',
                 background: 'rgba(0,0,0,0.45)',
-                border: 'none', color: 'white',
+                border: 'none',
+                color: 'white',
                 borderRadius: '50%',
-                width: 32, height: 32,
-                cursor: 'pointer', fontSize: '1rem'
+                width: 34, height: 34,
+                cursor: 'pointer',
+                fontSize: '1.1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >›</button>
           </>
         )}
-        {/* Dots */}
-        {allImages.length > 1 && (
+
+        {/* Dot indicators */}
+        {allImgs.length > 1 && (
           <div style={{
             position: 'absolute',
-            bottom: '10px', left: '50%',
+            bottom: '12px',
+            left: '50%',
             transform: 'translateX(-50%)',
-            display: 'flex', gap: '4px'
+            display: 'flex',
+            gap: '5px'
           }}>
-            {allImages.map((_, i) => (
-              <div key={i}
+            {allImgs.map((_, i) => (
+              <div
+                key={i}
                 onClick={() => setActiveIdx(i)}
                 style={{
-                  width: i === activeIdx ? 16 : 6,
-                  height: 6, borderRadius: '3px',
+                  width: i === activeIdx ? 18 : 6,
+                  height: 6,
+                  borderRadius: '3px',
                   background: i === activeIdx
                     ? 'white'
                     : 'rgba(255,255,255,0.5)',
@@ -116,126 +169,151 @@ export default function PhotoGallery({
             ))}
           </div>
         )}
-        {/* Count badge */}
-        {allImages.length > 1 && (
-          <div style={{
-            position: 'absolute',
-            top: '10px', right: '10px',
-            background: 'rgba(0,0,0,0.55)',
-            color: 'white', fontSize: '0.72rem',
-            padding: '3px 8px', borderRadius: '999px',
-            fontWeight: 600
-          }}>
-            {activeIdx + 1}/{allImages.length}
-          </div>
-        )}
+
+        {/* Photo count badge */}
+        <div style={{
+          position: 'absolute',
+          bottom: '12px',
+          right: '12px',
+          background: 'rgba(0,0,0,0.55)',
+          color: 'white',
+          fontSize: '0.72rem',
+          padding: '3px 8px',
+          borderRadius: '999px',
+          fontWeight: 600
+        }}>
+          {activeIdx + 1} / {allImgs.length}
+        </div>
       </div>
     )
   }
 
-  // Desktop: Booking.com style grid
-  // Main large image left + 4 thumbnails right
-  const mainImg = allImages[0]
-  const thumbs = allImages.slice(1, 5)
-  const remaining = allImages.length - 5
+  // -- Desktop: Booking.com grid --
+  // Left: 1 large | Right: 2x2 grid
+  const main = allImgs[0]
+  const thumbs = allImgs.slice(1, 5)
+  const extra = allImgs.length - 5
 
   return (
     <div style={{
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '4px', borderRadius: '12px',
-      overflow: 'hidden', height: 420
+      gap: '4px',
+      height: 420,
+      borderRadius: '12px',
+      overflow: 'hidden',
+      background: '#e5e7eb'
     }}>
       {/* Main large image */}
       <div
-        onClick={() => {
-          setActiveIdx(0)
-          onViewAll && onViewAll()
-        }}
+        onClick={() => handleClick(main)}
         style={{
-          cursor: 'pointer', overflow: 'hidden',
+          overflow: 'hidden',
+          cursor: 'pointer',
           position: 'relative'
         }}
       >
         <img
-          src={getImageUrl(mainImg)}
+          src={getImgUrl(main)}
           alt={title}
           onError={e => {
             e.target.onerror = null
             e.target.src = PLACEHOLDER
           }}
           style={{
-            width: '100%', height: '100%',
-            objectFit: 'cover', display: 'block',
-            transition: 'transform 0.3s'
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+            transition: 'transform 0.3s ease'
           }}
           onMouseEnter={e =>
-            e.target.style.transform =
-              'scale(1.03)'
+            e.target.style.transform = 'scale(1.04)'
           }
           onMouseLeave={e =>
             e.target.style.transform = 'scale(1)'
           }
         />
+        {/* Photo count on main */}
+        {allImgs.length > 1 && (
+          <div style={{
+            position: 'absolute',
+            bottom: '14px',
+            left: '14px',
+            background: 'rgba(0,0,0,0.6)',
+            color: 'white',
+            fontSize: '0.75rem',
+            padding: '4px 10px',
+            borderRadius: '999px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            📷 {allImgs.length} photo
+            {allImgs.length > 1 ? 's' : ''}
+          </div>
+        )}
       </div>
 
-      {/* Right: 2x2 thumbnail grid */}
+      {/* Right 2x2 thumbnail grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gridTemplateRows: '1fr 1fr',
         gap: '4px'
       }}>
-        {[0,1,2,3].map(ti => {
+        {[0, 1, 2, 3].map(ti => {
           const img = thumbs[ti]
-          const isLast = ti === 3 &&
-            remaining > 0
+          const isLastSlot = ti === 3
+          const hasMore = extra > 0
 
           return (
-            <div key={ti}
-              onClick={() => {
-                if (img) {
-                  setActiveIdx(ti + 1)
-                  onViewAll && onViewAll()
-                }
-              }}
+            <div
+              key={ti}
+              onClick={() => img &&
+                handleClick(img)
+              }
               style={{
-                position: 'relative',
                 overflow: 'hidden',
                 cursor: img ? 'pointer' : 'default',
-                background: '#f3f4f6'
+                background: '#e5e7eb',
+                position: 'relative'
               }}
             >
               {img ? (
                 <>
                   <img
-                    src={getImageUrl(img)}
+                    src={getImgUrl(img)}
                     alt={`Photo ${ti + 2}`}
                     onError={e => {
                       e.target.onerror = null
                       e.target.src =
-                        'https://placehold.co/400x210/e5e7eb/9ca3af?text=Photo'
+                        'https://placehold.co/400x200/e5e7eb/9ca3af?text=Photo'
                     }}
                     style={{
-                      width: '100%', height: '100%',
+                      width: '100%',
+                      height: '100%',
                       objectFit: 'cover',
                       display: 'block',
-                      transition: 'transform 0.3s'
+                      transition:
+                        'transform 0.3s ease'
                     }}
                     onMouseEnter={e =>
                       e.target.style.transform =
-                        'scale(1.05)'
+                        'scale(1.06)'
                     }
                     onMouseLeave={e =>
                       e.target.style.transform =
                         'scale(1)'
                     }
                   />
-                  {isLast && remaining > 0 && (
+                  {/* "See all" overlay on slot 3 */}
+                  {isLastSlot && hasMore && (
                     <div
                       onClick={e => {
                         e.stopPropagation()
-                        onViewAll && onViewAll()
+                        handleClick(img)
                       }}
                       style={{
                         position: 'absolute',
@@ -247,28 +325,30 @@ export default function PhotoGallery({
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: 'white',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        gap: '3px'
                       }}
                     >
                       <div style={{
-                        fontSize: '1.4rem',
-                        fontWeight: 800
+                        fontSize: '1.5rem',
+                        fontWeight: 900
                       }}>
-                        +{remaining + 1}
+                        +{extra + 1}
                       </div>
                       <div style={{
                         fontSize: '0.72rem',
-                        opacity: 0.85
+                        opacity: 0.9
                       }}>
-                        View all photos
+                        See all photos
                       </div>
                     </div>
                   )}
                 </>
               ) : (
                 <div style={{
-                  width: '100%', height: '100%',
-                  background: '#f9fafb',
+                  width: '100%',
+                  height: '100%',
+                  background: '#f3f4f6',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

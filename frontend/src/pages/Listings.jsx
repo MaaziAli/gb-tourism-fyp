@@ -477,16 +477,18 @@ export default function Listings() {
                   background: 'var(--bg-card)',
                   borderRadius: 'var(--radius-lg)',
                   border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--shadow-sm)',
                   overflow: 'hidden',
                   display: 'flex',
-                  flexDirection: isMobile ? 'column' : 'row',
+                  flexDirection: isMobile
+                    ? 'column' : 'row',
                   cursor: 'pointer',
-                  transition: 'box-shadow 0.15s, transform 0.15s'
+                  transition:
+                    'box-shadow 0.15s, transform 0.15s',
+                  boxShadow: 'var(--shadow-sm)'
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.boxShadow =
-                    '0 8px 24px rgba(0,0,0,0.12)'
+                    '0 8px 28px rgba(0,0,0,0.1)'
                   e.currentTarget.style.transform =
                     'translateY(-2px)'
                 }}
@@ -501,69 +503,90 @@ export default function Listings() {
                 }
               >
                 <div style={{
-                  width: isMobile ? '100%' : 240,
-                  height: isMobile ? 180 : 'auto',
+                  width: isMobile ? '100%' : 220,
+                  height: isMobile ? 190 : 'auto',
                   flexShrink: 0,
                   position: 'relative',
                   overflow: 'hidden',
-                  background: '#e0f2fe'
+                  background: '#e0f2fe',
+                  minHeight: isMobile ? 190 : 160
                 }}>
                   <img
-                    src={getImageUrl(listing.image_url)}
+                    src={(() => {
+                      const url = listing.image_url
+                      if (!url) return
+                        `https://placehold.co/220x160/1e3a5f/ffffff?text=${
+                          encodeURIComponent(
+                            listing.service_type || 'Service'
+                          )}`
+                      if (url.startsWith('http')) return url
+                      return `http://127.0.0.1:8000/uploads/${url}`
+                    })()}
                     alt={listing.title}
                     onError={e => {
                       e.target.onerror = null
                       e.target.src =
-                        `https://placehold.co/240x180/1e3a5f/ffffff?text=${encodeURIComponent(
-                          listing.service_type || 'Hotel'
-                        )}`
+                        `https://placehold.co/220x160/1e3a5f/ffffff?text=${
+                          encodeURIComponent(
+                            listing.service_type || 'Service'
+                          )}`
                     }}
                     style={{
-                      width: '100%', height: '100%',
-                      objectFit: 'cover', display: 'block',
-                      minHeight: isMobile ? 180 : 160
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block'
                     }}
                   />
                   <div style={{
                     position: 'absolute',
                     top: '10px', left: '10px',
-                    background: (SERVICE_COLORS[
-                      listing.service_type
-                    ] || '#0ea5e9'),
-                    color: 'white', padding: '3px 8px',
+                    background: '#0ea5e9',
+                    color: 'white',
+                    padding: '3px 9px',
                     borderRadius: '999px',
-                    fontSize: '0.68rem', fontWeight: 700
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    textTransform: 'capitalize'
                   }}>
-                    {SERVICE_LABELS[listing.service_type]
-                      || listing.service_type}
+                    {(listing.service_type || '')
+                      .replace('_', ' ')}
                   </div>
                   {listing.is_featured && (
                     <div style={{
                       position: 'absolute',
-                      top: '10px', right: '44px',
-                      background: '#f59e0b', color: 'white',
-                      padding: '3px 8px', borderRadius: '999px',
-                      fontSize: '0.68rem', fontWeight: 700
+                      top: '10px', right: '40px',
+                      background: '#f59e0b',
+                      color: 'white',
+                      padding: '3px 8px',
+                      borderRadius: '999px',
+                      fontSize: '0.65rem',
+                      fontWeight: 700
                     }}>
                       ⭐ Featured
                     </div>
                   )}
                   <div style={{
                     position: 'absolute',
-                    top: '10px', right: '10px'
+                    top: '8px', right: '8px',
+                    zIndex: 2
                   }}>
                     <WishlistButton listingId={listing.id} size="sm" />
                   </div>
                 </div>
 
                 <div style={{
-                  flex: 1, padding: '16px 20px',
-                  display: 'flex', flexDirection: 'column',
-                  justifyContent: 'space-between', minWidth: 0
+                  flex: 1,
+                  padding: '16px 18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  minWidth: 0
                 }}>
                   <div>
                     <h3 style={{
-                      margin: '0 0 4px', fontWeight: 700,
+                      margin: '0 0 4px',
+                      fontWeight: 700,
                       fontSize: '1rem',
                       color: 'var(--text-primary)',
                       overflow: 'hidden',
@@ -572,11 +595,13 @@ export default function Listings() {
                     }}>
                       {listing.title}
                     </h3>
+
                     <div style={{
-                      fontSize: '0.82rem',
+                      fontSize: '0.8rem',
                       color: 'var(--text-secondary)',
                       marginBottom: '8px',
-                      display: 'flex', alignItems: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
                       gap: '4px'
                     }}>
                       📍 {listing.location}
@@ -585,15 +610,23 @@ export default function Listings() {
                     {(listing.average_rating > 0 ||
                       listing.review_count > 0) && (
                       <div style={{
-                        display: 'flex', alignItems: 'center',
-                        gap: '6px', marginBottom: '8px'
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginBottom: '8px'
                       }}>
                         <span style={{
-                          background: '#16a34a', color: 'white',
-                          padding: '2px 7px', borderRadius: '5px',
-                          fontSize: '0.78rem', fontWeight: 700
+                          background: '#16a34a',
+                          color: 'white',
+                          padding: '2px 8px',
+                          borderRadius: '5px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700
                         }}>
-                          ★ {listing.average_rating || '—'}
+                          ★ {listing.average_rating > 0
+                            ? listing.average_rating.toFixed(1)
+                            : '—'
+                          }
                         </span>
                         <span style={{
                           fontSize: '0.75rem',
@@ -604,7 +637,7 @@ export default function Listings() {
                                 listing.review_count > 1
                                   ? 's' : ''
                               }`
-                            : 'No reviews yet'
+                            : 'New listing'
                           }
                         </span>
                       </div>
@@ -615,7 +648,7 @@ export default function Listings() {
                         margin: '0 0 10px',
                         fontSize: '0.8rem',
                         color: 'var(--text-muted)',
-                        lineHeight: 1.5,
+                        lineHeight: 1.55,
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
@@ -629,30 +662,37 @@ export default function Listings() {
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'flex-end', flexWrap: 'wrap',
-                    gap: '10px', marginTop: '8px'
+                    alignItems: 'flex-end',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                    marginTop: '8px',
+                    paddingTop: '10px',
+                    borderTop:
+                      '1px solid var(--border-color)'
                   }}>
                     <div>
                       <div style={{
-                        fontSize: '0.72rem',
+                        fontSize: '0.68rem',
                         color: 'var(--text-muted)',
                         marginBottom: '2px'
                       }}>
-                        {listing.room_count > 0
-                          ? 'from' : 'Starting at'}
+                        Starting from
                       </div>
                       <div style={{
-                        fontSize: '1.3rem', fontWeight: 800,
-                        color: '#0ea5e9', lineHeight: 1
+                        fontSize: '1.25rem',
+                        fontWeight: 900,
+                        color: '#0ea5e9',
+                        lineHeight: 1
                       }}>
                         PKR {(listing.price_per_night || 0)
                           .toLocaleString('en-PK')}
                         <span style={{
-                          fontSize: '0.72rem', fontWeight: 400,
+                          fontSize: '0.72rem',
+                          fontWeight: 400,
                           color: 'var(--text-muted)',
-                          marginLeft: '3px'
+                          marginLeft: '4px'
                         }}>
-                          /night
+                          / night
                         </span>
                       </div>
                     </div>
@@ -663,12 +703,16 @@ export default function Listings() {
                         navigate(`/listing/${listing.id}`)
                       }}
                       style={{
-                        padding: '9px 20px',
-                        borderRadius: '10px', border: 'none',
+                        padding: '9px 18px',
+                        borderRadius: '10px',
+                        border: 'none',
                         background:
                           'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
-                        color: 'white', fontWeight: 700,
-                        cursor: 'pointer', fontSize: '0.875rem'
+                        color: 'white',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       View & Book →
