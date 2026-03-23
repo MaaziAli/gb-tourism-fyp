@@ -31,6 +31,9 @@ function EditListing() {
   })
   const [roomMsg, setRoomMsg] = useState('')
   const [addingRoom, setAddingRoom] = useState(false)
+  const [bedType, setBedType] = useState('')
+  const [availableCount, setAvailableCount] = useState(5)
+  const [roomAmenities, setRoomAmenities] = useState([])
   const [diningPackages, setDiningPackages] = useState([])
   const [newPkg, setNewPkg] = useState({
     name: '',
@@ -160,9 +163,15 @@ function EditListing() {
     setAddingRoom(true)
     try {
       const res = await api.post(`/room-types/${listingId}`, {
-        ...newRoom,
+        name: newRoom.name,
+        description: newRoom.description,
         price_per_night: parseFloat(newRoom.price_per_night),
         capacity: parseInt(newRoom.capacity),
+        bed_type: bedType || null,
+        available_count: availableCount,
+        amenities: roomAmenities.length > 0
+          ? JSON.stringify(roomAmenities)
+          : null,
         total_rooms: parseInt(newRoom.total_rooms),
       })
       setRoomTypes((prev) => [...prev, res.data])
@@ -173,6 +182,9 @@ function EditListing() {
         capacity: 2,
         total_rooms: 1,
       })
+      setBedType('')
+      setAvailableCount(5)
+      setRoomAmenities([])
       setRoomMsg('✅ Room type added!')
     } catch (e) {
       console.error('Failed to add room type', e)
@@ -715,6 +727,10 @@ function EditListing() {
                         {room.price_per_night?.toLocaleString('en-PK')}
                         /night · {room.capacity} guests · {room.total_rooms}{' '}
                         room{room.total_rooms > 1 ? 's' : ''}
+                        {room.bed_type ? ` · ${room.bed_type}` : ''}
+                        {typeof room.available_count === 'number'
+                          ? ` · ${room.available_count} available`
+                          : ''}
                       </div>
                       {room.description && (
                         <div
@@ -912,6 +928,131 @@ function EditListing() {
                   />
                 </div>
               </div>
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{
+                  display: 'block',
+                  fontWeight: 700,
+                  marginBottom: '5px', fontSize: '0.85rem',
+                  color: 'var(--text-primary)'
+                }}>
+                  🛏️ Bed Type
+                </label>
+                <select
+                  value={bedType}
+                  onChange={e => setBedType(e.target.value)}
+                  style={{
+                    width: '100%', padding: '9px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  <option value="">Select bed type</option>
+                  {[
+                    'Single Bed', 'Double Bed', 'Twin Beds',
+                    'Queen Bed', 'King Bed',
+                    'Bunk Beds', 'Sofa Bed'
+                  ].map(b => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{
+                  display: 'block', fontWeight: 700,
+                  marginBottom: '5px', fontSize: '0.85rem',
+                  color: 'var(--text-primary)'
+                }}>
+                  🏷️ Rooms Available
+                </label>
+                <input type="number"
+                  value={availableCount}
+                  onChange={e => setAvailableCount(
+                    parseInt(e.target.value) || 1
+                  )}
+                  min={0} max={999}
+                  style={{
+                    width: '100%', padding: '9px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.875rem', outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{
+                  display: 'block', fontWeight: 700,
+                  marginBottom: '8px', fontSize: '0.85rem',
+                  color: 'var(--text-primary)'
+                }}>
+                  ✨ Room Amenities
+                </label>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '6px'
+                }}>
+                  {[
+                    'WiFi', 'Air Conditioning', 'TV',
+                    'Hot Water', 'Minibar', 'Room Service',
+                    'Balcony', 'Sea View', 'Jacuzzi',
+                    'Safe', 'Hairdryer', 'Iron'
+                  ].map(amenity => {
+                    const selected = (roomAmenities || [])
+                      .includes(amenity)
+                    return (
+                      <div key={amenity}
+                        onClick={() => {
+                          setRoomAmenities(prev => {
+                            const arr = prev || []
+                            return selected
+                              ? arr.filter(a => a !== amenity)
+                              : [...arr, amenity]
+                          })
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center',
+                          gap: '6px', padding: '6px 8px',
+                          borderRadius: '7px', cursor: 'pointer',
+                          border: selected
+                            ? '1px solid #0ea5e9'
+                            : '1px solid var(--border-color)',
+                          background: selected
+                            ? '#e0f2fe' : 'var(--bg-secondary)',
+                          fontSize: '0.78rem',
+                          color: selected
+                            ? '#0369a1' : 'var(--text-secondary)'
+                        }}
+                      >
+                        <span style={{
+                          width: 14, height: 14,
+                          borderRadius: '3px',
+                          background: selected
+                            ? '#0ea5e9' : 'transparent',
+                          border: selected
+                            ? 'none'
+                            : '1px solid var(--border-color)',
+                          display: 'flex', alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0, fontSize: '0.6rem',
+                          color: 'white'
+                        }}>
+                          {selected ? '✓' : ''}
+                        </span>
+                        {amenity}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
               <div style={{ marginBottom: '10px' }}>
                 <label
                   style={{

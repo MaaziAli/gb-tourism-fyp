@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  useParams, useNavigate,
+  useSearchParams
+} from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
@@ -28,13 +31,41 @@ export default function BookingForm() {
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
   const [searchParams] = useSearchParams()
-  const roomTypeId = searchParams.get('room_type_id')
-  const roomTypeName = searchParams.get('room_name')
+
+  // Get room info from URL
+  const roomTypeIdFromUrl =
+    searchParams.get('roomTypeId') || searchParams.get('room_type_id')
+  const roomNameFromUrl =
+    searchParams.get('roomName') || searchParams.get('room_name')
+  const roomPriceFromUrl =
+    searchParams.get('roomPrice')
+
+  // Pre-fill check-in / check-out from URL
+  const checkInFromUrl =
+    searchParams.get('checkIn')
+  const checkOutFromUrl =
+    searchParams.get('checkOut')
 
   const [listing, setListing] = useState(null)
-  const [roomPrice, setRoomPrice] = useState(null)
-  const [checkIn, setCheckIn] = useState('')
-  const [checkOut, setCheckOut] = useState('')
+  const [checkIn, setCheckIn] = useState(
+    checkInFromUrl || ''
+  )
+  const [checkOut, setCheckOut] = useState(
+    checkOutFromUrl || ''
+  )
+  const [selectedRoomTypeId, setSelectedRoomTypeId]
+    = useState(
+      roomTypeIdFromUrl
+        ? parseInt(roomTypeIdFromUrl)
+        : null
+    )
+  const [selectedRoomName, setSelectedRoomName]
+    = useState(roomNameFromUrl || null)
+  const [basePrice, setBasePrice] = useState(
+    roomPriceFromUrl
+      ? parseFloat(roomPriceFromUrl)
+      : 0
+  )
   const [nights, setNights] = useState(0)
   const [totalPrice, setTotalPrice] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -57,17 +88,26 @@ export default function BookingForm() {
   }, [listingId])
 
   useEffect(() => {
-    if (roomTypeId && listingId) {
+    if (selectedRoomTypeId && listingId) {
       api.get('/room-types/' + listingId)
         .then(res => {
           const found = res.data.find(
-            r => r.id === parseInt(roomTypeId)
+            r => r.id === parseInt(selectedRoomTypeId)
           )
-          if (found) setRoomPrice(found.price_per_night)
+          if (found) {
+            setBasePrice(found.price_per_night)
+            setSelectedRoomName(found.name)
+          }
         })
         .catch(console.error)
     }
-  }, [roomTypeId, listingId])
+  }, [selectedRoomTypeId, listingId])
+
+  useEffect(() => {
+    if (listing && (!roomPriceFromUrl || Number.isNaN(parseFloat(roomPriceFromUrl)))) {
+      setBasePrice(listing?.price_per_night || 0)
+    }
+  }, [listing, roomPriceFromUrl])
 
   useEffect(() => {
     if (checkIn && checkOut) {
@@ -76,14 +116,14 @@ export default function BookingForm() {
       const n = Math.round((d2 - d1) / (1000 * 60 * 60 * 24))
       if (n > 0) {
         setNights(n)
-        const price = roomPrice || listing?.price_per_night || 0
+        const price = basePrice || listing?.price_per_night || 0
         setTotalPrice(n * price)
       } else {
         setNights(0)
         setTotalPrice(0)
       }
     }
-  }, [checkIn, checkOut, roomPrice, listing])
+  }, [checkIn, checkOut, basePrice, listing])
 
   useEffect(() => {
     setCouponDiscount(0)
@@ -106,14 +146,18 @@ export default function BookingForm() {
     setError('')
     setSubmitting(true)
     try {
-      const res = await api.post('/bookings/', {
+      const finalTotal = discountedTotal
+      const bookingPayload = {
         listing_id: parseInt(listingId, 10),
         check_in: checkIn,
         check_out: checkOut,
-        room_type_id: roomTypeId
-          ? parseInt(roomTypeId, 10) : null,
+        total_price: finalTotal,
+        ...(selectedRoomTypeId && {
+          room_type_id: selectedRoomTypeId
+        }),
         coupon_code: appliedCoupon?.code || null,
-      })
+      }
+      const res = await api.post('/bookings/', bookingPayload)
       const tp = res.data.total_price ?? 0
       setBookingId(res.data.id)
       setConfirmedTotal(tp)
@@ -135,7 +179,7 @@ export default function BookingForm() {
   }
 
   const pricePerNight =
-    roomPrice || listing?.price_per_night || 0
+    basePrice || listing?.price_per_night || 0
 
   const priceLabel = getPriceLabel(listing?.service_type)
   const durationUnit =
@@ -199,7 +243,7 @@ export default function BookingForm() {
               }}>
                 {listing?.title}
               </div>
-              {roomTypeName && (
+              {selectedRoomName && (
                 <div style={{
                   display: 'inline-block',
                   background: 'var(--accent-light)',
@@ -209,7 +253,7 @@ export default function BookingForm() {
                   fontSize: '0.78rem', fontWeight: 600,
                   marginBottom: '8px'
                 }}>
-                  🛏️ {roomTypeName}
+                  🛏️ {selectedRoomName}
                 </div>
               )}
               <div style={{
@@ -661,7 +705,7 @@ export default function BookingForm() {
                 📍 {listing?.location}
               </p>
 
-              {roomTypeName && (
+              {selectedRoomName && (
                 <div style={{
                   display: 'inline-block',
                   background: 'var(--accent-light)',
@@ -671,7 +715,48 @@ export default function BookingForm() {
                   fontSize: '0.8rem', fontWeight: 600,
                   marginBottom: '14px'
                 }}>
-                  🛏️ {roomTypeName}
+                  🛏️ {selectedRoomName}
+                </div>
+              )}
+              {selectedRoomName && (
+                <div style={{
+                  background: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  marginBottom: '14px',
+                  display: 'flex', alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <span style={{fontSize: '1.3rem'}}>🛏️</span>
+                  <div>
+                    <div style={{
+                      fontWeight: 700, fontSize: '0.875rem',
+                      color: '#0369a1'
+                    }}>
+                      {selectedRoomName}
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: '#0ea5e9'
+                    }}>
+                      PKR {parseFloat(
+                        roomPriceFromUrl || basePrice || 0
+                      ).toLocaleString('en-PK')}/night
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate(-1)}
+                    style={{
+                      marginLeft: 'auto', fontSize: '0.75rem',
+                      color: '#0369a1', background: 'transparent',
+                      border: '1px solid #bae6fd',
+                      borderRadius: '6px', padding: '4px 10px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Change room
+                  </button>
                 </div>
               )}
 

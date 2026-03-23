@@ -11,6 +11,7 @@ import PointsEarnedPopup from '../components/PointsEarnedPopup'
 import PriceBreakdown from '../components/PriceBreakdown'
 import CancellationPolicy from '../components/CancellationPolicy'
 import UrgencyBanner from '../components/UrgencyBanner'
+import RoomSelector from '../components/RoomSelector'
 
 function getServiceBadge(type) {
   switch (type) {
@@ -59,7 +60,15 @@ function getPriceLabel(serviceType) {
   return '/night'
 }
 
-function BookButton({ listingId, selectedRoom, ownerId, serviceType }) {
+function BookButton({
+  listingId,
+  selectedRoom,
+  ownerId,
+  serviceType,
+  checkIn,
+  checkOut,
+  rooms = [],
+}) {
   const navigate = useNavigate()
   const raw = localStorage.getItem('user')
   if (!raw) {
@@ -92,18 +101,41 @@ function BookButton({ listingId, selectedRoom, ownerId, serviceType }) {
   if (user.role === 'admin') return null
   if (user.id === ownerId) return null
 
-  const params = selectedRoom
-    ? '?room_type_id=' +
-      selectedRoom.id +
-      '&room_name=' +
-      encodeURIComponent(selectedRoom.name)
-    : ''
+  function goToBooking(path) {
+    if (['hotel', 'camping'].includes(serviceType) &&
+      rooms.length > 0 && !selectedRoom) {
+      document.querySelector(
+        '[data-room-selector="true"]'
+      )?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
+      window.alert('Please select a room type first')
+      return
+    }
+
+    const params = new URLSearchParams({
+      checkIn: checkIn || '',
+      checkOut: checkOut || '',
+    })
+    if (selectedRoom) {
+      params.set('roomTypeId', String(selectedRoom.id))
+      params.set('roomName', selectedRoom.name)
+      params.set(
+        'roomPrice',
+        String(selectedRoom.price_per_night)
+      )
+      params.set('room_type_id', String(selectedRoom.id))
+      params.set('room_name', selectedRoom.name)
+    }
+    navigate(`${path}?${params.toString()}`)
+  }
 
   return (
     <>
       <button
         type="button"
-        onClick={() => navigate(`/booking/${listingId}${params}`)}
+        onClick={() => goToBooking(`/booking/${listingId}`)}
         style={{
           width: '100%',
           padding: '14px',
@@ -126,7 +158,7 @@ function BookButton({ listingId, selectedRoom, ownerId, serviceType }) {
         <button
           type="button"
           onClick={() =>
-            navigate(`/group-booking/${listingId}${params}`)
+            goToBooking(`/group-booking/${listingId}`)
           }
           style={{
             width: '100%',
@@ -170,8 +202,9 @@ export default function ListingDetail() {
   const [loading, setLoading] = useState(true)
   const [extraImages, setExtraImages] = useState([])
   const [activeImage, setActiveImage] = useState(null)
-  const [roomTypes, setRoomTypes] = useState([])
+  const [rooms, setRooms] = useState([])
   const [selectedRoom, setSelectedRoom] = useState(null)
+  const [roomsLoading, setRoomsLoading] = useState(false)
   const [diningPackages, setDiningPackages] = useState([])
 
   const [hasBooked, setHasBooked] = useState(false)
@@ -242,21 +275,26 @@ export default function ListingDetail() {
         setExtraImages([])
       }
 
-      if (lRes.data.service_type === 'hotel') {
+      if (['hotel', 'camping', 'resort'].includes(lRes.data.service_type)) {
+        setRoomsLoading(true)
         try {
           const rtRes = await api.get(`/room-types/${id}`)
-          setRoomTypes(rtRes.data || [])
-          if (rtRes.data?.length > 0) {
-            setSelectedRoom(rtRes.data[0])
-          } else {
-            setSelectedRoom(null)
-          }
+          const roomData = rtRes.data || []
+          setRooms(roomData)
+          const firstAvailable = roomData.find(
+            (rm) => rm.is_available && rm.available_count > 0
+          )
+          if (firstAvailable) setSelectedRoom(firstAvailable)
+          else setSelectedRoom(null)
         } catch (e) {
-          setRoomTypes([])
+          console.error('Room load error:', e)
+          setRooms([])
           setSelectedRoom(null)
+        } finally {
+          setRoomsLoading(false)
         }
       } else {
-        setRoomTypes([])
+        setRooms([])
         setSelectedRoom(null)
       }
 
@@ -458,9 +496,11 @@ export default function ListingDetail() {
 
   const badge = getServiceBadge(listing.service_type)
   const priceLabel = getPriceLabel(listing.service_type)
-  const currentPrice = selectedRoom
+  const effectivePrice = selectedRoom
     ? selectedRoom.price_per_night
-    : listing.price_per_night
+    : listing?.price_per_night || 0
+  const effectiveRoomName = selectedRoom?.name || null
+  const currentPrice = effectivePrice
   const today = new Date().toISOString().split('T')[0]
   const totalReviews = summary?.total_reviews ?? listing.review_count ?? 0
   const avgRating = listing.average_rating ?? summary?.average_rating ?? 0
@@ -925,7 +965,7 @@ export default function ListingDetail() {
               </div>
             )}
 
-          {listing.service_type === 'hotel' && roomTypes.length > 0 && (
+          {listing.service_type === 'hotel' && rooms.length > 0 && (
             <div
               style={{
                 background: 'var(--bg-card)',
@@ -953,7 +993,7 @@ export default function ListingDetail() {
                   gap: '10px',
                 }}
               >
-                {roomTypes.map((room) => (
+                {rooms.map((room) => (
                   <div
                     key={room.id}
                     onClick={() => setSelectedRoom(room)}
@@ -994,8 +1034,7 @@ export default function ListingDetail() {
                           color: 'var(--text-secondary)',
                         }}
                       >
-                        👥 {room.capacity} guests · 🏠 {room.total_rooms} room
-                        {room.total_rooms > 1 ? 's' : ''}
+                        👥 {room.capacity} guests · 🏷️ {room.available_count ?? room.total_rooms ?? 0} available
                         {room.description ? ` · ${room.description}` : ''}
                       </div>
                     </div>
@@ -1644,7 +1683,7 @@ export default function ListingDetail() {
                   gap: '6px',
                 }}
               >
-                PKR {currentPrice?.toLocaleString('en-PK')}
+                PKR {(effectivePrice || 0).toLocaleString('en-PK')}
                 <span
                   style={{
                     fontSize: '1rem',
@@ -1655,6 +1694,29 @@ export default function ListingDetail() {
                   {priceLabel}
                 </span>
               </div>
+              {selectedRoom && (
+                <div style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  marginTop: '4px',
+                  display: 'flex', alignItems: 'center',
+                  gap: '6px',
+                }}>
+                  <span style={{
+                    background: '#dbeafe', color: '#1d4ed8',
+                    padding: '2px 8px', borderRadius: '999px',
+                    fontSize: '0.72rem', fontWeight: 700,
+                  }}>
+                    🛏️ {effectiveRoomName}
+                  </span>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    color: 'var(--text-muted)',
+                  }}>
+                    {selectedRoom.capacity} guests
+                  </span>
+                </div>
+              )}
               {avgRating > 0 && (
                 <div
                   style={{
@@ -2178,6 +2240,59 @@ export default function ListingDetail() {
                       />
                     </div>
                   </div>
+                  {['hotel', 'camping'].includes(
+                    listing?.service_type
+                  ) && sidebarNights > 0 && (
+                    <div
+                      data-room-selector="true"
+                      style={{
+                        marginTop: '20px',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      {roomsLoading ? (
+                        <div style={{
+                          textAlign: 'center', padding: '20px',
+                          color: 'var(--text-muted)',
+                          fontSize: '0.875rem',
+                        }}>
+                          <div style={{
+                            fontSize: '1.5rem',
+                            marginBottom: '8px',
+                          }}>
+                            🛏️
+                          </div>
+                          Loading room options...
+                        </div>
+                      ) : rooms.length > 0 ? (
+                        <RoomSelector
+                          rooms={rooms}
+                          selectedRoom={selectedRoom}
+                          onSelectRoom={setSelectedRoom}
+                          nights={sidebarNights || 1}
+                          isMobile={isMobile}
+                        />
+                      ) : (
+                        <div style={{
+                          background: 'var(--bg-secondary)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '14px', marginBottom: '12px',
+                          fontSize: '0.82rem',
+                          color: 'var(--text-secondary)',
+                          textAlign: 'center',
+                        }}>
+                          🛏️ Standard room included
+                          <div style={{
+                            fontSize: '0.72rem',
+                            color: 'var(--text-muted)',
+                            marginTop: '3px',
+                          }}>
+                            Contact provider for room details
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div style={{ marginBottom: '14px' }}>
                     <CancellationPolicy
                       policy={listing?.cancellation_policy}
@@ -2188,10 +2303,7 @@ export default function ListingDetail() {
                   {sidebarNights > 0 && (
                     <div style={{ marginBottom: '14px' }}>
                       <PriceBreakdown
-                        pricePerNight={
-                          selectedRoom?.price_per_night
-                          || listing?.price_per_night
-                        }
+                        pricePerNight={effectivePrice}
                         nights={sidebarNights}
                         groupSize={1}
                         serviceType={listing?.service_type}
@@ -2199,79 +2311,6 @@ export default function ListingDetail() {
                       />
                     </div>
                   )}
-                  {listing.service_type === 'hotel' &&
-                    roomTypes.length > 0 && (
-                      <div style={{ marginBottom: '14px' }}>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            color: 'var(--text-secondary)',
-                            marginBottom: '8px',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                          }}
-                        >
-                          Room Type
-                        </label>
-                        <div
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '6px',
-                          }}
-                        >
-                          {roomTypes.map((room) => (
-                            <div
-                              key={room.id}
-                              onClick={() => setSelectedRoom(room)}
-                              style={{
-                                padding: '10px 12px',
-                                borderRadius: '8px',
-                                border:
-                                  selectedRoom?.id === room.id
-                                    ? '2px solid var(--accent)'
-                                    : '1px solid var(--border-color)',
-                                background:
-                                  selectedRoom?.id === room.id
-                                    ? 'var(--accent-light)'
-                                    : 'var(--bg-secondary)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontSize: '0.82rem',
-                                  fontWeight:
-                                    selectedRoom?.id === room.id ? 700 : 500,
-                                  color:
-                                    selectedRoom?.id === room.id
-                                      ? 'var(--accent)'
-                                      : 'var(--text-primary)',
-                                }}
-                              >
-                                {selectedRoom?.id === room.id ? '✓ ' : ''}
-                                {room.name}
-                              </div>
-                              <div
-                                style={{
-                                  fontWeight: 700,
-                                  fontSize: '0.82rem',
-                                  color: 'var(--accent)',
-                                }}
-                              >
-                                PKR{' '}
-                                {room.price_per_night?.toLocaleString('en-PK')}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                   {listing.service_type !== 'restaurant' && (
                     <div style={{ marginBottom: '14px' }}>
@@ -2318,6 +2357,9 @@ export default function ListingDetail() {
                     selectedRoom={selectedRoom}
                     ownerId={listing?.owner_id}
                     serviceType={listing?.service_type}
+                    checkIn={sidebarCheckIn}
+                    checkOut={sidebarCheckOut}
+                    rooms={rooms}
                   />
 
                   {!isOwner &&

@@ -13,6 +13,10 @@ class RoomType(Base):
     description = Column(String, nullable=True)
     price_per_night = Column(Float, nullable=False)
     capacity = Column(Integer, default=2)
+    bed_type = Column(String, nullable=True)
+    amenities = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
+    available_count = Column(Integer, default=5)
     total_rooms = Column(Integer, default=1)
 
     listing = relationship("Listing", back_populates="room_types")
