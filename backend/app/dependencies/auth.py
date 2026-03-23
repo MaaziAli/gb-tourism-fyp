@@ -1,35 +1,57 @@
 """
 Authentication dependencies for protecting routes.
 """
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from fastapi import Depends, HTTPException
+from fastapi.security import (
+    HTTPBearer, HTTPAuthorizationCredentials
+)
 from sqlalchemy.orm import Session
 
-from app.core.jwt import ALGORITHM, SECRET_KEY
-from app.database import get_db
-from app.models.user import User
+from ..database import get_db
+from ..core.jwt import decode_access_token
+from ..models.user import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+security = HTTPBearer()
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    credentials: HTTPAuthorizationCredentials =
+        Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
-    """Extract and validate JWT, return current user."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-    )
+    token = credentials.credentials
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str | None = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    user = db.query(User).filter(User.email == email).first()
-    if user is None:
-        raise credentials_exception
+        payload = decode_access_token(token)
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials"
+        )
+
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token payload"
+        )
+
+    try:
+        user_id = int(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid user ID in token"
+        )
+
+    user = db.query(User).filter(
+        User.id == user_id
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="User not found"
+        )
+
     return user

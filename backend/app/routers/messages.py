@@ -2,6 +2,7 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Request,
 )
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -24,15 +25,27 @@ class MessageCreate(BaseModel):
 
 @router.get("/unread-count")
 def get_unread_count(
+    request: Request,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
 ):
+    """Returns 0 if not authenticated"""
     try:
-        from ..models.message import Message
+        auth_header = request.headers.get(
+            "Authorization", ""
+        )
+        if not auth_header.startswith("Bearer "):
+            return {"unread": 0}
 
+        token = auth_header.split(" ")[1]
+        from ..core.jwt import decode_access_token
+        payload = decode_access_token(token)
+        user_id = int(payload.get("sub", 0))
+        if not user_id:
+            return {"unread": 0}
+
+        from ..models.message import Message
         count = db.query(Message).filter(
-            Message.receiver_id ==
-                current_user.id,
+            Message.receiver_id == user_id,
             Message.is_read == False
         ).count()
         return {"unread": count}

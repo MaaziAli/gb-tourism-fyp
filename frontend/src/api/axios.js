@@ -9,6 +9,14 @@ const api = axios.create({
 api.interceptors.request.use(
   config => {
     const token = localStorage.getItem('token')
+
+    // DEBUG — remove after fix confirmed
+    console.log('🔑 Request:', config.url)
+    console.log('🔑 Token in storage:',
+      token ? token.substring(0, 20) + '...'
+             : 'NONE'
+    )
+
     if (token) {
       config.headers.Authorization =
         `Bearer ${token}`

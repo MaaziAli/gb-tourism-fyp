@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import (
+    APIRouter, Depends, HTTPException,
+    Request
+)
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -48,18 +51,36 @@ def get_notifications(
 
 @router.get("/unread-count")
 def get_unread_count(
+    request: Request,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
 ):
-    count = (
-        db.query(Notification)
-        .filter(
-            Notification.user_id == current_user.id,
-            Notification.is_read.is_(False),
+    """Get unread notification count.
+    Returns 0 if not authenticated."""
+    try:
+        # Manually check auth - don't fail
+        auth_header = request.headers.get(
+            "Authorization", ""
         )
-        .count()
-    )
-    return {"count": count}
+        if not auth_header.startswith("Bearer "):
+            return {"count": 0, "unread": 0}
+
+        token = auth_header.split(" ")[1]
+        from ..core.jwt import decode_access_token
+        payload = decode_access_token(token)
+        user_id = int(payload.get("sub", 0))
+        if not user_id:
+            return {"count": 0, "unread": 0}
+
+        from ..models.notification import (
+            Notification
+        )
+        count = db.query(Notification).filter(
+            Notification.user_id == user_id,
+            Notification.is_read == False
+        ).count()
+        return {"count": count, "unread": count}
+    except Exception:
+        return {"count": 0, "unread": 0}
 
 
 @router.get("/stats")

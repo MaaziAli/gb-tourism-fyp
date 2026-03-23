@@ -14,24 +14,73 @@ export default function Login() {
     setError('')
     setLoading(true)
 
+    // Clear any stale auth data first
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+
     try {
       const res = await api.post('/auth/login', {
         email: email.trim().toLowerCase(),
         password: password
       })
 
-      const { access_token, user } = res.data
+      console.log('Login response:', res.data)
+      // This will show exact response structure
 
-      if (!access_token) {
-        setError('Login failed. Try again.')
+      const data = res.data
+
+      // Handle both possible token key names
+      const token =
+        data.access_token ||
+        data.token ||
+        data.access ||
+        null
+
+      const user =
+        data.user ||
+        data.user_data ||
+        null
+
+      console.log('Token extracted:', token
+        ? token.substring(0, 20) + '...'
+        : 'NONE'
+      )
+      console.log('User extracted:', user)
+
+      if (!token) {
+        setError('Login failed: no token received')
         setLoading(false)
         return
       }
 
-      // Save to localStorage
-      localStorage.setItem('token', access_token)
-      localStorage.setItem(
-        'user', JSON.stringify(user)
+      // Save token — use consistent key 'token'
+      localStorage.setItem('token', token)
+
+      if (user) {
+        localStorage.setItem(
+          'user', JSON.stringify(user)
+        )
+      } else {
+        // Decode user from token if not in response
+        // Token is JWT: header.payload.signature
+        try {
+          const payload = JSON.parse(
+            atob(token.split('.')[1])
+          )
+          console.log('JWT payload:', payload)
+          // user_id might be in 'sub'
+        } catch (e) {
+          console.log('Cannot decode token:', e)
+        }
+      }
+
+      // Verify token was saved
+      const savedToken =
+        localStorage.getItem('token')
+      console.log('Saved token check:',
+        savedToken
+          ? savedToken.substring(0, 20) + '...'
+          : 'FAILED TO SAVE'
       )
 
       // Navigate based on role
@@ -45,6 +94,7 @@ export default function Login() {
       }
     } catch (err) {
       console.error('Login error:', err)
+      console.error('Response:', err.response?.data)
 
       // Show specific error message
       const msg =

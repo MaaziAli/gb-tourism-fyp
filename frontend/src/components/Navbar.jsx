@@ -285,10 +285,17 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!loggedIn) return
+
+    // Only fetch if logged in
     api.get('/messages/unread-count')
-      .then((r) => setUnreadMessages(r.data?.unread ?? 0))
-      .catch(() => {})
-  }, [location.pathname, loggedIn])
+      .then(r =>
+        setUnreadMessages(r.data.unread || 0)
+      )
+      .catch(() => {
+        // Silently fail - don't logout user
+        setUnreadMessages(0)
+      })
+  }, [loggedIn])
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark'
