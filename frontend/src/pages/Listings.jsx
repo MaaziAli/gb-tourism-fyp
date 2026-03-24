@@ -471,20 +471,19 @@ export default function Listings() {
             gap: '16px'
           }}>
             {(filtered || listings || []).map(listing => (
+            <div key={listing.id} style={{marginBottom:'12px'}}>
               <div
-                key={listing.id}
                 onClick={() => navigate('/listing/' + listing.id)}
                 style={{
-                  background: 'var(--bg-card)',
-                  borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--border-color)',
-                  overflow: 'hidden',
-                  display: 'flex',
+                  background:'var(--bg-card)',
+                  borderRadius:'var(--radius-lg)',
+                  border:'1px solid var(--border-color)',
+                  overflow:'hidden',
+                  display:'flex',
                   flexDirection: isMobile ? 'column' : 'row',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: 'var(--shadow-sm)',
-                  marginBottom: '12px'
+                  cursor:'pointer',
+                  transition:'all 0.15s ease',
+                  boxShadow:'var(--shadow-sm)'
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.1)'
@@ -497,188 +496,128 @@ export default function Listings() {
               >
                 <div style={{
                   width: isMobile ? '100%' : '220px',
-                  height: isMobile ? '190px' : 'auto',
-                  flexShrink: '0',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  background: '#e0f2fe',
-                  minHeight: '160px'
+                  height: isMobile ? '190px' : '160px',
+                  flexShrink:'0',
+                  position:'relative',
+                  overflow:'hidden',
+                  background:'#e0f2fe'
                 }}>
                   <img
                     src={
                       listing.image_url
                         ? (listing.image_url.startsWith('http')
                             ? listing.image_url
-                            : 'http://127.0.0.1:8000/uploads/'
-                              + listing.image_url)
+                            : 'http://127.0.0.1:8000/uploads/' + listing.image_url)
                         : 'https://placehold.co/220x160/1e3a5f/ffffff?text=Hotel'
                     }
                     alt={listing.title || 'Listing'}
                     onError={e => {
                       e.target.onerror = null
-                      e.target.src =
-                        'https://placehold.co/220x160/1e3a5f/ffffff?text=Hotel'
+                      e.target.src = 'https://placehold.co/220x160/1e3a5f/ffffff?text=Hotel'
                     }}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block'
-                    }}
+                    style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}
                   />
                   <div style={{
-                    position: 'absolute',
-                    top: '10px',
-                    left: '10px',
-                    background: '#0ea5e9',
-                    color: 'white',
-                    padding: '3px 9px',
-                    borderRadius: '999px',
-                    fontSize: '0.68rem',
-                    fontWeight: '700'
+                    position:'absolute',top:'10px',left:'10px',
+                    background:'#0ea5e9',color:'white',
+                    padding:'3px 9px',borderRadius:'999px',
+                    fontSize:'0.68rem',fontWeight:'700'
                   }}>
-                    {(listing.service_type || '')
-                      .replace(/_/g, ' ')}
+                    {(listing.service_type || '').replace(/_/g,' ')}
                   </div>
                   {listing.is_featured ? (
                     <div style={{
-                      position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      background: '#f59e0b',
-                      color: 'white',
-                      padding: '3px 8px',
-                      borderRadius: '999px',
-                      fontSize: '0.65rem',
-                      fontWeight: '700'
-                    }}>
-                      Featured
-                    </div>
+                      position:'absolute',top:'10px',right:'10px',
+                      background:'#f59e0b',color:'white',
+                      padding:'3px 8px',borderRadius:'999px',
+                      fontSize:'0.65rem',fontWeight:'700'
+                    }}>Featured</div>
                   ) : null}
                 </div>
-
                 <div style={{
-                  flex: '1',
-                  padding: '16px 18px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  minWidth: '0'
+                  flex:'1',padding:'14px 16px',
+                  display:'flex',flexDirection:'column',
+                  justifyContent:'space-between',minWidth:'0'
                 }}>
                   <div>
                     <h3 style={{
-                      margin: '0 0 4px 0',
-                      fontWeight: '700',
-                      fontSize: '1rem',
-                      color: 'var(--text-primary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      margin:'0 0 4px 0',fontWeight:'700',
+                      fontSize:'1rem',color:'var(--text-primary)',
+                      overflow:'hidden',textOverflow:'ellipsis',
+                      whiteSpace:'nowrap'
                     }}>
                       {listing.title}
                     </h3>
-
                     <div style={{
-                      fontSize: '0.8rem',
-                      color: 'var(--text-secondary)',
-                      marginBottom: '8px'
+                      fontSize:'0.8rem',
+                      color:'var(--text-secondary)',
+                      marginBottom:'6px'
                     }}>
                       {listing.location}
                     </div>
-
                     {listing.average_rating > 0 ? (
                       <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '8px'
+                        display:'flex',alignItems:'center',
+                        gap:'6px',marginBottom:'6px'
                       }}>
                         <span style={{
-                          background: '#16a34a',
-                          color: 'white',
-                          padding: '2px 8px',
-                          borderRadius: '5px',
-                          fontSize: '0.78rem',
-                          fontWeight: '700'
+                          background:'#16a34a',color:'white',
+                          padding:'2px 7px',borderRadius:'5px',
+                          fontSize:'0.75rem',fontWeight:'700'
                         }}>
-                          {Number(listing.average_rating)
-                            .toFixed(1)}
+                          {Number(listing.average_rating).toFixed(1)}
                         </span>
                         <span style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)'
+                          fontSize:'0.72rem',color:'var(--text-muted)'
                         }}>
                           {listing.review_count || 0} reviews
                         </span>
                       </div>
                     ) : null}
-
                     {listing.description ? (
                       <p style={{
-                        margin: '0 0 8px 0',
-                        fontSize: '0.8rem',
-                        color: 'var(--text-muted)',
-                        lineHeight: '1.5',
-                        display: '-webkit-box',
-                        WebkitLineClamp: '2',
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        margin:'0 0 6px 0',fontSize:'0.78rem',
+                        color:'var(--text-muted)',lineHeight:'1.4',
+                        display:'-webkit-box',WebkitLineClamp:'2',
+                        WebkitBoxOrient:'vertical',overflow:'hidden'
                       }}>
                         {listing.description}
                       </p>
                     ) : null}
                   </div>
-
                   <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '10px',
-                    paddingTop: '10px',
-                    borderTop: '1px solid var(--border-color)'
+                    display:'flex',justifyContent:'space-between',
+                    alignItems:'center',marginTop:'8px',
+                    paddingTop:'8px',
+                    borderTop:'1px solid var(--border-color)'
                   }}>
                     <div>
                       <div style={{
-                        fontSize: '0.68rem',
-                        color: 'var(--text-muted)',
-                        marginBottom: '2px'
-                      }}>
-                        from
-                      </div>
+                        fontSize:'0.65rem',
+                        color:'var(--text-muted)',marginBottom:'1px'
+                      }}>from</div>
                       <div style={{
-                        fontSize: '1.2rem',
-                        fontWeight: '900',
-                        color: '#0ea5e9',
-                        lineHeight: '1'
+                        fontSize:'1.1rem',fontWeight:'900',
+                        color:'#0ea5e9',lineHeight:'1'
                       }}>
-                        PKR {(listing.price_per_night || 0)
-                          .toLocaleString('en-PK')}
+                        PKR {(listing.price_per_night || 0).toLocaleString('en-PK')}
                         <span style={{
-                          fontSize: '0.7rem',
-                          fontWeight: '400',
-                          color: 'var(--text-muted)',
-                          marginLeft: '4px'
-                        }}>
-                          /night
-                        </span>
+                          fontSize:'0.68rem',fontWeight:'400',
+                          color:'var(--text-muted)',marginLeft:'3px'
+                        }}>/night</span>
                       </div>
                     </div>
-
                     <button
                       onClick={e => {
                         e.stopPropagation()
                         navigate('/listing/' + listing.id)
                       }}
                       style={{
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background:
-                          'linear-gradient(135deg,#1e3a5f,#0ea5e9)',
-                        color: 'white',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        fontSize: '0.82rem'
+                        padding:'8px 16px',borderRadius:'8px',
+                        border:'none',
+                        background:'linear-gradient(135deg,#1e3a5f,#0ea5e9)',
+                        color:'white',fontWeight:'700',
+                        cursor:'pointer',fontSize:'0.82rem'
                       }}
                     >
                       View and Book
@@ -686,6 +625,7 @@ export default function Listings() {
                   </div>
                 </div>
               </div>
+            </div>
             ))}
           </div>
         )}

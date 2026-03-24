@@ -584,163 +584,124 @@ export default function Home() {
             }}>
               {featuredListings.map(listing => {
                 return (
-                  <div key={listing.id}
-                    onClick={() => navigate(`/listing/${listing.id}`)}
-                    style={{
-                      background: 'var(--bg-card)',
-                      borderRadius: 'var(--radius-lg)',
-                      border: '1px solid var(--border-color)',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      boxShadow: 'var(--shadow-sm)',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translateY(-4px)'
-                      e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.12)'
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
-                    }}
-                  >
-                    <div style={{
-                      height: '200px',
-                      overflow: 'hidden',
-                      position: 'relative',
-                      background: '#e0f2fe'
-                    }}>
-                      <img
-                        src={
-                          listing.image_url
-                            ? (listing.image_url.startsWith('http')
-                                ? listing.image_url
-                                : 'http://127.0.0.1:8000/uploads/' + listing.image_url)
-                            : 'https://placehold.co/400x200/1e3a5f/ffffff?text=GB+Tourism'
-                        }
-                        alt={listing.title || 'Hotel'}
-                        onError={e => {
-                          e.target.onerror = null
-                          e.target.src = 'https://placehold.co/400x200/1e3a5f/ffffff?text=GB+Tourism'
-                        }}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: 'block'
-                        }}
-                      />
+                  <div key={listing.id} style={{marginBottom:'0'}}>
+                    <div
+                      onClick={() => navigate('/listing/' + listing.id)}
+                      style={{
+                        background:'var(--bg-card)',
+                        borderRadius:'var(--radius-lg)',
+                        border:'1px solid var(--border-color)',
+                        overflow:'hidden',cursor:'pointer',
+                        transition:'all 0.2s ease',
+                        boxShadow:'var(--shadow-sm)'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'translateY(-4px)'
+                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.12)'
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
+                      }}
+                    >
                       <div style={{
-                        position: 'absolute',
-                        top: '10px',
-                        left: '10px',
-                        background: '#0ea5e9',
-                        color: 'white',
-                        padding: '3px 9px',
-                        borderRadius: '999px',
-                        fontSize: '0.68rem',
-                        fontWeight: '700'
+                        height:'200px',overflow:'hidden',
+                        position:'relative',background:'#e0f2fe'
                       }}>
-                        {(listing.service_type || '').replace(/_/g, ' ')}
-                      </div>
-                      {listing.is_featured ? (
+                        <img
+                          src={
+                            listing.image_url
+                              ? (listing.image_url.startsWith('http')
+                                  ? listing.image_url
+                                  : 'http://127.0.0.1:8000/uploads/' + listing.image_url)
+                              : 'https://placehold.co/400x200/1e3a5f/ffffff?text=Hotel'
+                          }
+                          alt={listing.title || 'Hotel'}
+                          onError={e => {
+                            e.target.onerror = null
+                            e.target.src = 'https://placehold.co/400x200/1e3a5f/ffffff?text=Hotel'
+                          }}
+                          style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}
+                        />
                         <div style={{
-                          position: 'absolute',
-                          top: '10px',
-                          right: '10px',
-                          background: '#f59e0b',
-                          color: 'white',
-                          padding: '3px 8px',
-                          borderRadius: '999px',
-                          fontSize: '0.65rem',
-                          fontWeight: '700'
+                          position:'absolute',top:'10px',left:'10px',
+                          background:'#0ea5e9',color:'white',
+                          padding:'3px 9px',borderRadius:'999px',
+                          fontSize:'0.68rem',fontWeight:'700'
                         }}>
-                          Featured
+                          {(listing.service_type || '').replace(/_/g,' ')}
                         </div>
-                      ) : null}
-                      {listing.average_rating > 0 ? (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: '10px',
-                          left: '10px',
-                          background: '#16a34a',
-                          color: 'white',
-                          padding: '3px 9px',
-                          borderRadius: '6px',
-                          fontSize: '0.75rem',
-                          fontWeight: '700'
-                        }}>
-                          {Number(listing.average_rating).toFixed(1)}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div style={{padding: '14px 16px'}}>
-                      <h3 style={{
-                        margin: '0 0 4px 0',
-                        fontWeight: '700',
-                        fontSize: '0.95rem',
-                        color: 'var(--text-primary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {listing.title}
-                      </h3>
-                      <div style={{
-                        fontSize: '0.78rem',
-                        color: 'var(--text-secondary)',
-                        marginBottom: '10px'
-                      }}>
-                        {listing.location}
-                      </div>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <div>
+                        {listing.is_featured ? (
                           <div style={{
-                            fontSize: '0.65rem',
-                            color: 'var(--text-muted)',
-                            marginBottom: '1px'
+                            position:'absolute',top:'10px',right:'10px',
+                            background:'#f59e0b',color:'white',
+                            padding:'3px 8px',borderRadius:'999px',
+                            fontSize:'0.65rem',fontWeight:'700'
+                          }}>Featured</div>
+                        ) : null}
+                        {listing.average_rating > 0 ? (
+                          <div style={{
+                            position:'absolute',bottom:'10px',left:'10px',
+                            background:'#16a34a',color:'white',
+                            padding:'3px 9px',borderRadius:'6px',
+                            fontSize:'0.75rem',fontWeight:'700'
                           }}>
-                            from
+                            {Number(listing.average_rating).toFixed(1)}
                           </div>
-                          <div style={{
-                            fontSize: '1.1rem',
-                            fontWeight: '800',
-                            color: '#0ea5e9',
-                            lineHeight: '1'
-                          }}>
-                            PKR {(listing.price_per_night || 0).toLocaleString('en-PK')}
-                            <span style={{
-                              fontSize: '0.68rem',
-                              fontWeight: '400',
-                              color: 'var(--text-muted)',
-                              marginLeft: '3px'
+                        ) : null}
+                      </div>
+                      <div style={{padding:'14px 16px'}}>
+                        <h3 style={{
+                          margin:'0 0 4px 0',fontWeight:'700',
+                          fontSize:'0.95rem',color:'var(--text-primary)',
+                          overflow:'hidden',textOverflow:'ellipsis',
+                          whiteSpace:'nowrap'
+                        }}>
+                          {listing.title}
+                        </h3>
+                        <div style={{
+                          fontSize:'0.78rem',
+                          color:'var(--text-secondary)',marginBottom:'10px'
+                        }}>
+                          {listing.location}
+                        </div>
+                        <div style={{
+                          display:'flex',
+                          justifyContent:'space-between',
+                          alignItems:'center'
+                        }}>
+                          <div>
+                            <div style={{
+                              fontSize:'0.65rem',
+                              color:'var(--text-muted)',marginBottom:'1px'
+                            }}>from</div>
+                            <div style={{
+                              fontSize:'1.1rem',fontWeight:'800',
+                              color:'#0ea5e9',lineHeight:'1'
                             }}>
-                              /night
-                            </span>
+                              PKR {(listing.price_per_night || 0).toLocaleString('en-PK')}
+                              <span style={{
+                                fontSize:'0.68rem',fontWeight:'400',
+                                color:'var(--text-muted)',marginLeft:'3px'
+                              }}>/night</span>
+                            </div>
                           </div>
+                          <button
+                            onClick={e => {
+                              e.stopPropagation()
+                              navigate('/listing/' + listing.id)
+                            }}
+                            style={{
+                              padding:'7px 14px',borderRadius:'8px',
+                              border:'none',
+                              background:'linear-gradient(135deg,#1e3a5f,#0ea5e9)',
+                              color:'white',fontWeight:'700',
+                              cursor:'pointer',fontSize:'0.8rem'
+                            }}
+                          >
+                            View Details
+                          </button>
                         </div>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation()
-                            navigate('/listing/' + listing.id)
-                          }}
-                          style={{
-                            padding: '7px 14px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
-                            color: 'white',
-                            fontWeight: '700',
-                            cursor: 'pointer',
-                            fontSize: '0.8rem'
-                          }}
-                        >
-                          View Details
-                        </button>
                       </div>
                     </div>
                   </div>
