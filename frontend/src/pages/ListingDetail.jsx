@@ -254,6 +254,9 @@ export default function ListingDetail() {
   })
   const [sidebarCheckIn, setSidebarCheckIn] = useState('')
   const [sidebarCheckOut, setSidebarCheckOut] = useState('')
+  const [couponCode, setCouponCode] = useState('')
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [couponApplied, setCouponApplied] = useState(false)
 
   const sidebarNights = useMemo(() => {
     if (!sidebarCheckIn || !sidebarCheckOut) return 0
@@ -612,14 +615,23 @@ export default function ListingDetail() {
     }
   })
 
-  const allGalleryImages = [
-    listing?.image_url,
-    ...(listingImages || []).map(
-      img => img?.image_url || img
-    )
-  ].filter(img =>
-    img && typeof img === 'string'
-  )
+  const allGalleryImages = (() => {
+    const imgs = []
+    if (listing && listing.image_url) {
+      imgs.push(listing.image_url)
+    }
+    if (Array.isArray(listingImages)) {
+      listingImages.forEach(img => {
+        const url = img && img.image_url
+          ? img.image_url
+          : img
+        if (url && typeof url === 'string' && !imgs.includes(url)) {
+          imgs.push(url)
+        }
+      })
+    }
+    return imgs
+  })()
 
   function handleBookNow() {
     if (['hotel','camping'].includes(
@@ -652,292 +664,250 @@ export default function ListingDetail() {
     <div style={{
       minHeight: '100vh',
       background: 'var(--bg-primary)',
-      paddingBottom: '60px'
+      width: '100%',
+      overflowX: 'hidden'
     }}>
+      {/* HERO — full viewport width */}
       <div style={{
-        background: 'var(--bg-card)',
-        borderBottom: '1px solid var(--border-color)',
-        padding: '12px 16px',
-        position: 'sticky', top: '58px',
-        zIndex: 50,
-        display: 'flex', alignItems: 'center',
-        gap: '12px'
+        width: '100%',
+        position: 'relative',
+        height: isMobile ? '260px' : '460px',
+        overflow: 'hidden',
+        background: '#1e3a5f',
+        flexShrink: '0'
       }}>
+        <img
+          src={
+            heroImg
+              ? (heroImg.startsWith('http')
+                  ? heroImg
+                  : 'http://127.0.0.1:8000/uploads/' + heroImg)
+              : listing
+              ? (listing.image_url
+                  ? (listing.image_url.startsWith('http')
+                      ? listing.image_url
+                      : 'http://127.0.0.1:8000/uploads/' + listing.image_url)
+                  : 'https://placehold.co/1200x460/1e3a5f/ffffff?text=GB+Tourism')
+              : 'https://placehold.co/1200x460/1e3a5f/ffffff?text=GB+Tourism'
+          }
+          alt={listing ? listing.title : 'Hotel'}
+          onError={e => {
+            e.target.onerror = null
+            e.target.src = 'https://placehold.co/1200x460/1e3a5f/ffffff?text=GB+Tourism'
+          }}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+            position: 'absolute',
+            top: '0',
+            left: '0'
+          }}
+        />
+
+        <div style={{
+          position: 'absolute',
+          inset: '0',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)',
+          pointerEvents: 'none'
+        }}/>
+
         <button
           onClick={() => navigate(-1)}
           style={{
-            background: 'var(--bg-secondary)',
-            border: 'none', borderRadius: '8px',
-            padding: '7px 12px', cursor: 'pointer',
-            color: 'var(--text-secondary)',
-            fontWeight: 600, fontSize: '0.85rem',
-            flexShrink: 0
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            background: 'rgba(0,0,0,0.45)',
+            border: 'none',
+            color: 'white',
+            borderRadius: '8px',
+            padding: '7px 14px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '0.85rem',
+            zIndex: '10'
           }}
         >
           ← Back
         </button>
 
-        <div style={{flex: 1, minWidth: 0}}>
-          <h1 style={{
-            margin: 0, fontSize: isMobile
-              ? '1rem' : '1.2rem',
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}>
-            {listing?.title}
-          </h1>
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            gap: '8px', marginTop: '2px',
-            flexWrap: 'wrap'
-          }}>
-            {avgRating > 0 && (
-              <span style={{
-                fontSize: '0.78rem',
-                fontWeight: 700, color: '#d97706'
-              }}>
-                ⭐ {avgRating}
-                <span style={{
-                  color: 'var(--text-muted)',
-                  fontWeight: 400,
-                  marginLeft: '3px'
-                }}>
-                  ({reviews.length} reviews)
-                </span>
-              </span>
-            )}
-            {listing?.is_featured && (
-              <span style={{
-                background: '#fef3c7',
-                color: '#d97706', fontSize: '0.72rem',
-                fontWeight: 700, padding: '1px 7px',
-                borderRadius: '999px'
-              }}>
-                ⭐ Featured
-              </span>
-            )}
-            <span style={{
-              fontSize: '0.78rem',
-              color: 'var(--text-muted)'
-            }}>
-              📍 {listing?.location}
-            </span>
-          </div>
-        </div>
-
-        <div style={{
-          display: 'flex', gap: '8px',
-          flexShrink: 0, alignItems: 'center'
-        }}>
-          <WishlistButton listingId={parseInt(id, 10)} />
+        {allGalleryImages.length > 1 ? (
           <button
-            onClick={() => navigate(
-              `/messages?listing_id=${listing?.id}`
-              + `&user_id=${listing?.owner_id}`
-            )}
-            style={{
-              background: 'var(--bg-secondary)',
-              border:
-                '1px solid var(--border-color)',
-              borderRadius: '8px',
-              padding: '7px 12px',
-              cursor: 'pointer',
-              color: 'var(--text-secondary)',
-              fontSize: '0.82rem', fontWeight: 600
-            }}
-          >
-            💬
-          </button>
-        </div>
-      </div>
-
-      {/* ── FULL WIDTH HERO ── */}
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        height: isMobile ? 260 : 480,
-        overflow: 'hidden',
-        background: '#1e3a5f'
-      }}>
-        {/* Hero image */}
-        <img
-          src={(() => {
-            const url = heroImg || listing?.image_url
-            if (!url) return `https://placehold.co/1200x480/1e3a5f/ffffff?text=GB+Tourism`
-            if (url.startsWith('http')) return url
-            return `http://127.0.0.1:8000/uploads/${url}`
-          })()}
-          alt={listing?.title}
-          onError={e => {
-            e.target.onerror = null
-            e.target.src =
-              'https://placehold.co/1200x480/1e3a5f/ffffff?text=GB+Tourism'
-          }}
-          style={{
-            width: '100%', height: '100%',
-            objectFit: 'cover', display: 'block'
-          }}
-        />
-
-        {/* Dark gradient overlay */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%)'
-        }}/>
-
-        {/* Hotel info overlay — bottom left */}
-        <div style={{
-          position: 'absolute',
-          bottom: '20px', left: '20px',
-          right: '20px',
-          color: 'white'
-        }}>
-          {listing?.is_featured && (
-            <div style={{
-              display: 'inline-block',
-              background: '#f59e0b',
-              padding: '3px 10px',
-              borderRadius: '999px',
-              fontSize: '0.72rem', fontWeight: 700,
-              marginBottom: '6px'
-            }}>
-              ⭐ Featured Property
-            </div>
-          )}
-          <h1 style={{
-            margin: '0 0 6px',
-            fontSize: isMobile ? '1.4rem' : '2rem',
-            fontWeight: 900,
-            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-            lineHeight: 1.2
-          }}>
-            {listing?.title}
-          </h1>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px', flexWrap: 'wrap'
-          }}>
-            <span style={{
-              fontSize: '0.875rem', opacity: 0.9
-            }}>
-              📍 {listing?.location}
-            </span>
-            {avgRating && (
-              <span style={{
-                background: '#16a34a',
-                padding: '2px 9px',
-                borderRadius: '5px',
-                fontSize: '0.82rem',
-                fontWeight: 700
-              }}>
-                ★ {avgRating}
-                <span style={{
-                  fontWeight: 400, opacity: 0.85,
-                  marginLeft: '4px', fontSize: '0.75rem'
-                }}>
-                  ({reviews.length} reviews)
-                </span>
-              </span>
-            )}
-            <span style={{
-              background: 'rgba(255,255,255,0.2)',
-              padding: '2px 9px',
-              borderRadius: '999px',
-              fontSize: '0.75rem'
-            }}>
-              {(listing?.service_type || '')
-                .replace(/_/g, ' ')
-                .replace(/\b\w/g, c => c.toUpperCase())}
-            </span>
-          </div>
-        </div>
-
-        {/* Photo count badge top-right */}
-        {allGalleryImages.length > 1 && (
-          <div
             onClick={() => setGalleryOpen(true)}
             style={{
               position: 'absolute',
-              top: '16px', right: '16px',
-              background: 'rgba(0,0,0,0.55)',
+              top: '16px',
+              right: '16px',
+              background: 'rgba(0,0,0,0.5)',
+              border: 'none',
               color: 'white',
-              padding: '6px 12px',
               borderRadius: '8px',
-              fontSize: '0.78rem', fontWeight: 600,
+              padding: '6px 12px',
               cursor: 'pointer',
-              display: 'flex', alignItems: 'center',
-              gap: '5px'
+              fontSize: '0.78rem',
+              fontWeight: '600',
+              zIndex: '10'
             }}
           >
-            📷 {allGalleryImages.length} photos
-          </div>
-        )}
+            Photos ({allGalleryImages.length})
+          </button>
+        ) : null}
+
+        <div style={{
+          position: 'absolute',
+          bottom: '0',
+          left: '0',
+          right: '0',
+          padding: isMobile ? '16px' : '24px 32px',
+          zIndex: '5'
+        }}>
+          {listing ? (
+            <div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
+                marginBottom: '6px'
+              }}>
+                <span style={{
+                  background: '#0ea5e9',
+                  color: 'white',
+                  padding: '2px 9px',
+                  borderRadius: '999px',
+                  fontSize: '0.7rem',
+                  fontWeight: '700'
+                }}>
+                  {(listing.service_type || '').replace(/_/g, ' ')}
+                </span>
+                {listing.is_featured ? (
+                  <span style={{
+                    background: '#f59e0b',
+                    color: 'white',
+                    padding: '2px 9px',
+                    borderRadius: '999px',
+                    fontSize: '0.7rem',
+                    fontWeight: '700'
+                  }}>
+                    Featured
+                  </span>
+                ) : null}
+              </div>
+              <h1 style={{
+                margin: '0 0 6px 0',
+                fontSize: isMobile ? '1.4rem' : '2rem',
+                fontWeight: '900',
+                color: 'white',
+                lineHeight: '1.25',
+                textShadow: '0 2px 8px rgba(0,0,0,0.4)'
+              }}>
+                {listing.title}
+              </h1>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <span style={{
+                  color: 'rgba(255,255,255,0.9)',
+                  fontSize: '0.9rem'
+                }}>
+                  {listing.location}
+                </span>
+                {avgRating ? (
+                  <span style={{
+                    background: '#16a34a',
+                    color: 'white',
+                    padding: '2px 9px',
+                    borderRadius: '5px',
+                    fontSize: '0.82rem',
+                    fontWeight: '700'
+                  }}>
+                    {avgRating} / 5
+                    <span style={{
+                      fontWeight: '400',
+                      opacity: '0.85',
+                      marginLeft: '5px',
+                      fontSize: '0.75rem'
+                    }}>
+                      ({reviews.length})
+                    </span>
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      {/* ── THUMBNAIL STRIP ── */}
-      {allGalleryImages.length > 1 && (
+      {/* Thumbnail strip */}
+      {allGalleryImages.length > 1 ? (
         <div style={{
+          width: '100%',
           background: 'var(--bg-secondary)',
-          borderBottom:
-            '1px solid var(--border-color)',
-          padding: '10px 16px',
-          display: 'flex', gap: '8px',
+          borderBottom: '1px solid var(--border-color)',
+          padding: '8px 16px',
+          display: 'flex',
+          gap: '6px',
           overflowX: 'auto',
           scrollbarWidth: 'none',
-          WebkitOverflowScrolling: 'touch'
+          WebkitOverflowScrolling: 'touch',
+          flexShrink: '0'
         }}>
-          {allGalleryImages.map((img, i) => (
-            <div
-              key={i}
-              onClick={() => setHeroImg(img)}
-              style={{
-                width: 72, height: 52,
-                flexShrink: 0, borderRadius: '6px',
-                overflow: 'hidden', cursor: 'pointer',
-                border: heroImg === img ||
-                  (!heroImg && i === 0)
-                  ? '2px solid #0ea5e9'
-                  : '2px solid transparent',
-                opacity: heroImg === img ||
-                  (!heroImg && i === 0) ? 1 : 0.7,
-                transition: 'all 0.15s'
-              }}
-            >
-              <img
-                src={(() => {
-                  if (!img) return ''
-                  if (img.startsWith('http')) return img
-                  return `http://127.0.0.1:8000/uploads/${img}`
-                })()}
-                alt={`Photo ${i + 1}`}
-                onError={e => {
-                  e.target.onerror = null
-                  e.target.src =
-                    'https://placehold.co/72x52/e5e7eb/9ca3af?text=📷'
-                }}
+          {allGalleryImages.map((img, idx) => {
+            const src = img.startsWith('http')
+              ? img
+              : 'http://127.0.0.1:8000/uploads/' + img
+            const isActive = (heroImg || allGalleryImages[0]) === img
+            return (
+              <div
+                key={idx}
+                onClick={() => setHeroImg(img)}
                 style={{
-                  width: '100%', height: '100%',
-                  objectFit: 'cover', display: 'block'
+                  width: '72px',
+                  height: '50px',
+                  flexShrink: '0',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  border: isActive ? '2px solid #0ea5e9' : '2px solid transparent',
+                  opacity: isActive ? '1' : '0.65',
+                  transition: 'all 0.15s'
                 }}
-              />
-            </div>
-          ))}
+              >
+                <img
+                  src={src}
+                  alt={'Photo ' + (idx + 1)}
+                  onError={e => {
+                    e.target.onerror = null
+                    e.target.src = 'https://placehold.co/72x50/e5e7eb/9ca3af?text=Photo'
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block'
+                  }}
+                />
+              </div>
+            )
+          })}
         </div>
-      )}
+      ) : null}
 
       <div style={{
-        maxWidth: '1100px', margin: '0 auto',
-        padding: '0 16px 80px',
+        width: '100%',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: isMobile ? '16px 12px' : '24px 24px',
         display: 'grid',
-        gridTemplateColumns: isMobile
-          ? '1fr'
-          : '1fr 360px',
-        gap: '32px', alignItems: 'start',
-        paddingTop: '24px'
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 360px',
+        gap: isMobile ? '20px' : '28px',
+        alignItems: 'start',
+        boxSizing: 'border-box'
       }}>
         <div>
           <div style={{
@@ -1143,65 +1113,58 @@ export default function ListingDetail() {
                         <div
                           key={room.id}
                           style={{
-                            borderRadius: '12px',
+                            borderRadius: '10px',
                             border: isSelected
                               ? '2px solid #0ea5e9'
                               : '1px solid var(--border-color)',
-                            background: isSelected
-                              ? '#f0f9ff'
-                              : 'var(--bg-card)',
+                            background: isSelected ? '#f0f9ff' : 'var(--bg-card)',
                             overflow: 'hidden',
-                            opacity: isUnavailable ? 0.5 : 1,
-                            boxShadow: isSelected
-                              ? '0 0 0 3px #bae6fd'
-                              : 'none',
-                            transition: 'all 0.15s'
+                            boxShadow: isSelected ? '0 0 0 3px #bae6fd' : 'none',
+                            transition: 'all 0.15s',
+                            cursor: isUnavailable ? 'not-allowed' : 'pointer',
+                            opacity: isUnavailable ? '0.5' : '1',
+                            display: 'flex',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            alignItems: 'stretch'
                           }}
                         >
                           <div style={{
                             display: 'flex',
-                            alignItems: 'stretch'
+                            alignItems: 'stretch',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            width: '100%'
                           }}>
                             {/* Room image */}
                             <div style={{
-                              width: 140,
-                              flexShrink: 0,
+                              width: isMobile ? '100%' : '150px',
+                              minHeight: '110px',
+                              flexShrink: '0',
                               background: '#dbeafe',
                               overflow: 'hidden',
-                              position: 'relative'
+                              position: 'relative',
+                              borderRadius: isMobile ? '10px 10px 0 0' : '10px 0 0 10px'
                             }}>
-                              {room.image_url ? (
-                                <img
-                                  src={
-                                    room.image_url.startsWith('http')
-                                      ? room.image_url
-                                      : `http://127.0.0.1:8000/uploads/${room.image_url}`
-                                  }
-                                  alt={room.name}
-                                  onError={e => {
-                                    e.target.onerror = null
-                                    e.target.style.display = 'none'
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                    display: 'block',
-                                    minHeight: 120
-                                  }}
-                                />
-                              ) : (
-                                <div style={{
+                              <img
+                                src={
+                                  room.image_url
+                                    ? (room.image_url.startsWith('http')
+                                        ? room.image_url
+                                        : 'http://127.0.0.1:8000/uploads/' + room.image_url)
+                                    : 'https://placehold.co/140x100/dbeafe/1d4ed8?text=' + encodeURIComponent(room.name || 'Room')
+                                }
+                                alt={room.name || 'Room'}
+                                onError={e => {
+                                  e.target.onerror = null
+                                  e.target.src = 'https://placehold.co/140x100/dbeafe/1d4ed8?text=Room'
+                                }}
+                                style={{
                                   width: '100%',
-                                  minHeight: 120,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '2rem'
-                                }}>
-                                  🛏️
-                                </div>
-                              )}
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  display: 'block',
+                                  minHeight: '110px'
+                                }}
+                              />
                               {isSelected && (
                                 <div style={{
                                   position: 'absolute',
@@ -1716,14 +1679,17 @@ export default function ListingDetail() {
 
         <div style={{
           position: isMobile ? 'relative' : 'sticky',
-          top: isMobile ? 'auto' : '130px'
+          top: isMobile ? 'auto' : '80px',
+          width: '100%',
+          alignSelf: 'start'
         }}>
           <div style={{
             background: 'var(--bg-card)',
             borderRadius: 'var(--radius-lg)',
             border: '1px solid var(--border-color)',
             boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            width: '100%'
           }}>
             <div style={{
               background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
@@ -1985,7 +1951,7 @@ export default function ListingDetail() {
                 </div>
               )}
 
-              {nights > 0 && (
+              {nights > 0 ? (
                 <div style={{marginBottom: '14px'}}>
                   <PriceBreakdown
                     pricePerNight={effectivePrice}
@@ -1994,36 +1960,164 @@ export default function ListingDetail() {
                     serviceType={
                       listing?.service_type
                     }
+                    couponDiscount={couponDiscount || 0}
                     compact={true}
                   />
                 </div>
-              )}
+              ) : null}
+
+              {/* Coupon input */}
+              <div style={{marginBottom: '12px'}}>
+                <div style={{
+                  fontSize: '0.78rem',
+                  fontWeight: '700',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Promo Code
+                </div>
+                <div style={{
+                  display: 'flex',
+                  gap: '6px'
+                }}>
+                  <input
+                    type="text"
+                    placeholder="Enter coupon code"
+                    value={couponCode || ''}
+                    onChange={e => setCouponCode
+                      ? setCouponCode(e.target.value.toUpperCase())
+                      : null}
+                    style={{
+                      flex: '1',
+                      padding: '9px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      fontFamily: 'var(--font-primary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (couponCode && listing) {
+                        api.post('/coupons/validate', {
+                          code: couponCode,
+                          listing_id: listing.id,
+                          listing_owner_id: listing.owner_id,
+                          booking_amount: effectivePrice * (nights || 1)
+                        })
+                        .then(r => {
+                          setCouponDiscount
+                            ? setCouponDiscount(r.data.discount_amount || 0)
+                            : null
+                          setCouponApplied
+                            ? setCouponApplied(true)
+                            : null
+                        })
+                        .catch(() => {
+                          setCouponDiscount
+                            ? setCouponDiscount(0)
+                            : null
+                          setCouponApplied
+                            ? setCouponApplied(false)
+                            : null
+                        })
+                      }
+                    }}
+                    style={{
+                      padding: '9px 14px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: '#0ea5e9',
+                      color: 'white',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Apply
+                  </button>
+                </div>
+                {couponApplied && couponDiscount > 0 ? (
+                  <div style={{
+                    marginTop: '5px',
+                    fontSize: '0.75rem',
+                    color: '#16a34a',
+                    fontWeight: '700'
+                  }}>
+                    Coupon applied! Saving PKR {couponDiscount.toLocaleString('en-PK')}
+                  </div>
+                ) : null}
+              </div>
 
               <button
                 onClick={handleBookNow}
                 disabled={
-                  !checkIn || !checkOut ||
+                  !checkIn ||
+                  !checkOut ||
                   checkOut <= checkIn ||
-                  (['hotel','camping'].includes(
-                    listing?.service_type
-                  ) && rooms.length > 0 &&
-                  !selectedRoom)
+                  (
+                    ['hotel', 'camping'].includes(
+                      listing ? listing.service_type : ''
+                    ) &&
+                    rooms.length > 0 &&
+                    !selectedRoom
+                  )
                 }
                 style={{
-                  width: '100%', padding: '14px',
-                  borderRadius: '12px', border: 'none',
-                  background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
-                  color: 'white', fontWeight: 800,
-                  fontSize: '1rem', cursor: 'pointer',
-                  opacity: (!checkIn || !checkOut)
-                    ? 0.6 : 1,
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: (
+                    !checkIn ||
+                    !checkOut ||
+                    checkOut <= checkIn
+                  )
+                    ? 'var(--bg-secondary)'
+                    : 'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
+                  color: (
+                    !checkIn ||
+                    !checkOut ||
+                    checkOut <= checkIn
+                  ) ? 'var(--text-muted)' : 'white',
+                  fontWeight: '800',
+                  fontSize: '1rem',
+                  cursor: (
+                    !checkIn ||
+                    !checkOut ||
+                    checkOut <= checkIn
+                  ) ? 'not-allowed' : 'pointer',
                   marginBottom: '8px',
-                  transition: 'opacity 0.2s'
+                  letterSpacing: '0.01em',
+                  transition: 'all 0.2s'
                 }}
               >
-                {!checkIn || !checkOut
-                  ? '📅 Select Dates First'
-                  : `🏨 Book Now`
+                {!checkIn
+                  ? 'Select Check-in Date'
+                  : !checkOut
+                  ? 'Select Check-out Date'
+                  : (
+                      ['hotel', 'camping'].includes(
+                        listing ? listing.service_type : ''
+                      ) &&
+                      rooms.length > 0 &&
+                      !selectedRoom
+                    )
+                  ? 'Select a Room First'
+                  : nights > 0
+                  ? 'Book Now — PKR ' + (
+                      (effectivePrice * nights) -
+                      (couponDiscount || 0)
+                    ).toLocaleString('en-PK')
+                  : 'Book Now'
                 }
               </button>
 
