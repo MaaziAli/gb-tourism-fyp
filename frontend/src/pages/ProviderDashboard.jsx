@@ -1005,6 +1005,24 @@ export default function ProviderDashboard() {
                         >
                           ✏️ Edit
                         </button>
+                        {listing.service_type === 'hotel' && (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/hotel/${listing.id}/rooms`)}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '7px',
+                              border: '1px solid #7c3aed',
+                              background: '#ede9fe',
+                              color: '#7c3aed',
+                              cursor: 'pointer',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            🛏️ Rooms
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

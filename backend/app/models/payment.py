@@ -23,6 +23,9 @@ class Payment(Base):
     payment_method = Column(String, default="card")
     card_last4 = Column(String, nullable=True)
     transaction_id = Column(String, nullable=True)
+    # Stripe-specific fields
+    stripe_session_id = Column(String, nullable=True, index=True)
+    stripe_payment_intent = Column(String, nullable=True)
     created_at = Column(
         DateTime, default=datetime.utcnow
     )

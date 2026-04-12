@@ -50,6 +50,7 @@ from app.routers import coupons
 from app.routers import dining
 from app.routers import events
 from app.routers import group_bookings
+from app.routers import hotels
 from app.routers import listing_images
 from app.routers import listings
 from app.routers import loyalty
@@ -58,6 +59,8 @@ from app.routers import payments
 from app.routers import recommendations
 from app.routers import reviews
 from app.routers import room_types
+from app.routers import rooms
+from app.routers import stripe_payments
 from app.routers import ticket_bookings
 from app.routers import trip_planner
 from app.routers import users
@@ -107,6 +110,8 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(users.router)
     app.include_router(listings.router)
+    app.include_router(hotels.router)      # dedicated hotel endpoints
+    app.include_router(rooms.router)       # dedicated room endpoints
     app.include_router(bookings.router)
     app.include_router(recommendations.router)
     app.include_router(admin.router)
@@ -115,6 +120,7 @@ def create_app() -> FastAPI:
     app.include_router(room_types.router)
     app.include_router(notifications.router)
     app.include_router(payments.router)
+    app.include_router(stripe_payments.router)  # Stripe checkout flow
     app.include_router(trip_planner.router)
     app.include_router(dining.router)
     app.include_router(events.router)

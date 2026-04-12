@@ -3,6 +3,9 @@ import Navbar from './components/Navbar'
 import PrivateRoute from './components/PrivateRoute'
 import ProviderRoute from './components/ProviderRoute'
 import AdminRoute from './components/AdminRoute'
+import PaymentSuccess from './pages/PaymentSuccess'
+import PaymentCancel from './pages/PaymentCancel'
+import HotelRooms from './pages/HotelRooms'
 import Listings from './pages/Listings'
 import MapView from './pages/MapView'
 import Home from './pages/Home'
@@ -201,6 +204,23 @@ function App() {
               </PrivateRoute>
             }
           />
+          {/* Stripe redirect pages */}
+          <Route
+            path="/payment/success"
+            element={
+              <PrivateRoute>
+                <PaymentSuccess />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/payment/cancel"
+            element={
+              <PrivateRoute>
+                <PaymentCancel />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/edit-listing/:listingId"
             element={
@@ -214,6 +234,15 @@ function App() {
             element={
               <ProviderRoute>
                 <MyListings />
+              </ProviderRoute>
+            }
+          />
+          {/* Hotel room management */}
+          <Route
+            path="/hotel/:hotelId/rooms"
+            element={
+              <ProviderRoute>
+                <HotelRooms />
               </ProviderRoute>
             }
           />

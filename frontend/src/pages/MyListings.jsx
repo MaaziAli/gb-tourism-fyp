@@ -512,6 +512,23 @@ export default function MyListings() {
                             </span>
                           )}
                         </button>
+                        {listing.service_type === 'hotel' && (
+                          <button
+                            onClick={() => navigate(`/hotel/${listing.id}/rooms`)}
+                            style={{
+                              background: 'var(--bg-secondary)',
+                              color: 'var(--text-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '8px',
+                              padding: '7px 14px',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            🛏️ Rooms
+                          </button>
+                        )}
                         <button
                           onClick={() =>
                             navigate(`/edit-listing/${listing.id}`)

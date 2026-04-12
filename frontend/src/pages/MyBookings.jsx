@@ -64,19 +64,19 @@ export default function MyBookings() {
     return new Date(checkIn) >= new Date()
   }
 
+  // 'active' and 'confirmed' are both considered active bookings
+  const isActiveStatus = (s) => s === 'active' || s === 'confirmed'
+
   const filtered = bookings.filter(b => {
-    if (filter === 'active') return b.status === 'active'
-    if (filter === 'cancelled')
-      return b.status === 'cancelled'
+    if (filter === 'active') return isActiveStatus(b.status)
+    if (filter === 'cancelled') return b.status === 'cancelled'
     return true
   })
 
   const counts = {
     all: bookings.length,
-    active: bookings.filter(b => b.status === 'active').length,
-    cancelled: bookings.filter(
-      b => b.status === 'cancelled'
-    ).length,
+    active: bookings.filter(b => isActiveStatus(b.status)).length,
+    cancelled: bookings.filter(b => b.status === 'cancelled').length,
   }
 
   return (
@@ -305,7 +305,7 @@ export default function MyBookings() {
             {filtered.map(b => {
               const nights = getNights(b.check_in, b.check_out)
               const upcoming = isUpcoming(b.check_in)
-              const isActive = b.status === 'active'
+              const isActive = isActiveStatus(b.status)
               const isCancelling = cancellingId === b.id
 
               return (
