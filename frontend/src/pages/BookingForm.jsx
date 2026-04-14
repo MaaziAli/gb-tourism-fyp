@@ -315,7 +315,7 @@ export default function BookingForm() {
               gap: '10px'
             }}>
               <button
-                onClick={() => navigate('/payment/' + bookingId)}
+                onClick={() => navigate('/checkout/' + bookingId)}
                 style={{
                   width: '100%', padding: '14px',
                   borderRadius: '12px', border: 'none',

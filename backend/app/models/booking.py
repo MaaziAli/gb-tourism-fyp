@@ -8,6 +8,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    JSON,
     String,
     Text,
 )
@@ -30,6 +31,11 @@ class Booking(Base):
     room_type_id = Column(Integer, ForeignKey("room_types.id"), nullable=True)
     room_type_name = Column(String, nullable=True)
     payment_status = Column(String, default="unpaid")  # unpaid, paid
+
+    # XPay payment hold and tracking fields
+    hold_expires_at = Column(DateTime, nullable=True)
+    payment_intent_id = Column(String(255), nullable=True)
+    addons = Column(JSON, nullable=True, default=list)
 
     group_size = Column(Integer, default=1)
     is_group_booking = Column(Boolean, default=False)

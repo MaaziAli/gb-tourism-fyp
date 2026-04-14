@@ -19,7 +19,13 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: str = "pk_test_your_stripe_publishable_key_here"
     STRIPE_WEBHOOK_SECRET: str = "whsec_your_webhook_secret_here"
 
-    # Frontend URL for Stripe redirects
+    # XPay Global
+    XPAY_API_KEY: str = "sk_sandbox_your_xpay_api_key_here"
+    XPAY_COMMUNITY_ID: str = "your_community_id_here"
+    XPAY_ENVIRONMENT: str = "sandbox"
+    XPAY_WEBHOOK_SECRET: str = "whsec_your_xpay_webhook_secret"
+
+    # Frontend URL for redirects
     FRONTEND_URL: str = "http://localhost:5173"
 
     class Config:

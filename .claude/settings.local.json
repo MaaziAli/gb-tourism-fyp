@@ -6,7 +6,9 @@
       "Bash(venv/Scripts/python -c \"from app.main import app; print\\('Backend imports OK'\\)\")",
       "Bash(venv/Scripts/python -c ':*)",
       "Bash(node --input-type=module)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(sed -n '1,150p' /c/Users/maaza/OneDrive/Desktop/gb-tourism-fyp/frontend/src/pages/BookingForm.jsx)",
+      "Bash(sed -n '300,500p' /c/Users/maaza/OneDrive/Desktop/gb-tourism-fyp/frontend/src/pages/BookingForm.jsx)"
     ]
   }
 }

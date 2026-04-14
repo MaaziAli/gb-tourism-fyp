@@ -2,6 +2,7 @@
 GB Tourism - FastAPI Backend Application
 """
 
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -56,6 +57,7 @@ from app.routers import listings
 from app.routers import loyalty
 from app.routers import notifications
 from app.routers import payments
+from app.routers import xpay_payments
 from app.routers import recommendations
 from app.routers import reviews
 from app.routers import room_types
@@ -121,6 +123,7 @@ def create_app() -> FastAPI:
     app.include_router(notifications.router)
     app.include_router(payments.router)
     app.include_router(stripe_payments.router)  # Stripe checkout flow
+    app.include_router(xpay_payments.router)    # XPay Global checkout flow
     app.include_router(trip_planner.router)
     app.include_router(dining.router)
     app.include_router(events.router)
@@ -145,6 +148,50 @@ def create_app() -> FastAPI:
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+    # ── APScheduler: release expired booking holds ────────────────────────
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from app.database import SessionLocal
+        from app.models.booking import Booking as _Booking
+
+        def _release_expired_holds():
+            db = SessionLocal()
+            try:
+                expired = (
+                    db.query(_Booking)
+                    .filter(
+                        _Booking.status == "pending_payment",
+                        _Booking.hold_expires_at < datetime.utcnow(),
+                    )
+                    .all()
+                )
+                for b in expired:
+                    b.status = "cancelled"
+                    b.hold_expires_at = None
+                if expired:
+                    db.commit()
+                    print(f"[APScheduler] Released {len(expired)} expired booking hold(s)")
+            except Exception as exc:
+                print(f"[APScheduler] Error releasing holds: {exc}")
+            finally:
+                db.close()
+
+        _scheduler = BackgroundScheduler()
+        _scheduler.add_job(_release_expired_holds, "interval", minutes=1, id="release_holds")
+
+        @app.on_event("startup")
+        def start_scheduler():
+            _scheduler.start()
+            print("[APScheduler] Hold-release scheduler started")
+
+        @app.on_event("shutdown")
+        def stop_scheduler():
+            _scheduler.shutdown(wait=False)
+            print("[APScheduler] Scheduler stopped")
+
+    except ImportError:
+        print("[WARN] apscheduler not installed — expired hold cleanup disabled")
 
     @app.get("/")
     def root():
