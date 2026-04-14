@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
+import LoyaltyInput from '../components/LoyaltyInput'
+import Toast from '../components/Toast'
 
 const AVAILABLE_ADDONS = [
   { name: 'Breakfast', price: 500, icon: '🍳', description: 'Per day' },
@@ -20,8 +22,17 @@ export default function Checkout() {
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
   const [selectedAddons, setSelectedAddons] = useState([])
-  const [timeLeft, setTimeLeft] = useState(null) // seconds remaining on hold
+  const [timeLeft, setTimeLeft] = useState(null)
   const timerRef = useRef(null)
+
+  // Loyalty state
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState(0)
+  const [loyaltyPointsUsed, setLoyaltyPointsUsed] = useState(0)
+  const [loyaltyToast, setLoyaltyToast] = useState(null) // { points, discount }
+  const handleLoyaltyChange = useCallback(({ points, discount }) => {
+    setLoyaltyPointsUsed(points)
+    setLoyaltyDiscount(discount)
+  }, [])
 
   // ── Fetch booking & create hold ──────────────────────────────────────────
   useEffect(() => {
@@ -85,11 +96,19 @@ export default function Checkout() {
     setProcessing(true)
     setError('')
     try {
-      // Persist selected add-ons via the XPay hold endpoint so they're saved
-      // on the booking before we confirm (re-uses the same addons field).
-      // Then call the mock confirm endpoint.
-      await new Promise(r => setTimeout(r, 2000)) // 2-second simulated delay
-      await api.post(`/payments/mock/confirm/${bookingId}`)
+      await new Promise(r => setTimeout(r, 1500)) // simulated processing delay
+      const res = await api.post(
+        `/payments/mock/confirm/${bookingId}`,
+        { loyalty_points_used: loyaltyPointsUsed },
+      )
+      // Show loyalty toast before navigating
+      if ((res.data.loyalty_points_used ?? 0) > 0) {
+        setLoyaltyToast({
+          points: res.data.loyalty_points_used,
+          discount: res.data.loyalty_discount,
+        })
+        await new Promise(r => setTimeout(r, 1800))
+      }
       navigate(`/voucher/${bookingId}`)
     } catch (err) {
       setError(err.response?.data?.detail || 'Payment failed. Please try again.')
@@ -114,7 +133,9 @@ export default function Checkout() {
   }
 
   const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0)
-  const grandTotal = (booking?.total_price || 0) + addonsTotal
+  // grandTotal is what the user owes: booking base + add-ons - loyalty discount
+  const baseTotal = (booking?.total_price || 0) + addonsTotal
+  const grandTotal = Math.max(0, baseTotal - loyaltyDiscount)
 
   const minutes = timeLeft !== null ? Math.floor(timeLeft / 60) : 10
   const seconds = timeLeft !== null ? timeLeft % 60 : 0
@@ -325,7 +346,9 @@ export default function Checkout() {
             ) : holdExpired ? (
               'Hold Expired — Go Back to Rebook'
             ) : (
-              `Pay PKR ${grandTotal.toLocaleString('en-PK')}`
+              loyaltyDiscount > 0
+        ? `Pay PKR ${grandTotal.toLocaleString('en-PK')} (save ${loyaltyDiscount.toLocaleString('en-PK')})`
+        : `Pay PKR ${grandTotal.toLocaleString('en-PK')}`
             )}
           </button>
         </div>
@@ -383,6 +406,21 @@ export default function Checkout() {
                   </div>
                 ))}
 
+                {/* Loyalty discount row */}
+                {loyaltyDiscount > 0 && (
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between',
+                    marginBottom: 6, fontSize: '0.85rem',
+                  }}>
+                    <span style={{ color: '#a16207' }}>
+                      ⭐ {loyaltyPointsUsed.toLocaleString()} pts
+                    </span>
+                    <span style={{ fontWeight: 700, color: '#a16207' }}>
+                      − PKR {loyaltyDiscount.toLocaleString('en-PK')}
+                    </span>
+                  </div>
+                )}
+
                 <div style={{
                   display: 'flex', justifyContent: 'space-between',
                   padding: '12px 0 0', borderTop: '2px solid var(--border-color)', marginTop: 6,
@@ -391,6 +429,16 @@ export default function Checkout() {
                   <span style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '1.15rem' }}>
                     PKR {grandTotal.toLocaleString('en-PK')}
                   </span>
+                </div>
+
+                {/* Loyalty input — placed after the total so the discount
+                    row above updates in real-time as the user applies points */}
+                <div style={{ marginTop: 14 }}>
+                  <LoyaltyInput
+                    key={`checkout-loyalty-${baseTotal}`}
+                    subtotal={baseTotal}
+                    onPointsChange={handleLoyaltyChange}
+                  />
                 </div>
               </>
             )}
@@ -408,6 +456,17 @@ export default function Checkout() {
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* Loyalty points success toast */}
+      {loyaltyToast && (
+        <Toast
+          title={`You saved PKR ${loyaltyToast.discount.toLocaleString('en-PK')}!`}
+          message={`${loyaltyToast.points.toLocaleString()} loyalty points redeemed on this booking.`}
+          type="success"
+          duration={5000}
+          onClose={() => setLoyaltyToast(null)}
+        />
+      )}
     </div>
   )
 }

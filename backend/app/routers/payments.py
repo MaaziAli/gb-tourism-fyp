@@ -9,6 +9,11 @@ from app.models.payment import Payment
 from app.models.booking import Booking
 from app.models.listing import Listing
 from app.dependencies.auth import get_current_user
+from app.utils.loyalty_utils import (
+    get_or_create_account as _loyalty_account,
+    pkr_to_points,
+    points_to_pkr,
+)
 from app.utils.notify import create_notification
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -25,6 +30,11 @@ class PaymentRequest(BaseModel):
     card_name: Optional[str] = None
 
 
+class ApplyLoyaltyRequest(BaseModel):
+    booking_id: int
+    points: int
+
+
 class PaymentResponse(BaseModel):
     success: bool
     transaction_id: str
@@ -33,6 +43,77 @@ class PaymentResponse(BaseModel):
     provider_amount: float
     card_last4: Optional[str] = None
     message: str
+
+
+@router.post("/apply-loyalty")
+def apply_loyalty_discount(
+    body: ApplyLoyaltyRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Calculate the loyalty-points discount a user can apply at checkout.
+
+    Read-only — nothing is committed to the database.  Points are
+    only deducted when /payments/mock/confirm is called with
+    loyalty_points_used set.
+
+    Returns:
+      points_to_use     – actual points after 50% cap
+      discount_amount   – PKR value of those points
+      new_payment_due   – (booking total + add-ons) minus discount
+      available_points  – current balance
+      remaining_after   – balance after this redemption
+    """
+    if body.points <= 0:
+        raise HTTPException(status_code=400, detail="Points must be positive")
+
+    booking = (
+        db.query(Booking)
+        .filter(
+            Booking.id == body.booking_id,
+            Booking.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.status == "cancelled":
+        raise HTTPException(status_code=400, detail="Booking is cancelled")
+    if getattr(booking, "payment_status", "unpaid") == "paid":
+        raise HTTPException(status_code=400, detail="Booking is already paid")
+
+    account = _loyalty_account(db, current_user.id)
+    if body.points > account.total_points:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Not enough points. "
+                f"You have {account.total_points:,} available."
+            ),
+        )
+
+    # Include any saved add-on costs in the cap so we don't over-discount
+    addons_total = sum(
+        item.get("price", 0) for item in (booking.addons or [])
+    )
+    base_amount = round(booking.total_price + addons_total, 2)
+    max_discount = round(base_amount * 0.5, 2)
+
+    raw_discount = points_to_pkr(body.points)
+    discount = min(raw_discount, max_discount)
+    usable_points = (
+        pkr_to_points(discount) if discount < raw_discount else body.points
+    )
+    discount = round(discount, 2)
+
+    return {
+        "points_to_use": usable_points,
+        "discount_amount": discount,
+        "new_payment_due": round(max(0.0, base_amount - discount), 2),
+        "available_points": account.total_points,
+        "remaining_after": account.total_points - usable_points,
+    }
 
 
 @router.post("/process", response_model=PaymentResponse)

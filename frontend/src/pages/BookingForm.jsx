@@ -9,6 +9,7 @@ import AvailabilityCalendar from '../components/AvailabilityCalendar'
 import CouponInput from '../components/CouponInput'
 import LoyaltyInput from '../components/LoyaltyInput'
 import PointsEarnedPopup from '../components/PointsEarnedPopup'
+import Toast from '../components/Toast'
 import PriceBreakdown from '../components/PriceBreakdown'
 import CancellationPolicy from '../components/CancellationPolicy'
 
@@ -80,6 +81,7 @@ export default function BookingForm() {
   const [loyaltyPointsUsed, setLoyaltyPointsUsed] = useState(0)
   const [confirmedTotal, setConfirmedTotal] = useState(null)
   const [pointsPopup, setPointsPopup] = useState(null)
+  const [loyaltyToast, setLoyaltyToast] = useState(null)
   const [guests, setGuests] = useState(1)
   const [roomTypes, setRoomTypes] = useState([])
   const [roomsLoading, setRoomsLoading] = useState(false)
@@ -182,6 +184,15 @@ export default function BookingForm() {
       setBookingId(res.data.id)
       setConfirmedTotal(tp)
       setSuccess(true)
+      // Show loyalty savings toast when points were redeemed
+      const confirmedLoyaltyDiscount = res.data.loyalty_discount_applied ?? 0
+      const confirmedLoyaltyPoints  = res.data.loyalty_points_used ?? 0
+      if (confirmedLoyaltyPoints > 0 && confirmedLoyaltyDiscount > 0) {
+        setLoyaltyToast({
+          points: confirmedLoyaltyPoints,
+          discount: confirmedLoyaltyDiscount,
+        })
+      }
       const earnedPoints = Math.floor(tp * 10)
       if (earnedPoints > 0) {
         setPointsPopup({
@@ -404,6 +415,15 @@ export default function BookingForm() {
           points={pointsPopup.points}
           description={pointsPopup.description}
           onClose={() => setPointsPopup(null)}
+        />
+      )}
+      {loyaltyToast && (
+        <Toast
+          title={`You saved PKR ${loyaltyToast.discount.toLocaleString('en-PK')}!`}
+          message={`${loyaltyToast.points.toLocaleString()} loyalty points redeemed on this booking.`}
+          type="success"
+          duration={5000}
+          onClose={() => setLoyaltyToast(null)}
         />
       )}
       </>

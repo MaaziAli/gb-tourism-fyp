@@ -25,6 +25,7 @@ from app.utils.loyalty_utils import (
     pkr_to_points,
     points_to_pkr,
     redeem_points,
+    redeem_points_transactional,
 )
 from app.utils.notify import create_notification
 
@@ -222,17 +223,20 @@ def create_booking(
         loyalty_discount_applied=loyalty_discount,
     )
     db.add(booking)
-    db.flush()
+    db.flush()  # assign booking.id without committing
+
     if coupon_obj:
         record_coupon_use(db, coupon_obj, current_user.id, booking.id, coupon_discount)
-    db.commit()
-    db.refresh(booking)
 
-    # Redeem loyalty points now that the booking is committed.
-    # Running after commit means a redemption failure never rolls back the booking.
+    # ── Stage loyalty deduction in the same transaction ─────────────────
+    # redeem_points_transactional() does NOT call db.commit(), so if it
+    # raises ValueError (e.g. race-condition: points depleted between
+    # validation and here) we roll back everything — no booking, no
+    # coupon usage, no deduction.  db.commit() below is the single
+    # commit that persists all three writes atomically.
     if loyalty_points_used > 0:
         try:
-            redeem_points(
+            redeem_points_transactional(
                 db,
                 user_id=current_user.id,
                 points=loyalty_points_used,
@@ -243,10 +247,12 @@ def create_booking(
                 ),
                 reference_id=booking.id,
             )
-        except Exception as exc:
-            # Rare race-condition: points were used elsewhere between validation
-            # and redemption. Log the failure; booking is already confirmed.
-            print(f"[loyalty] Redemption failed for booking {booking.id}: {exc}")
+        except ValueError as exc:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    db.commit()   # ← one commit: booking + coupon usage + loyalty deduction
+    db.refresh(booking)
 
     # Notify the traveler
     savings_note = ""

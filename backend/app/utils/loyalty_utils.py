@@ -204,6 +204,58 @@ def redeem_points(
     }
 
 
+def redeem_points_transactional(
+    db: Session,
+    user_id: int,
+    points: int,
+    description: str,
+    reference_id: int | None = None,
+) -> dict:
+    """
+    Identical to redeem_points() but does NOT call db.commit().
+
+    Use this inside a larger transaction so the deduction and whatever
+    else you're doing (booking creation, payment record) all commit
+    atomically in one db.commit() call by the caller.
+
+    Raises ValueError if points are insufficient — the caller should
+    catch ValueError, call db.rollback(), and raise HTTPException(400).
+    """
+    account = get_or_create_account(db, user_id)
+
+    if account.total_points < points:
+        raise ValueError(
+            f"Not enough points. "
+            f"Available: {account.total_points:,}, requested: {points:,}."
+        )
+
+    pkr_value = points_to_pkr(points)
+    account.total_points -= points
+    account.last_activity = datetime.utcnow()
+
+    txn = LoyaltyTransaction(
+        user_id=user_id,
+        points=-points,
+        transaction_type="redeem",
+        description=description,
+        reference_id=reference_id,
+        balance_after=account.total_points,
+    )
+    db.add(txn)
+    db.flush()   # stage in the current transaction — caller commits
+
+    return {
+        "success": True,
+        "points_used": points,
+        "pkr_value": pkr_value,
+        "remaining_points": account.total_points,
+        "message": (
+            f"Redeemed {points:,} points "
+            f"for PKR {pkr_value:,.2f} discount!"
+        ),
+    }
+
+
 def check_first_booking(db: Session, user_id: int) -> bool:
     from app.models.booking import Booking
 
