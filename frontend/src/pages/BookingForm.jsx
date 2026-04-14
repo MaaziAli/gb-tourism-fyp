@@ -3,6 +3,8 @@ import {
   useParams, useNavigate,
   useSearchParams
 } from 'react-router-dom'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
@@ -93,6 +95,8 @@ export default function BookingForm() {
   const isSingleDate = SINGLE_DATE_TYPES_CONST.includes(listing?.service_type)
 
   const today = new Date().toISOString().split('T')[0]
+  const todayDate = new Date()
+  todayDate.setHours(0, 0, 0, 0)
 
   useEffect(() => {
     api.get('/listings/' + listingId)
@@ -173,9 +177,8 @@ export default function BookingForm() {
     }
     const [year, mon] = checkIn.split('-')
     const monthKey = `${year}-${mon}`
-    api.get(`/listings/${listingId}/available-dates?month=${monthKey}`)
-      .then(res => {
-        const dates = res.data.dates || []
+    fetchAvailableDatesByMonth(monthKey)
+      .then(dates => {
         setAvailableDates(dates)
         setAvailableDatesMonth(monthKey)
         const found = dates.find(d => d.date === checkIn)
@@ -184,8 +187,27 @@ export default function BookingForm() {
       .catch(() => setCapacityInfo(null))
   }, [isSingleDate, checkIn, listingId])
 
+  useEffect(() => {
+    if (!isSingleDate || !listingId) return
+    const now = new Date()
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    fetchAvailableDatesByMonth(monthKey).catch(() => {})
+  }, [isSingleDate, listingId])
+
   const subtotal = totalPrice
   const discountedTotal = Math.max(0, subtotal - couponDiscount - loyaltyDiscount)
+
+  async function fetchAvailableDatesByMonth(monthKey) {
+    if (!monthKey || !listingId) return []
+    if (monthKey === availableDatesMonth && availableDates.length > 0) {
+      return availableDates
+    }
+    const res = await api.get(`/listings/${listingId}/available-dates?month=${monthKey}`)
+    const dates = res.data.dates || []
+    setAvailableDates(dates)
+    setAvailableDatesMonth(monthKey)
+    return dates
+  }
 
   function isDateAvailable(dateStr, dates = availableDates) {
     const selectedDate = dates.find(d => d.date === dateStr)
@@ -196,14 +218,7 @@ export default function BookingForm() {
     if (!dateStr || !listingId) return []
     const [year, mon] = dateStr.split('-')
     const monthKey = `${year}-${mon}`
-    if (monthKey === availableDatesMonth && availableDates.length > 0) {
-      return availableDates
-    }
-    const res = await api.get(`/listings/${listingId}/available-dates?month=${monthKey}`)
-    const dates = res.data.dates || []
-    setAvailableDates(dates)
-    setAvailableDatesMonth(monthKey)
-    return dates
+    return fetchAvailableDatesByMonth(monthKey)
   }
 
   async function handleSubmit(e) {
@@ -631,11 +646,28 @@ export default function BookingForm() {
                 }}>
                   Tour Date
                 </label>
-                <input
-                  type="date"
-                  value={checkIn}
-                  min={today}
-                  onChange={e => setCheckIn(e.target.value)}
+                <DatePicker
+                  selected={checkIn ? new Date(`${checkIn}T00:00:00`) : null}
+                  onChange={date => {
+                    if (!date) {
+                      setCheckIn('')
+                      setCapacityInfo(null)
+                      return
+                    }
+                    setCheckIn(date.toISOString().slice(0, 10))
+                  }}
+                  minDate={todayDate}
+                  onMonthChange={date => {
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+                    fetchAvailableDatesByMonth(monthKey).catch(() => {})
+                  }}
+                  filterDate={date => {
+                    const dateStr = date.toISOString().slice(0, 10)
+                    const avail = availableDates.find(d => d.date === dateStr)
+                    return avail ? avail.remaining > 0 : true
+                  }}
+                  dateFormat="yyyy-MM-dd"
+                  placeholderText="Select date"
                   style={{
                     width: '100%', padding: '12px 14px',
                     borderRadius: '10px',
