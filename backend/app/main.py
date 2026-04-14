@@ -58,6 +58,7 @@ from app.routers import loyalty
 from app.routers import notifications
 from app.routers import payments
 from app.routers import xpay_payments
+from app.routers import mock_payment
 from app.routers import recommendations
 from app.routers import reviews
 from app.routers import room_types
@@ -124,6 +125,7 @@ def create_app() -> FastAPI:
     app.include_router(payments.router)
     app.include_router(stripe_payments.router)  # Stripe checkout flow
     app.include_router(xpay_payments.router)    # XPay Global checkout flow
+    app.include_router(mock_payment.router)     # Mock payment (prototype)
     app.include_router(trip_planner.router)
     app.include_router(dining.router)
     app.include_router(events.router)

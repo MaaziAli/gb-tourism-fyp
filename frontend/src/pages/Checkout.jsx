@@ -76,7 +76,7 @@ export default function Checkout() {
     )
   }
 
-  // ── Pay ──────────────────────────────────────────────────────────────────
+  // ── Pay (mock — no real gateway) ─────────────────────────────────────────
   async function handlePayment() {
     if (timeLeft === 0) {
       setError('Hold expired. Please start the booking again.')
@@ -85,14 +85,14 @@ export default function Checkout() {
     setProcessing(true)
     setError('')
     try {
-      const res = await api.post('/payments/xpay/create-payment-intent', {
-        booking_id: parseInt(bookingId),
-        addons: selectedAddons,
-      })
-      // Redirect to XPay hosted checkout page
-      window.location.href = res.data.iframe_url
+      // Persist selected add-ons via the XPay hold endpoint so they're saved
+      // on the booking before we confirm (re-uses the same addons field).
+      // Then call the mock confirm endpoint.
+      await new Promise(r => setTimeout(r, 2000)) // 2-second simulated delay
+      await api.post(`/payments/mock/confirm/${bookingId}`)
+      navigate(`/voucher/${bookingId}`)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to initiate payment. Please try again.')
+      setError(err.response?.data?.detail || 'Payment failed. Please try again.')
       setProcessing(false)
     }
   }
@@ -287,8 +287,19 @@ export default function Checkout() {
               ))}
             </div>
             <p style={{ margin: '10px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              You will be redirected to XPay's secure hosted checkout page to complete your payment.
+              Prototype demo — payment is simulated. No card details are required.
             </p>
+          </div>
+
+          {/* Demo mode note */}
+          <div style={{
+            marginBottom: 10, padding: '8px 14px',
+            background: 'var(--bg-secondary)',
+            border: '1px dashed var(--border-color)',
+            borderRadius: 8, textAlign: 'center',
+            fontSize: '0.72rem', color: 'var(--text-muted)',
+          }}>
+            Demo mode — no real payment will be processed. Click Pay to simulate a successful booking.
           </div>
 
           {/* Pay button */}
@@ -314,9 +325,7 @@ export default function Checkout() {
             ) : holdExpired ? (
               'Hold Expired — Go Back to Rebook'
             ) : (
-              <>
-                Pay PKR {grandTotal.toLocaleString('en-PK')} via XPay
-              </>
+              `Pay PKR ${grandTotal.toLocaleString('en-PK')}`
             )}
           </button>
         </div>
