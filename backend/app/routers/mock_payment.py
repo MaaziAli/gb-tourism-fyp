@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Body, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -17,6 +17,7 @@ from app.models.booking import Booking
 from app.models.listing import Listing
 from app.models.payment import Payment
 from app.models.user import User
+from app.utils.addon_utils import calculate_nights, validate_and_normalize_addons
 from app.utils.loyalty_utils import (
     get_or_create_account as _loyalty_account,
     pkr_to_points,
@@ -33,6 +34,7 @@ COMMISSION_RATE = 0.10
 class MockConfirmBody(BaseModel):
     """Optional body for /mock/confirm — carries loyalty redemption info."""
     loyalty_points_used: int = 0
+    addons: list[dict] = Field(default_factory=list)
 
 
 @router.post("/confirm/{booking_id}")
@@ -73,8 +75,18 @@ def mock_confirm_payment(
             ),
         }
 
-    addons = booking.addons or []
-    addons_total = sum(item.get("price", 0) for item in addons)
+    selected_addons = body.addons or booking.addons or []
+    nights = calculate_nights(booking.check_in, booking.check_out)
+    guests = max(1, int(getattr(booking, "group_size", 1) or 1))
+    addons, addons_total = validate_and_normalize_addons(
+        db,
+        listing_id=booking.listing_id,
+        room_type_id=getattr(booking, "room_type_id", None),
+        selected_addons=selected_addons,
+        nights=nights,
+        guests=guests,
+    )
+    booking.addons = addons
     base_total = round(float(booking.total_price) + addons_total, 2)
 
     # ── Loyalty discount at payment time ─────────────────────────────────

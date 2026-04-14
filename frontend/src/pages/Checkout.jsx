@@ -4,13 +4,7 @@ import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import LoyaltyInput from '../components/LoyaltyInput'
 import Toast from '../components/Toast'
-
-const AVAILABLE_ADDONS = [
-  { name: 'Breakfast', price: 500, icon: '🍳', description: 'Per day' },
-  { name: 'Airport Pickup', price: 2000, icon: '🚗', description: 'One-time' },
-  { name: 'Tour Guide', price: 1500, icon: '🧭', description: 'Per day' },
-  { name: 'Travel Insurance', price: 800, icon: '🛡️', description: 'Per booking' },
-]
+import AddonSelector from '../components/AddonSelector'
 
 export default function Checkout() {
   const { bookingId } = useParams()
@@ -22,6 +16,7 @@ export default function Checkout() {
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
   const [selectedAddons, setSelectedAddons] = useState([])
+  const [addonsTotal, setAddonsTotal] = useState(0)
   const [timeLeft, setTimeLeft] = useState(null)
   const timerRef = useRef(null)
 
@@ -32,6 +27,11 @@ export default function Checkout() {
   const handleLoyaltyChange = useCallback(({ points, discount }) => {
     setLoyaltyPointsUsed(points)
     setLoyaltyDiscount(discount)
+  }, [])
+
+  const handleAddonsChange = useCallback(({ addons, total }) => {
+    setSelectedAddons(addons || [])
+    setAddonsTotal(total || 0)
   }, [])
 
   // ── Fetch booking & create hold ──────────────────────────────────────────
@@ -78,15 +78,6 @@ export default function Checkout() {
     return () => clearInterval(timerRef.current)
   }, [bookingId, navigate])
 
-  // ── Add-on toggle ────────────────────────────────────────────────────────
-  function toggleAddon(addon) {
-    setSelectedAddons(prev =>
-      prev.find(a => a.name === addon.name)
-        ? prev.filter(a => a.name !== addon.name)
-        : [...prev, addon],
-    )
-  }
-
   // ── Pay (mock — no real gateway) ─────────────────────────────────────────
   async function handlePayment() {
     if (timeLeft === 0) {
@@ -99,7 +90,10 @@ export default function Checkout() {
       await new Promise(r => setTimeout(r, 1500)) // simulated processing delay
       const res = await api.post(
         `/payments/mock/confirm/${bookingId}`,
-        { loyalty_points_used: loyaltyPointsUsed },
+        {
+          loyalty_points_used: loyaltyPointsUsed,
+          addons: selectedAddons,
+        },
       )
       // Show loyalty toast before navigating
       if ((res.data.loyalty_points_used ?? 0) > 0) {
@@ -132,7 +126,6 @@ export default function Checkout() {
     )
   }
 
-  const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0)
   // grandTotal is what the user owes: booking base + add-ons - loyalty discount
   const baseTotal = (booking?.total_price || 0) + addonsTotal
   const grandTotal = Math.max(0, baseTotal - loyaltyDiscount)
@@ -230,56 +223,19 @@ export default function Checkout() {
             padding: 24, marginBottom: 16,
           }}>
             <h3 style={{ margin: '0 0 6px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Enhance Your Stay (Optional)
+              Add-ons for This Booking
             </h3>
             <p style={{ margin: '0 0 16px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-              Select add-ons to include with your booking
+              Pricing updates automatically by nights, guests, and quantity.
             </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {AVAILABLE_ADDONS.map(addon => {
-                const isSelected = selectedAddons.some(a => a.name === addon.name)
-                return (
-                  <label
-                    key={addon.name}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '14px 16px', borderRadius: 10, cursor: 'pointer',
-                      border: isSelected
-                        ? '2px solid var(--accent, #2563eb)'
-                        : '2px solid var(--border-color)',
-                      background: isSelected
-                        ? 'var(--accent-light, #eff6ff)'
-                        : 'var(--bg-secondary)',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleAddon(addon)}
-                      style={{ width: 18, height: 18, accentColor: 'var(--accent, #2563eb)', cursor: 'pointer' }}
-                    />
-                    <span style={{ fontSize: '1.5rem' }}>{addon.icon}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                        {addon.name}
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        {addon.description}
-                      </div>
-                    </div>
-                    <div style={{
-                      fontWeight: 700, fontSize: '0.9rem',
-                      color: isSelected ? 'var(--accent, #2563eb)' : 'var(--text-secondary)',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      + PKR {addon.price.toLocaleString('en-PK')}
-                    </div>
-                  </label>
-                )
-              })}
-            </div>
+            <AddonSelector
+              listingId={booking?.listing_id}
+              roomTypeId={booking?.room_type_id}
+              checkIn={booking?.check_in}
+              checkOut={booking?.check_out}
+              guests={booking?.group_size || 1}
+              onAddonsChange={handleAddonsChange}
+            />
           </div>
 
           {/* Payment methods note */}
@@ -393,7 +349,10 @@ export default function Checkout() {
                 {/* Price rows */}
                 {[
                   { label: 'Room subtotal', value: booking.total_price },
-                  ...selectedAddons.map(a => ({ label: a.name, value: a.price })),
+                  ...selectedAddons.map(a => ({
+                    label: `${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ''}`,
+                    value: a.total ?? a.price,
+                  })),
                 ].map(row => (
                   <div key={row.label} style={{
                     display: 'flex', justifyContent: 'space-between',

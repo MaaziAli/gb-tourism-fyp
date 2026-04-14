@@ -44,6 +44,11 @@ class Listing(Base):
         back_populates="listing",
         cascade="all, delete-orphan",
     )
+    addons = relationship(
+        "ListingAddon",
+        back_populates="listing",
+        cascade="all, delete-orphan",
+    )
 
     @property
     def price_per_night(self) -> float:

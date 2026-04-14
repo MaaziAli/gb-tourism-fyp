@@ -9,6 +9,7 @@ import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
 import AmenitiesSelector from '../components/AmenitiesSelector'
+import ListingAddonManager from '../components/ListingAddonManager'
 
 function EditListing() {
   const { listingId } = useParams()
@@ -1168,6 +1169,9 @@ function EditListing() {
               </button>
             </div>
           </div>
+
+          {/* Listing Add-ons */}
+          <ListingAddonManager listingId={listingId} />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label

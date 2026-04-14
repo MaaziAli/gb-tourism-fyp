@@ -23,7 +23,7 @@ from typing import List, Optional
 
 import requests
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -33,6 +33,7 @@ from app.models.booking import Booking
 from app.models.listing import Listing
 from app.models.payment import Payment
 from app.models.user import User
+from app.utils.addon_utils import calculate_nights, validate_and_normalize_addons
 from app.utils.notify import create_notification
 
 logger = logging.getLogger(__name__)
@@ -50,13 +51,16 @@ XPAY_BASE_URL = {
 
 
 class AddonItem(BaseModel):
-    name: str
-    price: float
+    id: int | None = None
+    addon_id: int | None = None
+    listing_addon_id: int | None = None
+    name: str | None = None
+    quantity: int = 1
 
 
 class CreatePaymentIntentRequest(BaseModel):
     booking_id: int
-    addons: Optional[List[AddonItem]] = []
+    addons: Optional[List[AddonItem]] = Field(default_factory=list)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -270,8 +274,17 @@ def create_payment_intent(
         )
 
     # Calculate total including add-ons
-    addons_list = [a.dict() for a in (body.addons or [])]
-    addons_total = sum(a.get("price", 0) for a in addons_list)
+    selected_addons = [a.model_dump() for a in (body.addons or [])]
+    nights = calculate_nights(booking.check_in, booking.check_out)
+    guests = max(1, int(getattr(booking, "group_size", 1) or 1))
+    addons_list, addons_total = validate_and_normalize_addons(
+        db,
+        listing_id=booking.listing_id,
+        room_type_id=getattr(booking, "room_type_id", None),
+        selected_addons=selected_addons,
+        nights=nights,
+        guests=guests,
+    )
     total_amount = float(booking.total_price) + addons_total
 
     # Persist add-ons on booking

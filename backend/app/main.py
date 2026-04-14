@@ -32,6 +32,7 @@ from app.models import availability as _av_model  # noqa
 from app.models import coupon as _coupon_model  # noqa
 from app.models import loyalty as _loyalty_model  # noqa
 from app.models import refund as _refund_model  # noqa
+from app.models import listing_addon as _addon_model  # noqa
 
 try:
     from app.models import message as _msg  # noqa
@@ -45,6 +46,7 @@ except Exception as e:
 
 # ── Router imports ──
 from app.routers import admin
+from app.routers import addons
 from app.routers import auth
 from app.routers import availability
 from app.routers import bookings
@@ -114,6 +116,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(users.router)
     app.include_router(listings.router)
+    app.include_router(addons.router)
     app.include_router(hotels.router)      # dedicated hotel endpoints
     app.include_router(rooms.router)       # dedicated room endpoints
     app.include_router(bookings.router)

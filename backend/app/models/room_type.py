@@ -21,4 +21,9 @@ class RoomType(Base):
     breakfast_included = Column(Boolean, default=False)
 
     listing = relationship("Listing", back_populates="room_types")
+    addons = relationship(
+        "ListingAddon",
+        primaryjoin="RoomType.id==ListingAddon.room_type_id",
+        viewonly=True,
+    )
 
