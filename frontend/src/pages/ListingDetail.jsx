@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import { getUser, getRole, isLoggedIn } from '../utils/role'
 import useWindowSize from '../hooks/useWindowSize'
@@ -208,6 +208,7 @@ function BookButton({
 export default function ListingDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { isMobile } = useWindowSize()
 
   const [listing, setListing] = useState(null)
@@ -252,8 +253,8 @@ export default function ListingDetail() {
     staff_rating: 0,
     facilities_rating: 0,
   })
-  const [sidebarCheckIn, setSidebarCheckIn] = useState('')
-  const [sidebarCheckOut, setSidebarCheckOut] = useState('')
+  const [sidebarCheckIn, setSidebarCheckIn] = useState(searchParams.get('checkIn') || '')
+  const [sidebarCheckOut, setSidebarCheckOut] = useState(searchParams.get('checkOut') || '')
   const [couponCode, setCouponCode] = useState('')
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponApplied, setCouponApplied] = useState(false)

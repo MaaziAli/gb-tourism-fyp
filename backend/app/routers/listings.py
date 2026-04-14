@@ -1,12 +1,13 @@
 """
 Listings router - full CRUD operations for tourism listings.
 """
+from datetime import date as date_type
 from pathlib import Path
 from uuid import uuid4
 import shutil
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, File, Form, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, File, Form, Query, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,57 @@ from app.models.booking import Booking
 from app.models.listing import Listing
 from app.models.user import User
 from app.schemas.listing import ListingResponse, ListingUpdate
+
+
+def _calculate_availability(
+    listing: Listing,
+    check_in: date_type,
+    check_out: date_type,
+    db: Session,
+) -> int:
+    """
+    Return real-time available slots for a listing over [check_in, check_out).
+
+    Hotels: sum (total_rooms - overlapping bookings) per room type.
+    Others: rooms_available minus count of overlapping listing-level bookings.
+    """
+    from app.models.room_type import RoomType
+
+    if listing.service_type == "hotel":
+        room_types = (
+            db.query(RoomType)
+            .filter(RoomType.listing_id == listing.id)
+            .all()
+        )
+        if room_types:
+            total_available = 0
+            for rt in room_types:
+                booked = (
+                    db.query(func.count(Booking.id))
+                    .filter(
+                        Booking.room_type_id == rt.id,
+                        Booking.status.in_(["active", "confirmed"]),
+                        Booking.check_in < check_out,
+                        Booking.check_out > check_in,
+                    )
+                    .scalar() or 0
+                )
+                total_available += max(0, (rt.total_rooms or 1) - booked)
+            return total_available
+
+    # Non-hotel or hotel without room types
+    total = listing.rooms_available if listing.rooms_available is not None else 1
+    booked = (
+        db.query(func.count(Booking.id))
+        .filter(
+            Booking.listing_id == listing.id,
+            Booking.status.in_(["active", "confirmed"]),
+            Booking.check_in < check_out,
+            Booking.check_out > check_in,
+        )
+        .scalar() or 0
+    )
+    return max(0, total - booked)
 
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
@@ -299,9 +351,11 @@ def smart_search(
     min_rating: float | None = None,
     sort_by: str = "relevance",
     limit: int = 20,
+    check_in: date_type | None = Query(None),
+    check_out: date_type | None = Query(None),
     db: Session = Depends(get_db),
 ):
-    """Smart search with filters and scoring."""
+    """Smart search with filters, scoring, and optional date-based availability."""
     from sqlalchemy import and_, func, or_
 
     from app.models.review import Review
@@ -374,6 +428,18 @@ def smart_search(
         score += avg_rating * 2
         score += min(review_count * 0.1, 5)
 
+        # Date-based availability
+        dates_provided = (
+            check_in is not None
+            and check_out is not None
+            and check_in < check_out
+        )
+        available_rooms: int | None = None
+        if dates_provided:
+            available_rooms = _calculate_availability(
+                listing, check_in, check_out, db
+            )
+
         desc = listing.description or ""
         results.append(
             {
@@ -390,6 +456,7 @@ def smart_search(
                 "is_featured": bool(
                     getattr(listing, "is_featured", False)
                 ),
+                "available_rooms": available_rooms,
             }
         )
 
@@ -415,6 +482,8 @@ def smart_search(
             "max_price": max_price,
             "min_rating": min_rating,
             "sort_by": sort_by,
+            "check_in": check_in.isoformat() if check_in else None,
+            "check_out": check_out.isoformat() if check_out else None,
         },
     }
 

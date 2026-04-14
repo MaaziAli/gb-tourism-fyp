@@ -92,6 +92,13 @@ export default function Listings() {
   const [sortBy, setSortBy] = useState('recommended')
   const [filtersOpen, setFiltersOpen] = useState(false)
 
+  // Date availability search
+  const [checkIn, setCheckIn] = useState('')
+  const [checkOut, setCheckOut] = useState('')
+  const [dateSearchActive, setDateSearchActive] = useState(false)
+
+  const today = new Date().toISOString().split('T')[0]
+
   useEffect(() => { fetchListings() }, [])
 
   async function fetchListings() {
@@ -99,8 +106,33 @@ export default function Listings() {
     try {
       const res = await api.get('/listings')
       setListings(res.data)
+      setDateSearchActive(false)
     } catch(e) { console.error(e) }
     finally { setLoading(false) }
+  }
+
+  async function searchWithDates() {
+    if (!checkIn || !checkOut) return
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({ check_in: checkIn, check_out: checkOut })
+      if (search.trim()) params.set('q', search.trim())
+      if (serviceType) params.set('service_type', serviceType)
+      if (location !== 'All Locations') params.set('location', location)
+      if (minPrice) params.set('min_price', minPrice)
+      if (maxPrice) params.set('max_price', maxPrice)
+      params.set('limit', '100')
+      const res = await api.get(`/listings/search?${params.toString()}`)
+      setListings(res.data.results || [])
+      setDateSearchActive(true)
+    } catch(e) { console.error(e) }
+    finally { setLoading(false) }
+  }
+
+  function clearDateSearch() {
+    setCheckIn('')
+    setCheckOut('')
+    fetchListings()
   }
 
   const activeFilters = [
@@ -118,6 +150,7 @@ export default function Listings() {
     setMinPrice('')
     setMaxPrice('')
     setSortBy('recommended')
+    clearDateSearch()
   }
 
   const filtered = useMemo(() => {
@@ -205,6 +238,7 @@ export default function Listings() {
                 placeholder="Search hotels, tours, locations..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && checkIn && checkOut && searchWithDates()}
                 style={{
                   width:'100%', padding:'13px 14px 13px 42px',
                   borderRadius:'12px', border:'none',
@@ -239,6 +273,104 @@ export default function Listings() {
                 </span>
               )}
             </button>
+          </div>
+
+          {/* Date availability search bar */}
+          <div style={{
+            background: 'rgba(255,255,255,0.12)',
+            borderRadius: '14px',
+            padding: '12px 14px',
+            marginBottom: '12px',
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center',
+            flexWrap: isMobile ? 'wrap' : 'nowrap',
+            border: '1px solid rgba(255,255,255,0.25)'
+          }}>
+            <div style={{display:'flex', alignItems:'center', gap:'6px', flexShrink:0}}>
+              <span style={{fontSize:'1rem'}}>📅</span>
+              <span style={{color:'rgba(255,255,255,0.9)', fontSize:'0.82rem', fontWeight:600, whiteSpace:'nowrap'}}>
+                Check Availability
+              </span>
+            </div>
+            <div style={{display:'flex', gap:'8px', flex:1, flexWrap: isMobile ? 'wrap' : 'nowrap'}}>
+              <div style={{flex:1, minWidth:'120px'}}>
+                <label style={{display:'block', color:'rgba(255,255,255,0.7)', fontSize:'0.7rem', marginBottom:'3px'}}>
+                  Check-in
+                </label>
+                <input
+                  type="date"
+                  value={checkIn}
+                  min={today}
+                  onChange={e => {
+                    setCheckIn(e.target.value)
+                    if (checkOut && e.target.value >= checkOut) setCheckOut('')
+                  }}
+                  style={{
+                    width:'100%', padding:'7px 10px',
+                    borderRadius:'8px', border:'none',
+                    fontSize:'0.85rem', background:'white',
+                    color:'#111827', boxSizing:'border-box',
+                    cursor:'pointer'
+                  }}
+                />
+              </div>
+              <div style={{flex:1, minWidth:'120px'}}>
+                <label style={{display:'block', color:'rgba(255,255,255,0.7)', fontSize:'0.7rem', marginBottom:'3px'}}>
+                  Check-out
+                </label>
+                <input
+                  type="date"
+                  value={checkOut}
+                  min={checkIn || today}
+                  onChange={e => setCheckOut(e.target.value)}
+                  style={{
+                    width:'100%', padding:'7px 10px',
+                    borderRadius:'8px', border:'none',
+                    fontSize:'0.85rem', background:'white',
+                    color:'#111827', boxSizing:'border-box',
+                    cursor:'pointer'
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{display:'flex', gap:'6px', flexShrink:0}}>
+              <button
+                onClick={searchWithDates}
+                disabled={!checkIn || !checkOut}
+                style={{
+                  padding:'8px 16px',
+                  borderRadius:'8px',
+                  border:'none',
+                  background: (!checkIn || !checkOut) ? 'rgba(255,255,255,0.3)' : '#0ea5e9',
+                  color:'white',
+                  fontWeight:700,
+                  fontSize:'0.82rem',
+                  cursor: (!checkIn || !checkOut) ? 'not-allowed' : 'pointer',
+                  whiteSpace:'nowrap'
+                }}
+              >
+                🔍 Search
+              </button>
+              {dateSearchActive && (
+                <button
+                  onClick={clearDateSearch}
+                  style={{
+                    padding:'8px 12px',
+                    borderRadius:'8px',
+                    border:'1px solid rgba(255,255,255,0.4)',
+                    background:'transparent',
+                    color:'white',
+                    fontWeight:600,
+                    fontSize:'0.82rem',
+                    cursor:'pointer',
+                    whiteSpace:'nowrap'
+                  }}
+                >
+                  ✕ Clear
+                </button>
+              )}
+            </div>
           </div>
 
           <div style={{
@@ -380,6 +512,37 @@ export default function Listings() {
         maxWidth:'1100px', margin:'0 auto',
         padding: isMobile ? '16px 12px' : '24px 16px'
       }}>
+        {/* Date search active banner */}
+        {dateSearchActive && (
+          <div style={{
+            background:'#eff6ff',
+            border:'1px solid #bfdbfe',
+            borderRadius:'10px',
+            padding:'10px 16px',
+            marginBottom:'16px',
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'space-between',
+            flexWrap:'wrap',
+            gap:'8px'
+          }}>
+            <span style={{fontSize:'0.88rem', color:'#1d4ed8', fontWeight:600}}>
+              📅 Showing availability for {checkIn} → {checkOut}
+            </span>
+            <button
+              onClick={clearDateSearch}
+              style={{
+                background:'none', border:'1px solid #93c5fd',
+                borderRadius:'6px', padding:'4px 12px',
+                color:'#1d4ed8', cursor:'pointer',
+                fontSize:'0.8rem', fontWeight:600
+              }}
+            >
+              View All Listings
+            </button>
+          </div>
+        )}
+
         {!loading && (
           <div style={{
             display:'flex',
@@ -475,7 +638,14 @@ export default function Listings() {
             {(filtered || listings || []).map(listing => (
               <div
                 key={listing.id}
-                onClick={() => navigate('/listing/' + listing.id)}
+                onClick={() => {
+                  if (dateSearchActive && listing.available_rooms === 0) return
+                  const params = new URLSearchParams()
+                  if (checkIn) params.set('checkIn', checkIn)
+                  if (checkOut) params.set('checkOut', checkOut)
+                  const qs = params.toString()
+                  navigate('/listing/' + listing.id + (qs ? `?${qs}` : ''))
+                }}
                 style={{
                   background: 'var(--bg-card)',
                   borderRadius: '12px',
@@ -577,6 +747,31 @@ export default function Listings() {
                       </span>
                     </div>
                   ) : null}
+                  {/* Availability badge (only when date search is active) */}
+                  {dateSearchActive && listing.available_rooms !== null && listing.available_rooms !== undefined && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '10px',
+                      right: '10px',
+                      background: listing.available_rooms === 0
+                        ? '#dc2626'
+                        : listing.available_rooms <= 3
+                          ? '#f59e0b'
+                          : '#16a34a',
+                      color: 'white',
+                      padding: '3px 9px',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: '700',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {listing.available_rooms === 0
+                        ? '🚫 Sold Out'
+                        : listing.available_rooms <= 3
+                          ? `🔥 Only ${listing.available_rooms} left!`
+                          : `✅ ${listing.available_rooms} available`}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{
@@ -664,26 +859,50 @@ export default function Listings() {
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={e => {
-                        e.stopPropagation()
-                        navigate('/listing/' + listing.id)
-                      }}
-                      style={{
-                        padding: '9px 16px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: 'linear-gradient(135deg,#1e3a5f,#0ea5e9)',
-                        color: 'white',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        fontSize: '0.82rem',
-                        whiteSpace: 'nowrap',
-                        flexShrink: '0'
-                      }}
-                    >
-                      View and Book
-                    </button>
+                    {dateSearchActive && listing.available_rooms === 0 ? (
+                      <button
+                        disabled
+                        style={{
+                          padding: '9px 16px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: '#e5e7eb',
+                          color: '#9ca3af',
+                          fontWeight: '700',
+                          cursor: 'not-allowed',
+                          fontSize: '0.82rem',
+                          whiteSpace: 'nowrap',
+                          flexShrink: '0'
+                        }}
+                      >
+                        Sold Out
+                      </button>
+                    ) : (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation()
+                          const params = new URLSearchParams()
+                          if (checkIn) params.set('checkIn', checkIn)
+                          if (checkOut) params.set('checkOut', checkOut)
+                          const qs = params.toString()
+                          navigate('/listing/' + listing.id + (qs ? `?${qs}` : ''))
+                        }}
+                        style={{
+                          padding: '9px 16px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: 'linear-gradient(135deg,#1e3a5f,#0ea5e9)',
+                          color: 'white',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          fontSize: '0.82rem',
+                          whiteSpace: 'nowrap',
+                          flexShrink: '0'
+                        }}
+                      >
+                        View and Book
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
