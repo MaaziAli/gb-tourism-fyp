@@ -338,6 +338,12 @@ def verify_payment(
         "booking_id": booking.id,
         "amount": payment.amount,
         "transaction_id": payment.transaction_id,
+        "loyalty_points_used": int(
+            getattr(booking, "loyalty_points_used", 0) or 0
+        ),
+        "loyalty_discount_applied": float(
+            getattr(booking, "loyalty_discount_applied", 0.0) or 0.0
+        ),
         "listing_title": listing.title if listing else "Your booking",
         "check_in": booking.check_in.isoformat() if booking.check_in else None,
         "check_out": booking.check_out.isoformat() if booking.check_out else None,

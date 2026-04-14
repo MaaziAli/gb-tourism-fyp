@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
+import Toast from '../components/Toast'
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams()
@@ -21,6 +22,7 @@ export default function PaymentSuccess() {
   const [status, setStatus]   = useState('verifying') // verifying | success | error
   const [data, setData]       = useState(null)
   const [errMsg, setErrMsg]   = useState('')
+  const [loyaltyToast, setLoyaltyToast] = useState(null)
 
   useEffect(() => {
     if (!sessionId || !bookingId) {
@@ -29,21 +31,54 @@ export default function PaymentSuccess() {
       return
     }
 
-    api
-      .get('/payments/stripe/verify', {
-        params: { session_id: sessionId, booking_id: parseInt(bookingId) },
-      })
-      .then(res => {
+    let isActive = true
+
+    ;(async () => {
+      try {
+        const res = await api.get('/payments/stripe/verify', {
+          params: { session_id: sessionId, booking_id: parseInt(bookingId) },
+        })
+        if (!isActive) return
+
         setData(res.data)
         setStatus('success')
-      })
-      .catch(err => {
+
+        let pointsUsed = Number(res.data?.loyalty_points_used || 0)
+        let loyaltyDiscount = Number(res.data?.loyalty_discount_applied || 0)
+
+        // Fallback: if verify payload does not include loyalty fields,
+        // fetch booking details and read them from the booking record.
+        if (pointsUsed <= 0 || loyaltyDiscount <= 0) {
+          const bookingsRes = await api.get('/bookings/me')
+          if (!isActive) return
+          const b = bookingsRes.data.find(
+            item => item.id === Number(res.data?.booking_id || bookingId),
+          )
+          pointsUsed = Number(b?.loyalty_points_used || pointsUsed || 0)
+          loyaltyDiscount = Number(
+            b?.loyalty_discount_applied || loyaltyDiscount || 0,
+          )
+        }
+
+        if (pointsUsed > 0 && loyaltyDiscount > 0) {
+          setLoyaltyToast({
+            points: pointsUsed,
+            discount: loyaltyDiscount,
+          })
+        }
+      } catch (err) {
+        if (!isActive) return
         setErrMsg(
           err.response?.data?.detail ||
             'Could not verify payment. Please contact support.'
         )
         setStatus('error')
-      })
+      }
+    })()
+
+    return () => {
+      isActive = false
+    }
   }, [sessionId, bookingId])
 
   // ── Verifying spinner ───────────────────────────────────────────────────
@@ -170,6 +205,15 @@ export default function PaymentSuccess() {
           </div>
         </div>
       </div>
+      {loyaltyToast && (
+        <Toast
+          title="⭐ Loyalty Points Used!"
+          message={`You used ${loyaltyToast.points.toLocaleString()} points and saved PKR ${loyaltyToast.discount.toLocaleString('en-PK')}!`}
+          type="success"
+          duration={5000}
+          onClose={() => setLoyaltyToast(null)}
+        />
+      )}
     </div>
   )
 }
