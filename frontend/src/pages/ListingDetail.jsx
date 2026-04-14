@@ -276,6 +276,30 @@ export default function ListingDetail() {
     fetchAll()
   }, [id])
 
+  // Re-fetch room availability when dates change
+  useEffect(() => {
+    if (!listing || !['hotel', 'camping', 'resort'].includes(listing.service_type)) return
+    if (!sidebarCheckIn || !sidebarCheckOut) return
+    setRoomsLoading(true)
+    const params = new URLSearchParams({
+      check_in: sidebarCheckIn,
+      check_out: sidebarCheckOut,
+    })
+    api.get(`/rooms/hotel/${id}/availability?${params.toString()}`)
+      .then(res => {
+        const roomData = res.data || []
+        setRooms(roomData)
+        // If currently selected room is now unavailable, clear selection
+        if (selectedRoom) {
+          const updated = roomData.find(r => r.id === selectedRoom.id)
+          if (updated && updated.available_rooms <= 0) setSelectedRoom(null)
+          else if (updated) setSelectedRoom(updated)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setRoomsLoading(false))
+  }, [sidebarCheckIn, sidebarCheckOut, listing?.id])
+
   async function fetchAll() {
     setLoading(true)
     try {
@@ -305,11 +329,11 @@ export default function ListingDetail() {
       if (['hotel', 'camping', 'resort'].includes(lRes.data.service_type)) {
         setRoomsLoading(true)
         try {
-          const rtRes = await api.get(`/room-types/${id}`)
+          const rtRes = await api.get(`/rooms/hotel/${id}`)
           const roomData = rtRes.data || []
           setRooms(roomData)
           const firstAvailable = roomData.find(
-            (rm) => rm.is_available && rm.available_count > 0
+            (rm) => rm.available_rooms > 0
           )
           if (firstAvailable) setSelectedRoom(firstAvailable)
           else setSelectedRoom(null)
@@ -1092,8 +1116,7 @@ export default function ListingDetail() {
                       const isSelected =
                         selectedRoom?.id === room.id
                       const isUnavailable =
-                        !room.is_available ||
-                        room.available_count === 0
+                        room.available_rooms === 0
 
                       const amenityList = (() => {
                         if (!room.amenities) return []
@@ -1291,8 +1314,8 @@ export default function ListingDetail() {
                                   '1px solid var(--border-color)'
                               }}>
                                 <div>
-                                  {room.available_count > 0 &&
-                                   room.available_count <= 3 && (
+                                  {room.available_rooms > 0 &&
+                                   room.available_rooms <= 3 && (
                                     <div style={{
                                       fontSize: '0.72rem',
                                       color: '#dc2626',
@@ -1300,7 +1323,7 @@ export default function ListingDetail() {
                                       marginBottom: '3px'
                                     }}>
                                       🔥 Only{' '}
-                                      {room.available_count} left!
+                                      {room.available_rooms} left!
                                     </div>
                                   )}
                                   <div style={{

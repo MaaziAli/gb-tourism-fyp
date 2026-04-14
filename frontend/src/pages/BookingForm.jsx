@@ -77,12 +77,25 @@ export default function BookingForm() {
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [confirmedTotal, setConfirmedTotal] = useState(null)
   const [pointsPopup, setPointsPopup] = useState(null)
+  const [guests, setGuests] = useState(1)
+  const [roomTypes, setRoomTypes] = useState([])
+  const [roomsLoading, setRoomsLoading] = useState(false)
 
   const today = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     api.get('/listings/' + listingId)
-      .then(r => setListing(r.data))
+      .then(r => {
+        setListing(r.data)
+        // If hotel and no room pre-selected, load room types
+        if (r.data.service_type === 'hotel' && !roomTypeIdFromUrl) {
+          setRoomsLoading(true)
+          api.get('/rooms/hotel/' + listingId)
+            .then(rt => setRoomTypes(rt.data || []))
+            .catch(() => setRoomTypes([]))
+            .finally(() => setRoomsLoading(false))
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [listingId])
@@ -152,6 +165,7 @@ export default function BookingForm() {
         check_in: checkIn,
         check_out: checkOut,
         total_price: finalTotal,
+        guests: guests,
         ...(selectedRoomTypeId && {
           room_type_id: selectedRoomTypeId
         }),
@@ -611,6 +625,197 @@ export default function BookingForm() {
               </div>
             )}
           </div>
+
+          {/* Room type selector — shown for hotels when no room was pre-selected */}
+          {listing?.service_type === 'hotel' && !roomTypeIdFromUrl && (
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-color)',
+              boxShadow: 'var(--shadow-md)',
+              padding: '24px', marginBottom: '16px'
+            }}>
+              <h3 style={{
+                margin: '0 0 4px', fontSize: '1rem',
+                fontWeight: 700, color: 'var(--text-primary)'
+              }}>
+                🛏️ Select Room Type
+              </h3>
+              <p style={{
+                margin: '0 0 16px', fontSize: '0.82rem',
+                color: 'var(--text-secondary)'
+              }}>
+                Choose a room type to see its price
+              </p>
+
+              {roomsLoading ? (
+                <div style={{
+                  textAlign: 'center', padding: '20px',
+                  color: 'var(--text-muted)'
+                }}>
+                  Loading rooms…
+                </div>
+              ) : roomTypes.length === 0 ? (
+                <div style={{
+                  textAlign: 'center', padding: '16px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '10px',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.875rem'
+                }}>
+                  Standard room — price shown in summary
+                </div>
+              ) : (
+                <div style={{
+                  display: 'flex', flexDirection: 'column', gap: '10px'
+                }}>
+                  {roomTypes.map(room => {
+                    const isSelected = selectedRoomTypeId === room.id
+                    const noAvail = room.available_rooms === 0
+                    return (
+                      <div
+                        key={room.id}
+                        onClick={() => {
+                          if (noAvail) return
+                          setSelectedRoomTypeId(room.id)
+                          setSelectedRoomName(room.room_type || room.name)
+                          setBasePrice(room.price_per_night)
+                        }}
+                        style={{
+                          border: isSelected
+                            ? '2px solid var(--accent)'
+                            : '1px solid var(--border-color)',
+                          borderRadius: '10px',
+                          padding: '12px 16px',
+                          cursor: noAvail ? 'not-allowed' : 'pointer',
+                          opacity: noAvail ? 0.5 : 1,
+                          background: isSelected ? 'var(--accent-light)' : 'var(--bg-secondary)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '12px',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{
+                            fontWeight: 700, fontSize: '0.9rem',
+                            color: isSelected ? 'var(--accent)' : 'var(--text-primary)',
+                            marginBottom: '3px'
+                          }}>
+                            {room.room_type || room.name}
+                            {room.bed_type && (
+                              <span style={{
+                                marginLeft: '8px', fontSize: '0.72rem',
+                                fontWeight: 400,
+                                color: 'var(--text-muted)'
+                              }}>
+                                · {room.bed_type}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{
+                            fontSize: '0.75rem', color: 'var(--text-secondary)',
+                            display: 'flex', gap: '8px', flexWrap: 'wrap'
+                          }}>
+                            {room.capacity && (
+                              <span>👥 {room.capacity} guests</span>
+                            )}
+                            <span style={{
+                              color: noAvail ? '#dc2626' : '#16a34a',
+                              fontWeight: 600
+                            }}>
+                              {noAvail
+                                ? 'Fully booked'
+                                : `${room.available_rooms} room${room.available_rooms !== 1 ? 's' : ''} left`
+                              }
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{
+                          textAlign: 'right', flexShrink: 0
+                        }}>
+                          <div style={{
+                            fontWeight: 800, fontSize: '1rem',
+                            color: isSelected ? 'var(--accent)' : 'var(--text-primary)'
+                          }}>
+                            PKR {(room.price_per_night || 0).toLocaleString('en-PK')}
+                          </div>
+                          <div style={{
+                            fontSize: '0.68rem',
+                            color: 'var(--text-muted)'
+                          }}>
+                            /night
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <div style={{
+                            width: 22, height: 22, borderRadius: '50%',
+                            background: 'var(--accent)', color: 'white',
+                            display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', fontSize: '0.75rem',
+                            fontWeight: 800, flexShrink: 0
+                          }}>
+                            ✓
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Guests input */}
+              <div style={{ marginTop: '16px' }}>
+                <label style={{
+                  display: 'block', fontSize: '0.78rem', fontWeight: 700,
+                  color: 'var(--text-secondary)', marginBottom: '8px',
+                  textTransform: 'uppercase', letterSpacing: '0.05em'
+                }}>
+                  Guests
+                </label>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '12px'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setGuests(g => Math.max(1, g - 1))}
+                    style={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      cursor: 'pointer', fontWeight: 700, fontSize: '1.1rem',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >−</button>
+                  <span style={{
+                    fontWeight: 700, fontSize: '1rem',
+                    color: 'var(--text-primary)', minWidth: '24px',
+                    textAlign: 'center'
+                  }}>
+                    {guests}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setGuests(g => Math.min(20, g + 1))}
+                    style={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      cursor: 'pointer', fontWeight: 700, fontSize: '1.1rem',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >+</button>
+                  <span style={{
+                    fontSize: '0.82rem',
+                    color: 'var(--text-muted)'
+                  }}>
+                    guest{guests !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Policies card */}
           <div style={{

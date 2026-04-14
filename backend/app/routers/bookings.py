@@ -52,23 +52,6 @@ def create_booking(
             detail="Check-out must be after check-in",
         )
 
-    # Prevent overlapping active bookings for the same listing
-    overlapping = (
-        db.query(Booking)
-        .filter(
-            Booking.listing_id == body.listing_id,
-            Booking.status == "active",
-            Booking.check_in < body.check_out,
-            Booking.check_out > body.check_in,
-        )
-        .first()
-    )
-    if overlapping:
-        raise HTTPException(
-            status_code=400,
-            detail="Booking conflict: dates overlap with existing booking",
-        )
-
     # Optional room type
     room_type = None
     if body.room_type_id:
@@ -84,6 +67,43 @@ def create_booking(
         )
         if not room_type:
             raise HTTPException(status_code=404, detail="Room type not found")
+
+    # Availability check
+    if room_type:
+        # Per-room-type real-time availability: count overlapping active bookings
+        booked_count = (
+            db.query(func.count(Booking.id))
+            .filter(
+                Booking.room_type_id == body.room_type_id,
+                Booking.status.in_(["active", "confirmed"]),
+                Booking.check_in < body.check_out,
+                Booking.check_out > body.check_in,
+            )
+            .scalar() or 0
+        )
+        available = (room_type.total_rooms or 1) - booked_count
+        if available <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="No rooms of this type available for the selected dates",
+            )
+    else:
+        # Generic listing-level check for non-hotel / no room type selected
+        overlapping = (
+            db.query(Booking)
+            .filter(
+                Booking.listing_id == body.listing_id,
+                Booking.status == "active",
+                Booking.check_in < body.check_out,
+                Booking.check_out > body.check_in,
+            )
+            .first()
+        )
+        if overlapping:
+            raise HTTPException(
+                status_code=400,
+                detail="Booking conflict: dates overlap with existing booking",
+            )
 
     price_per_night = (
         room_type.price_per_night if room_type else listing.price_per_night
@@ -119,6 +139,7 @@ def create_booking(
         status="active",
         room_type_id=body.room_type_id if body.room_type_id else None,
         room_type_name=room_type.name if room_type else None,
+        group_size=max(1, body.guests or 1),
     )
     db.add(booking)
     db.flush()

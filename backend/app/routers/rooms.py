@@ -9,9 +9,13 @@ import shutil
 from pathlib import Path
 from uuid import uuid4
 
+from datetime import date as date_type
+from typing import Optional
+
 from fastapi import (
-    APIRouter, Depends, File, Form, HTTPException, UploadFile,
+    APIRouter, Depends, File, Form, HTTPException, Query, UploadFile,
 )
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -231,6 +235,50 @@ def delete_room(
     db.delete(room)
     db.commit()
     return None
+
+
+# ── GET real-time availability for all rooms in a hotel ───────────────────────
+
+@router.get("/hotel/{hotel_id}/availability")
+def get_hotel_rooms_availability(
+    hotel_id: int,
+    check_in: Optional[date_type] = Query(None),
+    check_out: Optional[date_type] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Return all room types for a hotel with real-time available count for dates."""
+    hotel = (
+        db.query(Listing)
+        .filter(Listing.id == hotel_id, Listing.service_type == "hotel")
+        .first()
+    )
+    if not hotel:
+        raise HTTPException(status_code=404, detail="Hotel not found")
+
+    rooms = db.query(RoomType).filter(RoomType.listing_id == hotel_id).all()
+
+    result = []
+    for room in rooms:
+        booked = 0
+        if check_in and check_out and check_in < check_out:
+            booked = (
+                db.query(func.count(Booking.id))
+                .filter(
+                    Booking.room_type_id == room.id,
+                    Booking.status.in_(["active", "confirmed"]),
+                    Booking.check_in < check_out,
+                    Booking.check_out > check_in,
+                )
+                .scalar() or 0
+            )
+        total = room.total_rooms or 1
+        available = max(0, total - booked)
+        d = _room_dict(room)
+        d["available_rooms"] = available
+        d["booked_count"] = booked
+        d["is_available"] = available > 0
+        result.append(d)
+    return result
 
 
 # ── PATCH availability ────────────────────────────────────────────────────────
