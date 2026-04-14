@@ -530,6 +530,21 @@ export default function MyListings() {
                           </button>
                         )}
                         <button
+                          onClick={() => navigate(`/provider/calendar/${listing.id}`)}
+                          style={{
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: '8px',
+                            padding: '7px 14px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          📆 Calendar
+                        </button>
+                        <button
                           onClick={() =>
                             navigate(`/edit-listing/${listing.id}`)
                           }

@@ -29,6 +29,7 @@ import ProviderEarningsChart from './pages/ProviderEarningsChart'
 import NotificationsPage from './pages/NotificationsPage'
 import PaymentPage from './pages/PaymentPage'
 import Checkout from './pages/Checkout'
+import ProviderCalendar from './pages/ProviderCalendar'
 import PaymentHistory from './pages/PaymentHistory'
 import ProviderPayments from './pages/ProviderPayments'
 import TripPlanner from './pages/TripPlanner'
@@ -260,6 +261,14 @@ function App() {
             element={
               <ProviderRoute>
                 <ProviderAnalytics />
+              </ProviderRoute>
+            }
+          />
+          <Route
+            path="/provider/calendar/:listingId"
+            element={
+              <ProviderRoute>
+                <ProviderCalendar />
               </ProviderRoute>
             }
           />

@@ -4,6 +4,49 @@ import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import useWindowSize from '../hooks/useWindowSize'
 
+// ── Inline CSS bar chart (no recharts dependency) ─────────────────────────────
+function EarningsChart({ monthly }) {
+  // Show last 6 months
+  const data = monthly.slice(-6)
+  const maxNet = Math.max(...data.map(m => m.net), 1)
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 140 }}>
+        {data.map((m, i) => {
+          const pct = maxNet > 0 ? (m.net / maxNet) * 100 : 0
+          return (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
+              <div style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                {m.net > 0 ? `${Math.round(m.net / 1000)}k` : ''}
+              </div>
+              <div
+                style={{
+                  width: '100%', borderRadius: '4px 4px 0 0',
+                  background: i === data.length - 1
+                    ? 'linear-gradient(180deg, #10b981, #059669)'
+                    : 'linear-gradient(180deg, #6ee7b7, #34d399)',
+                  height: `${Math.max(pct, 2)}%`,
+                  transition: 'height 0.4s ease',
+                  minHeight: 4,
+                  position: 'relative',
+                }}
+              />
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+        {data.map((m, i) => (
+          <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            {m.short}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function getServiceBadge(type) {
   switch (type) {
     case 'hotel':
@@ -55,6 +98,7 @@ export default function ProviderAnalytics() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [earnings, setEarnings] = useState(null)
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
 
@@ -66,6 +110,11 @@ export default function ProviderAnalytics() {
         setError(e.response?.data?.detail || 'Failed to load'),
       )
       .finally(() => setLoading(false))
+
+    api
+      .get('/bookings/provider/earnings-breakdown')
+      .then((r) => setEarnings(r.data))
+      .catch(() => {})
   }, [])
 
   function Stars({ count }) {
@@ -284,6 +333,56 @@ export default function ProviderAnalytics() {
             </div>
           ))}
         </div>
+
+        {/* Earnings Chart */}
+        {earnings && earnings.monthly?.length > 0 && (
+          <div style={{
+            marginTop: '24px',
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-sm)',
+            padding: isMobile ? '16px' : '24px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+              <div>
+                <h2 style={{ margin: '0 0 4px', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  Earnings (Last 6 Months)
+                </h2>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Net revenue after platform commission
+                </p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981' }}>
+                  PKR {(earnings.monthly.slice(-1)[0]?.net || 0).toLocaleString('en-PK')}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>This month</div>
+              </div>
+            </div>
+            <EarningsChart monthly={earnings.monthly} />
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 16,
+            }}>
+              {[
+                { label: 'Gross Revenue', value: `PKR ${(earnings.totals?.gross || 0).toLocaleString('en-PK')}`, color: '#0ea5e9' },
+                { label: 'Platform Fee (10%)', value: `PKR ${(earnings.totals?.commission || 0).toLocaleString('en-PK')}`, color: '#f59e0b' },
+                { label: 'Net Earnings', value: `PKR ${(earnings.totals?.net || 0).toLocaleString('en-PK')}`, color: '#10b981' },
+              ].map(row => (
+                <div key={row.label} style={{
+                  background: 'var(--bg-secondary)', borderRadius: 8, padding: '10px 12px', textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', fontWeight: 600 }}>
+                    {row.label}
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: row.color }}>
+                    {row.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Listings Performance */}
         <div style={{ marginTop: '32px' }}>
@@ -522,25 +621,28 @@ export default function ProviderAnalytics() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() =>
-                        navigate(`/edit-listing/${listing.id}`)
-                      }
-                      style={{
-                        marginTop: '12px',
-                        width: '100%',
-                        padding: '8px 14px',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border-color)',
-                        background: 'var(--bg-secondary)',
-                        color: 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      ✏️ Edit
-                    </button>
+                    <div style={{ display: 'flex', gap: 8, marginTop: '12px' }}>
+                      <button
+                        onClick={() => navigate(`/edit-listing/${listing.id}`)}
+                        style={{
+                          flex: 1, padding: '8px 10px', borderRadius: '8px',
+                          border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                          color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600,
+                        }}
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => navigate(`/provider/calendar/${listing.id}`)}
+                        style={{
+                          flex: 1, padding: '8px 10px', borderRadius: '8px',
+                          border: '1px solid #bfdbfe', background: '#eff6ff',
+                          color: '#1d4ed8', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600,
+                        }}
+                      >
+                        📅 Calendar
+                      </button>
+                    </div>
                   </div>
                 </div>
                 );
@@ -771,17 +873,22 @@ export default function ProviderAnalytics() {
                       <button
                         onClick={() => navigate(`/edit-listing/${l.id}`)}
                         style={{
-                          background: 'var(--bg-secondary)',
-                          color: 'var(--text-secondary)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '8px',
-                          padding: '6px 14px',
-                          cursor: 'pointer',
-                          fontSize: '0.82rem',
-                          fontWeight: 500,
+                          background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
+                          border: '1px solid var(--border-color)', borderRadius: '8px',
+                          padding: '6px 12px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 500,
                         }}
                       >
                         ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => navigate(`/provider/calendar/${l.id}`)}
+                        style={{
+                          background: '#eff6ff', color: '#1d4ed8',
+                          border: '1px solid #bfdbfe', borderRadius: '8px',
+                          padding: '6px 12px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600,
+                        }}
+                      >
+                        📅 Calendar
                       </button>
                     </div>
                   </div>

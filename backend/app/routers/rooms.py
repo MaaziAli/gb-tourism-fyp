@@ -61,6 +61,7 @@ def _room_dict(room: RoomType) -> dict:
         "available_rooms": room.available_count,
         "amenities": amenities,
         "image_url": room.image_url,
+        "breakfast_included": getattr(room, "breakfast_included", False) or False,
     }
 
 
@@ -128,6 +129,7 @@ def create_room(
     total_rooms: int = Form(1),
     available_rooms: int | None = Form(None),
     amenities: str | None = Form(None),
+    breakfast_included: bool = Form(False),
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -146,6 +148,7 @@ def create_room(
         total_rooms=total_rooms,
         available_count=available_rooms if available_rooms is not None else total_rooms,
         amenities=amenities,
+        breakfast_included=breakfast_included,
         image_url=image_filename,
     )
     db.add(room)
@@ -167,6 +170,7 @@ def update_room(
     total_rooms: int = Form(1),
     available_rooms: int | None = Form(None),
     amenities: str | None = Form(None),
+    breakfast_included: bool = Form(False),
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -183,6 +187,7 @@ def update_room(
     room.capacity = capacity
     room.bed_type = bed_type
     room.total_rooms = total_rooms
+    room.breakfast_included = breakfast_included
     if available_rooms is not None:
         room.available_count = available_rooms
     if amenities is not None:

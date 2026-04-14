@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
 
 from ..database import Base
@@ -18,6 +18,7 @@ class RoomType(Base):
     image_url = Column(String, nullable=True)
     available_count = Column(Integer, default=5)
     total_rooms = Column(Integer, default=1)
+    breakfast_included = Column(Boolean, default=False)
 
     listing = relationship("Listing", back_populates="room_types")
 

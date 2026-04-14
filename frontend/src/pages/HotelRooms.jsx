@@ -24,14 +24,15 @@ const ROOM_TYPES = ['Single', 'Double', 'Twin', 'Triple', 'Suite', 'Deluxe', 'Fa
 function RoomModal({ room, hotelId, onClose, onSaved }) {
   const isEdit = Boolean(room?.id)
   const [form, setForm] = useState({
-    room_type:      room?.room_type  || room?.name || '',
-    description:    room?.description   || '',
-    price_per_night: room?.price_per_night || '',
-    capacity:       room?.capacity      || 2,
-    bed_type:       room?.bed_type      || '',
-    total_rooms:    room?.total_rooms   || 1,
-    available_rooms: room?.available_rooms ?? room?.total_rooms ?? 1,
-    amenities:      room?.amenities     || [],
+    room_type:         room?.room_type  || room?.name || '',
+    description:       room?.description   || '',
+    price_per_night:   room?.price_per_night || '',
+    capacity:          room?.capacity      || 2,
+    bed_type:          room?.bed_type      || '',
+    total_rooms:       room?.total_rooms   || 1,
+    available_rooms:   room?.available_rooms ?? room?.total_rooms ?? 1,
+    amenities:         room?.amenities     || [],
+    breakfast_included: room?.breakfast_included || false,
   })
   const [imageFile, setImageFile]   = useState(null)
   const [preview, setPreview]       = useState(room?.image_url ? `http://localhost:8000/uploads/${room.image_url}` : null)
@@ -62,6 +63,7 @@ function RoomModal({ room, hotelId, onClose, onSaved }) {
       fd.append('total_rooms',    parseInt(form.total_rooms))
       fd.append('available_rooms', parseInt(form.available_rooms))
       fd.append('amenities',      JSON.stringify(form.amenities))
+      fd.append('breakfast_included', form.breakfast_included)
       if (imageFile) fd.append('image', imageFile)
 
       if (isEdit) {
@@ -237,6 +239,30 @@ function RoomModal({ room, hotelId, onClose, onSaved }) {
               onChange={e => setForm(f => ({ ...f, available_rooms: e.target.value }))}
               style={inputStyle}
             />
+          </div>
+
+          {/* Breakfast included */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+              padding: '12px 14px', borderRadius: 8,
+              background: form.breakfast_included ? '#fef3c7' : 'var(--bg-secondary)',
+              border: `1px solid ${form.breakfast_included ? '#f59e0b' : 'var(--border-color)'}`,
+              transition: 'all 0.15s',
+            }}>
+              <input
+                type="checkbox"
+                checked={form.breakfast_included}
+                onChange={e => setForm(f => ({ ...f, breakfast_included: e.target.checked }))}
+                style={{ width: 18, height: 18, accentColor: '#f59e0b', cursor: 'pointer' }}
+              />
+              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                Breakfast Included
+              </span>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: 4 }}>
+                (shown on listing as a perk)
+              </span>
+            </label>
           </div>
 
           {/* Amenities */}
@@ -476,9 +502,18 @@ export default function HotelRooms() {
                     </p>
                   )}
 
-                  {room.amenities?.length > 0 && (
+                  {(room.amenities?.length > 0 || room.breakfast_included) && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-                      {room.amenities.slice(0, 6).map(a => (
+                      {room.breakfast_included && (
+                        <span style={{
+                          fontSize: '0.7rem', padding: '3px 10px', borderRadius: 999,
+                          background: '#fef3c7', color: '#92400e', fontWeight: 700,
+                          border: '1px solid #fbbf24',
+                        }}>
+                          🍳 Breakfast Included
+                        </span>
+                      )}
+                      {room.amenities?.slice(0, 6).map(a => (
                         <span key={a} style={{
                           fontSize: '0.7rem', padding: '2px 8px', borderRadius: 999,
                           background: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 600,
@@ -486,7 +521,7 @@ export default function HotelRooms() {
                           {a}
                         </span>
                       ))}
-                      {room.amenities.length > 6 && (
+                      {room.amenities?.length > 6 && (
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                           +{room.amenities.length - 6} more
                         </span>
