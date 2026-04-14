@@ -20,6 +20,12 @@ from app.models.refund import Refund
 from app.models.review import Review
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingResponse
+from app.utils.loyalty_utils import (
+    get_or_create_account as _get_loyalty_account,
+    pkr_to_points,
+    points_to_pkr,
+    redeem_points,
+)
 from app.utils.notify import create_notification
 
 
@@ -156,14 +162,14 @@ def create_booking(
     nights = (body.check_out - body.check_in).days
     subtotal = nights * price_per_night
     total_price = subtotal
-    discount = 0.0
+    coupon_discount = 0.0
     coupon_obj = None
     if body.coupon_code and body.coupon_code.strip():
         code_norm = body.coupon_code.upper().strip()
         coupon_obj = db.query(Coupon).filter(Coupon.code == code_norm).first()
         if not coupon_obj:
             raise HTTPException(status_code=400, detail="Invalid coupon code")
-        ok, msg, discount = validate_coupon_logic(
+        ok, msg, coupon_discount = validate_coupon_logic(
             coupon_obj,
             current_user.id,
             subtotal,
@@ -173,7 +179,34 @@ def create_booking(
         )
         if not ok:
             raise HTTPException(status_code=400, detail=msg)
-        total_price = max(0, round(subtotal - discount, 2))
+        total_price = max(0, round(subtotal - coupon_discount, 2))
+
+    # ── Loyalty points redemption ────────────────────────────────────────
+    loyalty_points_used = 0
+    loyalty_discount = 0.0
+    requested_points = body.loyalty_points_used or 0
+    if requested_points > 0:
+        loyalty_account = _get_loyalty_account(db, current_user.id)
+        if requested_points > loyalty_account.total_points:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Not enough loyalty points. "
+                    f"You have {loyalty_account.total_points:,} points available."
+                ),
+            )
+        # Cap discount at 50% of the original subtotal (consistent with
+        # the /loyalty/calculate-redeem endpoint)
+        max_loyalty_discount = round(subtotal * 0.5, 2)
+        raw_discount = points_to_pkr(requested_points)
+        loyalty_discount = min(raw_discount, max_loyalty_discount)
+        # If the cap reduced the discount, also reduce the points used
+        if loyalty_discount < raw_discount:
+            loyalty_points_used = pkr_to_points(loyalty_discount)
+        else:
+            loyalty_points_used = requested_points
+        loyalty_discount = round(loyalty_discount, 2)
+        total_price = max(0, round(subtotal - coupon_discount - loyalty_discount, 2))
 
     booking = Booking(
         listing_id=body.listing_id,
@@ -185,23 +218,49 @@ def create_booking(
         room_type_id=body.room_type_id if body.room_type_id else None,
         room_type_name=room_type.name if room_type else None,
         group_size=max(1, body.guests or 1),
+        loyalty_points_used=loyalty_points_used,
+        loyalty_discount_applied=loyalty_discount,
     )
     db.add(booking)
     db.flush()
     if coupon_obj:
-        record_coupon_use(db, coupon_obj, current_user.id, booking.id, discount)
+        record_coupon_use(db, coupon_obj, current_user.id, booking.id, coupon_discount)
     db.commit()
     db.refresh(booking)
 
+    # Redeem loyalty points now that the booking is committed.
+    # Running after commit means a redemption failure never rolls back the booking.
+    if loyalty_points_used > 0:
+        try:
+            redeem_points(
+                db,
+                user_id=current_user.id,
+                points=loyalty_points_used,
+                description=(
+                    f"Redeemed for booking #{booking.id} "
+                    f"at '{listing.title}' "
+                    f"(saved PKR {loyalty_discount:,.0f})"
+                ),
+                reference_id=booking.id,
+            )
+        except Exception as exc:
+            # Rare race-condition: points were used elsewhere between validation
+            # and redemption. Log the failure; booking is already confirmed.
+            print(f"[loyalty] Redemption failed for booking {booking.id}: {exc}")
+
     # Notify the traveler
+    savings_note = ""
+    if coupon_discount > 0 or loyalty_discount > 0:
+        total_savings = coupon_discount + loyalty_discount
+        savings_note = f" You saved PKR {total_savings:,.0f}!"
     create_notification(
         db,
         user_id=current_user.id,
-        title="Booking Confirmed! 🎉",
+        title="Booking Confirmed!",
         message=(
             f"Your booking for '{listing.title}' "
             f"from {body.check_in} to {body.check_out} "
-            f"is confirmed. Total: PKR {total_price:,.0f}"
+            f"is confirmed. Total: PKR {total_price:,.0f}.{savings_note}"
         ),
         type="success",
     )

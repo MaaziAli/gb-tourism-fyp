@@ -7,6 +7,7 @@ import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
 import CouponInput from '../components/CouponInput'
+import LoyaltyInput from '../components/LoyaltyInput'
 import PointsEarnedPopup from '../components/PointsEarnedPopup'
 import PriceBreakdown from '../components/PriceBreakdown'
 import CancellationPolicy from '../components/CancellationPolicy'
@@ -75,6 +76,8 @@ export default function BookingForm() {
   const [bookingId, setBookingId] = useState(null)
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState(0)
+  const [loyaltyPointsUsed, setLoyaltyPointsUsed] = useState(0)
   const [confirmedTotal, setConfirmedTotal] = useState(null)
   const [pointsPopup, setPointsPopup] = useState(null)
   const [guests, setGuests] = useState(1)
@@ -141,10 +144,12 @@ export default function BookingForm() {
   useEffect(() => {
     setCouponDiscount(0)
     setAppliedCoupon(null)
+    setLoyaltyDiscount(0)
+    setLoyaltyPointsUsed(0)
   }, [totalPrice])
 
   const subtotal = totalPrice
-  const discountedTotal = Math.max(0, subtotal - couponDiscount)
+  const discountedTotal = Math.max(0, subtotal - couponDiscount - loyaltyDiscount)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -170,6 +175,7 @@ export default function BookingForm() {
           room_type_id: selectedRoomTypeId
         }),
         coupon_code: appliedCoupon?.code || null,
+        loyalty_points_used: loyaltyPointsUsed || 0,
       }
       const res = await api.post('/bookings/', bookingPayload)
       const tp = res.data.total_price ?? 0
@@ -286,26 +292,41 @@ export default function BookingForm() {
                 }}>
                   PKR {(confirmedTotal ?? discountedTotal).toLocaleString('en-PK')} total
                 </span>
-                {couponDiscount > 0 && (
+                {(couponDiscount > 0 || loyaltyDiscount > 0) && (
                   <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '7px 0',
                     marginTop: '6px',
                     borderTop: '1px solid var(--border-color)',
+                    paddingTop: '6px',
                     fontSize: '0.875rem',
+                    display: 'flex', flexDirection: 'column',
+                    gap: '4px',
                   }}>
-                    <span style={{
-                      color: 'var(--text-secondary)',
-                    }}>
-                      Coupon Discount
-                    </span>
-                    <span style={{
-                      fontWeight: 600, color: '#16a34a',
-                    }}>
-                      - PKR {couponDiscount
-                        .toLocaleString('en-PK')}
-                    </span>
+                    {couponDiscount > 0 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                      }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          🎟️ Coupon
+                        </span>
+                        <span style={{ fontWeight: 600, color: '#16a34a' }}>
+                          - PKR {couponDiscount.toLocaleString('en-PK')}
+                        </span>
+                      </div>
+                    )}
+                    {loyaltyDiscount > 0 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                      }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          ⭐ {loyaltyPointsUsed.toLocaleString()} points
+                        </span>
+                        <span style={{ fontWeight: 600, color: '#a16207' }}>
+                          - PKR {loyaltyDiscount.toLocaleString('en-PK')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -982,11 +1003,22 @@ export default function BookingForm() {
                       groupSize={1}
                       serviceType={listing?.service_type}
                       couponDiscount={couponDiscount}
+                      loyaltyDiscount={loyaltyDiscount}
                       compact={false}
                     />
-                    <div style={{ marginTop: '12px' }}>
+                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {/* Loyalty points — sits above coupon so user applies
+                          the bigger discount (points) first */}
+                      <LoyaltyInput
+                        key={`loyalty-${subtotal}-${checkIn}-${checkOut}`}
+                        subtotal={subtotal}
+                        onPointsChange={({ points, discount }) => {
+                          setLoyaltyPointsUsed(points)
+                          setLoyaltyDiscount(discount)
+                        }}
+                      />
                       <CouponInput
-                        key={`${subtotal}-${checkIn}-${checkOut}`}
+                        key={`coupon-${subtotal}-${checkIn}-${checkOut}`}
                         listingId={parseInt(listingId, 10)}
                         listingOwnerId={listing?.owner_id || null}
                         bookingAmount={subtotal}

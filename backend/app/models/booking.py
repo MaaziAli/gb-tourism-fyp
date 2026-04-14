@@ -44,5 +44,9 @@ class Booking(Base):
     price_per_person = Column(Float, nullable=True)
     special_requirements = Column(Text, nullable=True)
 
+    # Loyalty points redemption at booking time
+    loyalty_points_used = Column(Integer, default=0, nullable=False)
+    loyalty_discount_applied = Column(Float, default=0.0, nullable=False)
+
     user = relationship("User", back_populates="bookings")
     listing = relationship("Listing", back_populates="bookings")

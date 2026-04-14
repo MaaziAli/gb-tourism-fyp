@@ -10,6 +10,7 @@ class BookingCreate(BaseModel):
     room_type_id: int | None = None
     guests: int = 1
     coupon_code: str | None = None
+    loyalty_points_used: int = 0
 
 
 class BookingResponse(BaseModel):
@@ -24,5 +25,7 @@ class BookingResponse(BaseModel):
     created_at: datetime
     room_type_id: int | None = None
     room_type_name: str | None = None
+    loyalty_points_used: int = 0
+    loyalty_discount_applied: float = 0.0
 
     model_config = {"from_attributes": True}
