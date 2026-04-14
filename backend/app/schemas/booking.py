@@ -18,6 +18,7 @@ class BookingResponse(BaseModel):
     user_id: int
     total_price: float
     status: str
+    payment_status: str = "unpaid"
     check_in: date | None = None
     check_out: date | None = None
     created_at: datetime

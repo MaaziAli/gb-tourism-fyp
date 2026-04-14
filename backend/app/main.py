@@ -31,6 +31,7 @@ from app.models import wishlist as _w_model  # noqa
 from app.models import availability as _av_model  # noqa
 from app.models import coupon as _coupon_model  # noqa
 from app.models import loyalty as _loyalty_model  # noqa
+from app.models import refund as _refund_model  # noqa
 
 try:
     from app.models import message as _msg  # noqa

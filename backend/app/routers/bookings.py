@@ -2,6 +2,7 @@
 Bookings router - create, list, and cancel bookings.
 """
 from datetime import date as date_type
+from datetime import datetime, time
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
@@ -14,10 +15,54 @@ from app.models.booking import Booking
 from app.models.coupon import Coupon
 from app.models.listing import Listing
 from app.models.loyalty import LoyaltyTransaction
+from app.models.payment import Payment
+from app.models.refund import Refund
 from app.models.review import Review
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingResponse
 from app.utils.notify import create_notification
+
+
+def _calculate_refund_amount(booking: Booking, listing: Listing, now: datetime) -> float:
+    """Return the refund amount in PKR based on the listing's cancellation policy."""
+    policy = listing.cancellation_policy or "moderate"
+    hours_free = listing.cancellation_hours_free or 48
+
+    check_in_dt = datetime.combine(booking.check_in, time(14, 0))
+    diff_seconds = (check_in_dt - now).total_seconds()
+    diff_hours = diff_seconds / 3600
+    diff_days = (booking.check_in - now.date()).days
+
+    # After check-in: no refund for any policy (no-show / late cancel)
+    if diff_days < 0:
+        return 0.0
+
+    if policy == "flexible":
+        if diff_hours >= hours_free:
+            return booking.total_price                      # full refund
+        elif diff_hours > 0:
+            return round(booking.total_price * 0.5, 2)     # 50% within window
+        else:
+            return 0.0                                      # same-day / no-show
+    elif policy == "moderate":
+        if diff_days >= 5:
+            return booking.total_price                      # full refund
+        else:
+            return 0.0                                      # no refund within 5 days
+    elif policy == "strict":
+        if diff_days >= 7:
+            return round(booking.total_price * 0.5, 2)     # 50% refund
+        else:
+            return 0.0                                      # no refund within 7 days
+    return 0.0
+
+
+def _refund_reason(policy: str, refund_amount: float, total_price: float) -> str:
+    if refund_amount == 0:
+        return "No refund per cancellation policy"
+    if refund_amount >= total_price:
+        return f"Full refund per '{policy}' cancellation policy"
+    return f"Partial refund (50%) per '{policy}' cancellation policy"
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
@@ -921,8 +966,17 @@ def cancel_booking(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Cancel an active booking for the current user.
-    Any active booking can be cancelled; no date restrictions.
+    Cancel a booking and apply refund logic based on the listing's cancellation policy.
+
+    Refund tiers:
+    - flexible:  full refund if cancelled ≥ cancellation_hours_free before check-in,
+                 50% within that window, no refund after check-in.
+    - moderate:  full refund if ≥ 5 days before check-in, no refund otherwise.
+    - strict:    50% refund if ≥ 7 days before check-in, no refund otherwise.
+
+    payment_status is updated to 'refunded', 'partially_refunded', or stays 'paid'.
+    A Refund record is created for any non-zero refund.
+    Both the guest and the property owner are notified.
     """
     booking = (
         db.query(Booking)
@@ -932,23 +986,75 @@ def cancel_booking(
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     if booking.status == "cancelled":
-        raise HTTPException(
-            status_code=400,
-            detail="Booking is already cancelled",
-        )
+        raise HTTPException(status_code=400, detail="Booking is already cancelled")
+
+    listing = db.query(Listing).filter(Listing.id == booking.listing_id).first()
+
+    # ── Refund calculation ────────────────────────────────────────────────
+    refund_amount = 0.0
+    if booking.payment_status == "paid" and listing:
+        refund_amount = _calculate_refund_amount(booking, listing, datetime.utcnow())
+
+    # ── Determine new payment_status ────────────────────────────────────
+    if booking.payment_status == "paid":
+        if refund_amount >= booking.total_price:
+            booking.payment_status = "refunded"
+        elif refund_amount > 0:
+            booking.payment_status = "partially_refunded"
+        # else: remains "paid" – provider keeps the money
+
+    # ── Mark booking cancelled ───────────────────────────────────────────
     booking.status = "cancelled"
-    listing = (
-        db.query(Listing).filter(Listing.id == booking.listing_id).first()
-    )
+
+    # ── Create Refund record if money is owed back ───────────────────────
+    if refund_amount > 0:
+        payment = (
+            db.query(Payment)
+            .filter(
+                Payment.booking_id == booking.id,
+                Payment.status == "completed",
+            )
+            .first()
+        )
+        policy = listing.cancellation_policy if listing else "moderate"
+        refund_record = Refund(
+            booking_id=booking.id,
+            payment_id=payment.id if payment else None,
+            amount_refunded=refund_amount,
+            refund_reason=_refund_reason(policy, refund_amount, booking.total_price),
+            refunded_at=datetime.utcnow(),
+        )
+        db.add(refund_record)
+
     db.commit()
     db.refresh(booking)
 
+    # ── Notifications ────────────────────────────────────────────────────
+    listing_title = listing.title if listing else f"Booking #{booking_id}"
+    refund_str = f"PKR {refund_amount:,.0f}" if refund_amount > 0 else "no refund"
+
+    # Guest notification
+    create_notification(
+        db,
+        user_id=current_user.id,
+        title="Booking Cancelled",
+        message=(
+            f"Your booking #{booking_id} for '{listing_title}' has been cancelled. "
+            f"Refund of {refund_str} has been processed."
+        ),
+        type="warning",
+    )
+
+    # Provider notification
     if listing:
         create_notification(
             db,
-            user_id=current_user.id,
-            title="Booking Cancelled",
-            message=f"Your booking for '{listing.title}' has been cancelled.",
+            user_id=listing.owner_id,
+            title="Booking Cancelled by Guest",
+            message=(
+                f"Booking #{booking_id} for '{listing_title}' was cancelled by the guest. "
+                f"Refund of {refund_str} issued to customer."
+            ),
             type="warning",
         )
 
