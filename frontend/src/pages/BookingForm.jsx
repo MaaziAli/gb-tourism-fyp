@@ -86,6 +86,8 @@ export default function BookingForm() {
   const [roomTypes, setRoomTypes] = useState([])
   const [roomsLoading, setRoomsLoading] = useState(false)
   const [capacityInfo, setCapacityInfo] = useState(null)
+  const [availableDates, setAvailableDates] = useState([])
+  const [availableDatesMonth, setAvailableDatesMonth] = useState('')
 
   const SINGLE_DATE_TYPES_CONST = ['tour', 'activity', 'horse_riding', 'guide']
   const isSingleDate = SINGLE_DATE_TYPES_CONST.includes(listing?.service_type)
@@ -170,9 +172,13 @@ export default function BookingForm() {
       return
     }
     const [year, mon] = checkIn.split('-')
-    api.get(`/listings/${listingId}/available-dates?month=${year}-${mon}`)
+    const monthKey = `${year}-${mon}`
+    api.get(`/listings/${listingId}/available-dates?month=${monthKey}`)
       .then(res => {
-        const found = (res.data.dates || []).find(d => d.date === checkIn)
+        const dates = res.data.dates || []
+        setAvailableDates(dates)
+        setAvailableDatesMonth(monthKey)
+        const found = dates.find(d => d.date === checkIn)
         setCapacityInfo(found || null)
       })
       .catch(() => setCapacityInfo(null))
@@ -181,11 +187,40 @@ export default function BookingForm() {
   const subtotal = totalPrice
   const discountedTotal = Math.max(0, subtotal - couponDiscount - loyaltyDiscount)
 
+  function isDateAvailable(dateStr, dates = availableDates) {
+    const selectedDate = dates.find(d => d.date === dateStr)
+    return !!selectedDate && selectedDate.remaining > 0
+  }
+
+  async function fetchAvailableDatesForDate(dateStr) {
+    if (!dateStr || !listingId) return []
+    const [year, mon] = dateStr.split('-')
+    const monthKey = `${year}-${mon}`
+    if (monthKey === availableDatesMonth && availableDates.length > 0) {
+      return availableDates
+    }
+    const res = await api.get(`/listings/${listingId}/available-dates?month=${monthKey}`)
+    const dates = res.data.dates || []
+    setAvailableDates(dates)
+    setAvailableDatesMonth(monthKey)
+    return dates
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (isSingleDate) {
       if (!checkIn) {
         setError('Please select a tour date')
+        return
+      }
+      try {
+        const dates = await fetchAvailableDatesForDate(checkIn)
+        if (!isDateAvailable(checkIn, dates)) {
+          setError('Date fully booked')
+          return
+        }
+      } catch {
+        setError('Unable to verify date availability')
         return
       }
     } else {
