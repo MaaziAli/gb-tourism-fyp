@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
+import LoyaltyInput from '../components/LoyaltyInput'
 
 export default function PaymentPage() {
   const { bookingId } = useParams()
@@ -13,6 +14,8 @@ export default function PaymentPage() {
   const [processing, setProcessing] = useState(false)
   const [error, setError]         = useState('')
   const [payMethod, setPayMethod] = useState('stripe')
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState(0)
+  const [loyaltyPointsUsed, setLoyaltyPointsUsed] = useState(0)
 
   // Simulated card fields (used for jazzcash / easypaisa demo)
   const [phone, setPhone] = useState('')
@@ -34,6 +37,7 @@ export default function PaymentPage() {
     try {
       const res = await api.post('/payments/stripe/create-session', {
         booking_id: parseInt(bookingId),
+        loyalty_points_used: loyaltyPointsUsed,
       })
       // Redirect to Stripe-hosted checkout page
       window.location.href = res.data.checkout_url
@@ -74,6 +78,7 @@ export default function PaymentPage() {
   )
 
   const amount     = booking?.total_price || 0
+  const payableAmount = Math.max(0, amount - loyaltyDiscount)
   const commission = Math.round(amount * 0.10)
 
   return (
@@ -239,7 +244,9 @@ export default function PaymentPage() {
                   ) : (
                     <>
                       <span style={{ fontSize: '1.2rem' }}>💳</span>
-                      Pay PKR {amount.toLocaleString('en-PK')} with Stripe
+                      {loyaltyDiscount > 0
+                        ? `Pay PKR ${payableAmount.toLocaleString('en-PK')} with Stripe (save ${loyaltyDiscount.toLocaleString('en-PK')})`
+                        : `Pay PKR ${amount.toLocaleString('en-PK')} with Stripe`}
                     </>
                   )}
                 </button>
@@ -359,14 +366,39 @@ export default function PaymentPage() {
                   </div>
                 ))}
 
+                {loyaltyDiscount > 0 && (
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between',
+                    marginBottom: 8, fontSize: '0.85rem',
+                  }}>
+                    <span style={{ color: '#a16207' }}>
+                      ⭐ {loyaltyPointsUsed.toLocaleString()} pts
+                    </span>
+                    <span style={{ color: '#a16207', fontWeight: 700 }}>
+                      − PKR {loyaltyDiscount.toLocaleString('en-PK')}
+                    </span>
+                  </div>
+                )}
+
                 <div style={{
                   display: 'flex', justifyContent: 'space-between',
                   padding: '12px 0', borderTop: '2px solid var(--border-color)', marginTop: 8,
                 }}>
                   <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Total</span>
                   <span style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '1.2rem' }}>
-                    PKR {amount.toLocaleString('en-PK')}
+                    PKR {payableAmount.toLocaleString('en-PK')}
                   </span>
+                </div>
+
+                <div style={{ marginTop: 14 }}>
+                  <LoyaltyInput
+                    key={`payment-loyalty-${amount}`}
+                    subtotal={amount}
+                    onPointsChange={({ points, discount }) => {
+                      setLoyaltyPointsUsed(points)
+                      setLoyaltyDiscount(discount)
+                    }}
+                  />
                 </div>
               </div>
             )}

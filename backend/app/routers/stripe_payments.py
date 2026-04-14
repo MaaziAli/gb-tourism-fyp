@@ -25,6 +25,12 @@ from app.models.booking import Booking
 from app.models.listing import Listing
 from app.models.payment import Payment
 from app.models.user import User
+from app.utils.loyalty_utils import (
+    get_or_create_account,
+    pkr_to_points,
+    points_to_pkr,
+    redeem_points_transactional,
+)
 from app.utils.notify import create_notification
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -39,8 +45,18 @@ COMMISSION_RATE = 0.10
 # ── helpers ─────────────────────────────────────────────────────────────────
 
 
-def _confirm_booking(db: Session, booking_id: int, session_id: str) -> Payment:
-    """Mark booking confirmed and record/update the payment row."""
+def _confirm_booking(
+    db: Session,
+    booking_id: int,
+    session_id: str,
+    loyalty_points_used: int = 0,
+    paid_amount: float | None = None,
+) -> Payment:
+    """Mark booking confirmed and record/update the payment row.
+
+    If loyalty_points_used > 0, the points are deducted atomically
+    in the same db.commit() so neither half can succeed without the other.
+    """
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
         raise ValueError(f"Booking {booking_id} not found")
@@ -56,7 +72,10 @@ def _confirm_booking(db: Session, booking_id: int, session_id: str) -> Payment:
     if existing and existing.status == "completed":
         return existing
 
-    amount = booking.total_price
+    amount = round(
+        paid_amount if paid_amount is not None else booking.total_price,
+        2,
+    )
     commission = round(amount * COMMISSION_RATE, 2)
     provider_amount = round(amount - commission, 2)
 
@@ -80,6 +99,21 @@ def _confirm_booking(db: Session, booking_id: int, session_id: str) -> Payment:
 
     booking.payment_status = "paid"
     booking.status = "confirmed"
+
+    # Atomically deduct loyalty points in the same transaction
+    if loyalty_points_used > 0:
+        try:
+            redeem_points_transactional(
+                db,
+                booking.user_id,
+                loyalty_points_used,
+                f"Stripe payment for Booking #{booking_id}",
+                booking_id,
+            )
+        except ValueError as exc:
+            db.rollback()
+            raise ValueError(str(exc))
+
     db.commit()
     db.refresh(payment)
 
@@ -118,6 +152,7 @@ def _confirm_booking(db: Session, booking_id: int, session_id: str) -> Payment:
 
 class CreateSessionRequest(BaseModel):
     booking_id: int
+    loyalty_points_used: int = 0  # optional — 0 means no redemption
 
 
 class CreateSessionResponse(BaseModel):
@@ -157,9 +192,31 @@ def create_checkout_session(
     if booking.check_in and booking.check_out:
         nights = max(1, (booking.check_out - booking.check_in).days)
 
+    # ── Loyalty discount ──────────────────────────────────────────────────
+    loyalty_discount = 0.0
+    usable_points = 0
+    if body.loyalty_points_used > 0:
+        account = get_or_create_account(db, current_user.id)
+        if account.total_points < body.loyalty_points_used:
+            raise HTTPException(status_code=400, detail="Insufficient loyalty points")
+        # Cap: user cannot discount more than 50% of the booking total
+        max_discount = booking.total_price * 0.5
+        max_points = pkr_to_points(max_discount)
+        usable_points = min(body.loyalty_points_used, max_points)
+        loyalty_discount = points_to_pkr(usable_points)
+
+    final_amount = max(0.0, booking.total_price - loyalty_discount)
+
     # Amount in paisa (PKR → smallest unit, 1 PKR = 100 paisa)
-    # Stripe requires integer cents; for PKR we use paise.
-    amount_paisa = int(round(booking.total_price * 100))
+    # Stripe requires an integer; minimum 1 paisa to avoid Stripe rejecting 0.
+    amount_paisa = max(1, int(round(final_amount * 100)))
+
+    # Build a human-readable discount note for the Stripe description
+    discount_note = (
+        f"  |  Loyalty discount: PKR {loyalty_discount:,.0f} ({usable_points:,} pts)"
+        if usable_points > 0
+        else ""
+    )
 
     try:
         session = stripe.checkout.Session.create(
@@ -174,6 +231,7 @@ def create_checkout_session(
                                 f"Check-in: {booking.check_in}  "
                                 f"Check-out: {booking.check_out}  "
                                 f"({nights} night{'s' if nights != 1 else ''})"
+                                f"{discount_note}"
                             ),
                         },
                         "unit_amount": amount_paisa,
@@ -194,6 +252,10 @@ def create_checkout_session(
             metadata={
                 "booking_id": str(booking.id),
                 "user_id": str(current_user.id),
+                # Store the capped/usable points so verify & webhook use the
+                # same value we computed here — not the raw user input.
+                "loyalty_points_used": str(usable_points),
+                "amount_paid_pkr": f"{final_amount:.2f}",
             },
             customer_email=current_user.email,
         )
@@ -205,9 +267,9 @@ def create_checkout_session(
     pending = Payment(
         booking_id=booking.id,
         user_id=current_user.id,
-        amount=booking.total_price,
-        platform_commission=round(booking.total_price * COMMISSION_RATE, 2),
-        provider_amount=round(booking.total_price * (1 - COMMISSION_RATE), 2),
+        amount=round(final_amount, 2),
+        platform_commission=round(final_amount * COMMISSION_RATE, 2),
+        provider_amount=round(final_amount * (1 - COMMISSION_RATE), 2),
         status="pending",
         payment_method="stripe",
         stripe_session_id=session.id,
@@ -248,7 +310,27 @@ def verify_payment(
             detail=f"Payment not completed (status: {session.payment_status})",
         )
 
-    payment = _confirm_booking(db, booking_id, session_id)
+    # Read loyalty points stored in session metadata at creation time
+    loyalty_points = int(session.metadata.get("loyalty_points_used") or 0)
+    amount_paid = (
+        round(session.amount_total / 100.0, 2)
+        if getattr(session, "amount_total", None) is not None
+        else None
+    )
+    if amount_paid is None and session.metadata.get("amount_paid_pkr"):
+        amount_paid = float(session.metadata["amount_paid_pkr"])
+
+    try:
+        payment = _confirm_booking(
+            db,
+            booking_id,
+            session_id,
+            loyalty_points_used=loyalty_points,
+            paid_amount=amount_paid,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
     listing = db.query(Listing).filter(Listing.id == booking.listing_id).first()
 
     return {
@@ -305,9 +387,24 @@ async def stripe_webhook(
         session = event["data"]["object"]
         if session.get("payment_status") == "paid":
             booking_id = int(session.get("metadata", {}).get("booking_id", 0))
+            loyalty_points = int(
+                session.get("metadata", {}).get("loyalty_points_used", 0)
+            )
+            amount_total = session.get("amount_total")
+            amount_paid = (
+                round(amount_total / 100.0, 2)
+                if amount_total is not None
+                else None
+            )
             if booking_id:
                 try:
-                    _confirm_booking(db, booking_id, session["id"])
+                    _confirm_booking(
+                        db,
+                        booking_id,
+                        session["id"],
+                        loyalty_points_used=loyalty_points,
+                        paid_amount=amount_paid,
+                    )
                     logger.info("Webhook confirmed booking %s", booking_id)
                 except Exception as exc:
                     logger.error("Webhook booking confirm error: %s", exc)
