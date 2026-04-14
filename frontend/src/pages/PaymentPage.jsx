@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import LoyaltyInput from '../components/LoyaltyInput'
+import AddonSelector from '../components/AddonSelector'
 
 export default function PaymentPage() {
   const { bookingId } = useParams()
@@ -16,6 +17,13 @@ export default function PaymentPage() {
   const [payMethod, setPayMethod] = useState('stripe')
   const [loyaltyDiscount, setLoyaltyDiscount] = useState(0)
   const [loyaltyPointsUsed, setLoyaltyPointsUsed] = useState(0)
+  const [selectedAddons, setSelectedAddons] = useState([])
+  const [addonsTotal, setAddonsTotal] = useState(0)
+
+  const handleAddonsChange = useCallback(({ addons, total }) => {
+    setSelectedAddons(addons)
+    setAddonsTotal(total)
+  }, [])
 
   // Simulated card fields (used for jazzcash / easypaisa demo)
   const [phone, setPhone] = useState('')
@@ -38,6 +46,7 @@ export default function PaymentPage() {
       const res = await api.post('/payments/stripe/create-session', {
         booking_id: parseInt(bookingId),
         loyalty_points_used: loyaltyPointsUsed,
+        addons: selectedAddons.map(a => ({ id: a.id, quantity: a.quantity })),
       })
       // Redirect to Stripe-hosted checkout page
       window.location.href = res.data.checkout_url
@@ -77,9 +86,10 @@ export default function PaymentPage() {
     </div>
   )
 
-  const amount     = booking?.total_price || 0
-  const payableAmount = Math.max(0, amount - loyaltyDiscount)
-  const commission = Math.round(amount * 0.10)
+  const amount        = booking?.total_price || 0
+  const totalWithAddons = amount + addonsTotal
+  const payableAmount = Math.max(0, totalWithAddons - loyaltyDiscount)
+  const commission    = Math.round(totalWithAddons * 0.10)
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 48 }}>
@@ -246,7 +256,7 @@ export default function PaymentPage() {
                       <span style={{ fontSize: '1.2rem' }}>💳</span>
                       {loyaltyDiscount > 0
                         ? `Pay PKR ${payableAmount.toLocaleString('en-PK')} with Stripe (save ${loyaltyDiscount.toLocaleString('en-PK')})`
-                        : `Pay PKR ${amount.toLocaleString('en-PK')} with Stripe`}
+                        : `Pay PKR ${totalWithAddons.toLocaleString('en-PK')} with Stripe`}
                     </>
                   )}
                 </button>
@@ -350,7 +360,8 @@ export default function PaymentPage() {
                 <div style={{ height: 1, background: 'var(--border-color)', margin: '12px 0' }} />
 
                 {[
-                  { label: 'Subtotal',         value: `PKR ${amount.toLocaleString('en-PK')}` },
+                  { label: 'Room subtotal',      value: `PKR ${amount.toLocaleString('en-PK')}` },
+                  ...(addonsTotal > 0 ? [{ label: 'Add-ons', value: `PKR ${addonsTotal.toLocaleString('en-PK')}` }] : []),
                   { label: 'Platform fee (10%)', value: `PKR ${commission.toLocaleString('en-PK')}`, muted: true },
                 ].map(row => (
                   <div key={row.label} style={{
@@ -390,10 +401,26 @@ export default function PaymentPage() {
                   </span>
                 </div>
 
+                {booking && (
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: 8 }}>
+                      Add-ons
+                    </div>
+                    <AddonSelector
+                      listingId={booking.listing_id}
+                      roomTypeId={booking.room_type_id || null}
+                      checkIn={booking.check_in}
+                      checkOut={booking.check_out}
+                      guests={booking.guests || 1}
+                      onAddonsChange={handleAddonsChange}
+                    />
+                  </div>
+                )}
+
                 <div style={{ marginTop: 14 }}>
                   <LoyaltyInput
-                    key={`payment-loyalty-${amount}`}
-                    subtotal={amount}
+                    key={`payment-loyalty-${totalWithAddons}`}
+                    subtotal={totalWithAddons}
                     onPointsChange={({ points, discount }) => {
                       setLoyaltyPointsUsed(points)
                       setLoyaltyDiscount(discount)

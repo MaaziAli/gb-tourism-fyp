@@ -25,6 +25,7 @@ from app.models.booking import Booking
 from app.models.listing import Listing
 from app.models.payment import Payment
 from app.models.user import User
+from app.utils.addon_utils import validate_and_normalize_addons
 from app.utils.loyalty_utils import (
     get_or_create_account,
     pkr_to_points,
@@ -51,6 +52,7 @@ def _confirm_booking(
     session_id: str,
     loyalty_points_used: int = 0,
     paid_amount: float | None = None,
+    normalized_addons: list | None = None,
 ) -> Payment:
     """Mark booking confirmed and record/update the payment row.
 
@@ -99,6 +101,10 @@ def _confirm_booking(
 
     booking.payment_status = "paid"
     booking.status = "confirmed"
+
+    # Apply normalized addons if not already set
+    if normalized_addons and not booking.addons:
+        booking.addons = normalized_addons
 
     # Atomically deduct loyalty points in the same transaction
     if loyalty_points_used > 0:
@@ -150,9 +156,15 @@ def _confirm_booking(
 # ── schemas ──────────────────────────────────────────────────────────────────
 
 
+class AddonItem(BaseModel):
+    id: int
+    quantity: int = 1
+
+
 class CreateSessionRequest(BaseModel):
     booking_id: int
-    loyalty_points_used: int = 0  # optional — 0 means no redemption
+    loyalty_points_used: int = 0
+    addons: list[AddonItem] = []
 
 
 class CreateSessionResponse(BaseModel):
@@ -191,6 +203,23 @@ def create_checkout_session(
     nights = 1
     if booking.check_in and booking.check_out:
         nights = max(1, (booking.check_out - booking.check_in).days)
+    guests = getattr(booking, "guests", 1) or 1
+
+    # ── Add-ons ───────────────────────────────────────────────────────────
+    normalized_addons: list = []
+    addons_total = 0.0
+    if body.addons:
+        selected = [{"id": a.id, "quantity": a.quantity} for a in body.addons]
+        normalized_addons, addons_total = validate_and_normalize_addons(
+            db,
+            listing_id=booking.listing_id,
+            room_type_id=getattr(booking, "room_type_id", None),
+            selected_addons=selected,
+            nights=nights,
+            guests=guests,
+        )
+        booking.total_price = round(booking.total_price + addons_total, 2)
+        db.flush()
 
     # ── Loyalty discount ──────────────────────────────────────────────────
     loyalty_discount = 0.0
@@ -252,10 +281,9 @@ def create_checkout_session(
             metadata={
                 "booking_id": str(booking.id),
                 "user_id": str(current_user.id),
-                # Store the capped/usable points so verify & webhook use the
-                # same value we computed here — not the raw user input.
                 "loyalty_points_used": str(usable_points),
                 "amount_paid_pkr": f"{final_amount:.2f}",
+                "has_addons": "1" if normalized_addons else "0",
             },
             customer_email=current_user.email,
         )
@@ -275,6 +303,9 @@ def create_checkout_session(
         stripe_session_id=session.id,
     )
     db.add(pending)
+    # Store normalized addons on booking now (before payment completes)
+    if normalized_addons and not booking.addons:
+        booking.addons = normalized_addons
     db.commit()
 
     return CreateSessionResponse(session_id=session.id, checkout_url=session.url)
@@ -327,6 +358,7 @@ def verify_payment(
             session_id,
             loyalty_points_used=loyalty_points,
             paid_amount=amount_paid,
+            normalized_addons=booking.addons or [],
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -404,12 +436,14 @@ async def stripe_webhook(
             )
             if booking_id:
                 try:
+                    wb_booking = db.query(Booking).filter(Booking.id == booking_id).first()
                     _confirm_booking(
                         db,
                         booking_id,
                         session["id"],
                         loyalty_points_used=loyalty_points,
                         paid_amount=amount_paid,
+                        normalized_addons=wb_booking.addons if wb_booking else [],
                     )
                     logger.info("Webhook confirmed booking %s", booking_id)
                 except Exception as exc:
