@@ -58,6 +58,7 @@ function EditListing() {
   const [cancelPolicy, setCancelPolicy] = useState('moderate')
   const [cancelHours, setCancelHours] = useState(48)
   const [roomsAvailable, setRoomsAvailable] = useState(10)
+  const [maxCapacityPerDay, setMaxCapacityPerDay] = useState('')
   const [amenities, setAmenities] = useState([])
 
   useEffect(() => {
@@ -87,6 +88,9 @@ function EditListing() {
         )
         setRoomsAvailable(
           data.rooms_available != null ? data.rooms_available : 10,
+        )
+        setMaxCapacityPerDay(
+          data.max_capacity_per_day != null ? String(data.max_capacity_per_day) : '',
         )
 
         // Amenities
@@ -303,6 +307,9 @@ function EditListing() {
       formData.append('cancellation_policy', cancelPolicy)
       formData.append('cancellation_hours_free', String(cancelHours))
       formData.append('rooms_available', String(roomsAvailable))
+      if (maxCapacityPerDay !== '') {
+        formData.append('max_capacity_per_day', String(maxCapacityPerDay))
+      }
       formData.append(
         'amenities',
         JSON.stringify(amenities)
@@ -1388,6 +1395,37 @@ function EditListing() {
               Shows &quot;Only X left&quot; when ≤ 5 rooms
             </p>
           </div>
+
+          {['tour', 'activity', 'horse_riding', 'guide'].includes(serviceType) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={{
+              color: 'var(--text-secondary)', fontSize: '0.9rem',
+              fontWeight: 600,
+            }}>
+              👥 Max Capacity Per Day
+            </label>
+            <input
+              type="number"
+              value={maxCapacityPerDay}
+              onChange={(e) => setMaxCapacityPerDay(e.target.value)}
+              min={1}
+              max={9999}
+              placeholder="Leave blank for unlimited"
+              style={{
+                width: '100%', padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                fontSize: '0.9rem', outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              Max bookings allowed per day. Blank = unlimited.
+            </p>
+          </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label

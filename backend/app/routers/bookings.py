@@ -71,6 +71,8 @@ def _refund_reason(policy: str, refund_amount: float, total_price: float) -> str
         return f"Full refund per '{policy}' cancellation policy"
     return f"Partial refund (50%) per '{policy}' cancellation policy"
 
+SINGLE_DATE_TYPES = {"tour", "activity", "horse_riding", "guide"}
+
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 
@@ -92,17 +94,25 @@ def create_booking(
             detail="Providers cannot book their own listings",
         )
 
+    is_single_date = listing.service_type in SINGLE_DATE_TYPES
+
     today = date_type.today()
     if body.check_in < today:
         raise HTTPException(
             status_code=400,
             detail="Check-in date cannot be in the past",
         )
-    if body.check_out <= body.check_in:
-        raise HTTPException(
-            status_code=400,
-            detail="Check-out must be after check-in",
-        )
+
+    if is_single_date:
+        # Tours/activities use a single date; check_out is ignored
+        effective_check_out = body.check_in
+    else:
+        if body.check_out <= body.check_in:
+            raise HTTPException(
+                status_code=400,
+                detail="Check-out must be after check-in",
+            )
+        effective_check_out = body.check_out
 
     # Optional room type
     room_type = None
@@ -128,7 +138,7 @@ def create_booking(
             .filter(
                 Booking.room_type_id == body.room_type_id,
                 Booking.status.in_(["active", "confirmed"]),
-                Booking.check_in < body.check_out,
+                Booking.check_in < effective_check_out,
                 Booking.check_out > body.check_in,
             )
             .scalar() or 0
@@ -139,6 +149,23 @@ def create_booking(
                 status_code=400,
                 detail="No rooms of this type available for the selected dates",
             )
+    elif is_single_date:
+        # Capacity check for tours/activities
+        if listing.max_capacity_per_day:
+            booked_count = (
+                db.query(func.count(Booking.id))
+                .filter(
+                    Booking.listing_id == listing.id,
+                    Booking.status.in_(["active", "confirmed"]),
+                    Booking.check_in == body.check_in,
+                )
+                .scalar() or 0
+            )
+            if booked_count >= listing.max_capacity_per_day:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No spots left on this date",
+                )
     else:
         # Generic listing-level check for non-hotel / no room type selected
         overlapping = (
@@ -146,7 +173,7 @@ def create_booking(
             .filter(
                 Booking.listing_id == body.listing_id,
                 Booking.status == "active",
-                Booking.check_in < body.check_out,
+                Booking.check_in < effective_check_out,
                 Booking.check_out > body.check_in,
             )
             .first()
@@ -160,7 +187,7 @@ def create_booking(
     price_per_night = (
         room_type.price_per_night if room_type else listing.price_per_night
     )
-    nights = (body.check_out - body.check_in).days
+    nights = 1 if is_single_date else (effective_check_out - body.check_in).days
     subtotal = nights * price_per_night
     total_price = subtotal
     coupon_discount = 0.0
@@ -213,7 +240,7 @@ def create_booking(
         listing_id=body.listing_id,
         user_id=current_user.id,
         check_in=body.check_in,
-        check_out=body.check_out,
+        check_out=effective_check_out,
         total_price=total_price,
         status="active",
         room_type_id=body.room_type_id if body.room_type_id else None,
@@ -265,7 +292,7 @@ def create_booking(
         title="Booking Confirmed!",
         message=(
             f"Your booking for '{listing.title}' "
-            f"from {body.check_in} to {body.check_out} "
+            f"from {body.check_in} to {effective_check_out} "
             f"is confirmed. Total: PKR {total_price:,.0f}.{savings_note}"
         ),
         type="success",
@@ -279,7 +306,7 @@ def create_booking(
         message=(
             f"{current_user.full_name} booked "
             f"'{listing.title}' from {body.check_in} "
-            f"to {body.check_out}. "
+            f"to {effective_check_out}. "
             f"Revenue: PKR {total_price:,.0f}"
         ),
         type="booking",

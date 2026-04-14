@@ -1,7 +1,8 @@
 """
 Listings router - full CRUD operations for tourism listings.
 """
-from datetime import date as date_type
+import calendar as calendar_module
+from datetime import date as date_type, timedelta
 from pathlib import Path
 from uuid import uuid4
 import shutil
@@ -69,6 +70,8 @@ def _calculate_availability(
     )
     return max(0, total - booked)
 
+
+SINGLE_DATE_TYPES = {"tour", "activity", "horse_riding", "guide"}
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
 
@@ -833,6 +836,7 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
             },
         ),
         "rooms_available": rooms_left,
+        "max_capacity_per_day": getattr(listing, "max_capacity_per_day", None),
         "urgency": (
             f"Only {rooms_left} rooms left!"
             if rooms_left is not None and rooms_left <= 5
@@ -873,6 +877,62 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
     return listing_data
 
 
+@router.get("/{listing_id}/available-dates")
+def get_available_dates(
+    listing_id: int,
+    month: str = Query(..., description="YYYY-MM"),
+    db: Session = Depends(get_db),
+):
+    """Return per-date capacity info for single-date service types."""
+    listing = db.get(Listing, listing_id)
+    if not listing or listing.service_type not in SINGLE_DATE_TYPES:
+        return {"dates": []}
+
+    try:
+        year, mon = map(int, month.split("-"))
+        _, last_day_num = calendar_module.monthrange(year, mon)
+        first_day = date_type(year, mon, 1)
+        last_day = date_type(year, mon, last_day_num)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="Invalid month format. Use YYYY-MM")
+
+    today = date_type.today()
+
+    bookings_in_month = (
+        db.query(Booking.check_in, func.count(Booking.id).label("cnt"))
+        .filter(
+            Booking.listing_id == listing_id,
+            Booking.status.in_(["active", "confirmed"]),
+            Booking.check_in >= first_day,
+            Booking.check_in <= last_day,
+        )
+        .group_by(Booking.check_in)
+        .all()
+    )
+    booked_by_date = {row.check_in: row.cnt for row in bookings_in_month}
+
+    dates = []
+    current = first_day
+    while current <= last_day:
+        booked = booked_by_date.get(current, 0)
+        capacity = getattr(listing, "max_capacity_per_day", None)
+        if capacity:
+            remaining = max(0, capacity - booked)
+            is_available = remaining > 0 and current >= today
+        else:
+            remaining = None
+            is_available = current >= today
+        dates.append({
+            "date": current.isoformat(),
+            "remaining": remaining,
+            "is_available": is_available,
+            "booked": booked,
+        })
+        current += timedelta(days=1)
+
+    return {"dates": dates}
+
+
 @router.put("/{listing_id}", response_model=ListingResponse)
 def update_listing(
     listing_id: int,
@@ -885,6 +945,7 @@ def update_listing(
     cancellation_policy: str | None = Form(None),
     cancellation_hours_free: int | None = Form(None),
     rooms_available: int | None = Form(None),
+    max_capacity_per_day: int | None = Form(None),
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -912,6 +973,7 @@ def update_listing(
         listing.cancellation_hours_free = cancellation_hours_free
     if rooms_available is not None:
         listing.rooms_available = rooms_available
+    listing.max_capacity_per_day = max_capacity_per_day  # None = unlimited
 
     # When a new image is uploaded, replace the old file on disk and update image_url.
     if image is not None:

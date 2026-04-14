@@ -28,5 +28,6 @@ class ListingResponse(ListingBase):
     cancellation_policy: str | None = "moderate"
     cancellation_hours_free: int | None = 48
     rooms_available: int | None = 10
+    max_capacity_per_day: int | None = None
 
     model_config = {"from_attributes": True}

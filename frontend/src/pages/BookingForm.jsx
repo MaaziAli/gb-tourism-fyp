@@ -85,6 +85,10 @@ export default function BookingForm() {
   const [guests, setGuests] = useState(1)
   const [roomTypes, setRoomTypes] = useState([])
   const [roomsLoading, setRoomsLoading] = useState(false)
+  const [capacityInfo, setCapacityInfo] = useState(null)
+
+  const SINGLE_DATE_TYPES_CONST = ['tour', 'activity', 'horse_riding', 'guide']
+  const isSingleDate = SINGLE_DATE_TYPES_CONST.includes(listing?.service_type)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -128,20 +132,30 @@ export default function BookingForm() {
   }, [listing, roomPriceFromUrl])
 
   useEffect(() => {
+    const price = basePrice || listing?.price_per_night || 0
+    if (isSingleDate) {
+      if (checkIn) {
+        setNights(1)
+        setTotalPrice(price)
+      } else {
+        setNights(0)
+        setTotalPrice(0)
+      }
+      return
+    }
     if (checkIn && checkOut) {
       const d1 = new Date(checkIn)
       const d2 = new Date(checkOut)
       const n = Math.round((d2 - d1) / (1000 * 60 * 60 * 24))
       if (n > 0) {
         setNights(n)
-        const price = basePrice || listing?.price_per_night || 0
         setTotalPrice(n * price)
       } else {
         setNights(0)
         setTotalPrice(0)
       }
     }
-  }, [checkIn, checkOut, basePrice, listing])
+  }, [checkIn, checkOut, basePrice, listing, isSingleDate])
 
   useEffect(() => {
     setCouponDiscount(0)
@@ -150,18 +164,39 @@ export default function BookingForm() {
     setLoyaltyPointsUsed(0)
   }, [totalPrice])
 
+  useEffect(() => {
+    if (!isSingleDate || !checkIn || !listingId) {
+      setCapacityInfo(null)
+      return
+    }
+    const [year, mon] = checkIn.split('-')
+    api.get(`/listings/${listingId}/available-dates?month=${year}-${mon}`)
+      .then(res => {
+        const found = (res.data.dates || []).find(d => d.date === checkIn)
+        setCapacityInfo(found || null)
+      })
+      .catch(() => setCapacityInfo(null))
+  }, [isSingleDate, checkIn, listingId])
+
   const subtotal = totalPrice
   const discountedTotal = Math.max(0, subtotal - couponDiscount - loyaltyDiscount)
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!checkIn || !checkOut) {
-      setError('Please select check-in and check-out dates')
-      return
-    }
-    if (nights <= 0) {
-      setError('Check-out must be after check-in')
-      return
+    if (isSingleDate) {
+      if (!checkIn) {
+        setError('Please select a tour date')
+        return
+      }
+    } else {
+      if (!checkIn || !checkOut) {
+        setError('Please select check-in and check-out dates')
+        return
+      }
+      if (nights <= 0) {
+        setError('Check-out must be after check-in')
+        return
+      }
     }
     setError('')
     setSubmitting(true)
@@ -170,7 +205,7 @@ export default function BookingForm() {
       const bookingPayload = {
         listing_id: parseInt(listingId, 10),
         check_in: checkIn,
-        check_out: checkOut,
+        check_out: isSingleDate ? checkIn : checkOut,
         total_price: finalTotal,
         guests: guests,
         ...(selectedRoomTypeId && {
@@ -507,7 +542,8 @@ export default function BookingForm() {
             boxShadow: 'var(--shadow-md)',
             padding: '24px', marginBottom: '16px'
           }}>
-            {/* Availability Calendar */}
+            {/* Availability Calendar — range bookings only */}
+            {!isSingleDate && (
             <div style={{ marginBottom: '20px' }}>
               <label style={{
                 display: 'block', fontWeight: 700,
@@ -548,7 +584,51 @@ export default function BookingForm() {
                 Click to select check-in then check-out.
               </p>
             </div>
+            )}
 
+            {isSingleDate ? (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{
+                  display: 'block', fontSize: '0.8rem',
+                  fontWeight: 700, color: 'var(--text-secondary)',
+                  marginBottom: '8px', textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Tour Date
+                </label>
+                <input
+                  type="date"
+                  value={checkIn}
+                  min={today}
+                  onChange={e => setCheckIn(e.target.value)}
+                  style={{
+                    width: '100%', padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: checkIn
+                      ? '2px solid var(--accent)'
+                      : '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.95rem',
+                    boxSizing: 'border-box', outline: 'none',
+                    fontFamily: 'var(--font-primary)'
+                  }}
+                />
+                {checkIn && capacityInfo && (
+                  <div style={{
+                    marginTop: '8px', fontSize: '0.82rem', fontWeight: 600,
+                    color: capacityInfo.remaining === 0 ? '#dc2626' : '#16a34a',
+                  }}>
+                    {capacityInfo.remaining === null
+                      ? '✅ Available'
+                      : capacityInfo.remaining === 0
+                        ? '❌ Fully booked on this date'
+                        : `✅ ${capacityInfo.remaining} spot${capacityInfo.remaining !== 1 ? 's' : ''} left`
+                    }
+                  </div>
+                )}
+              </div>
+            ) : (
             <div style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
@@ -621,8 +701,9 @@ export default function BookingForm() {
                 />
               </div>
             </div>
+            )}
 
-            {/* Duration display */}
+            {/* Duration / tour date display */}
             {nights > 0 ? (
               <div style={{
                 background: 'var(--accent-light)',
@@ -636,14 +717,18 @@ export default function BookingForm() {
                   display: 'flex', alignItems: 'center',
                   gap: '8px'
                 }}>
-                  <span style={{fontSize: '1.2rem'}}>🌙</span>
+                  <span style={{fontSize: '1.2rem'}}>
+                    {isSingleDate ? '📅' : '🌙'}
+                  </span>
                   <span style={{
                     fontWeight: 700,
                     color: 'var(--accent)',
                     fontSize: '0.95rem'
                   }}>
-                    {nights} {durationUnit}
-                    {nights > 1 ? 's' : ''}
+                    {isSingleDate
+                      ? `Tour date: ${checkIn}`
+                      : `${nights} ${durationUnit}${nights > 1 ? 's' : ''}`
+                    }
                   </span>
                 </div>
                 <span style={{
@@ -662,7 +747,7 @@ export default function BookingForm() {
                 color: 'var(--text-muted)',
                 fontSize: '0.875rem'
               }}>
-                Select dates to see total price
+                {isSingleDate ? 'Select a tour date to see price' : 'Select dates to see total price'}
               </div>
             )}
           </div>

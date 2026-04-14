@@ -20,6 +20,7 @@ class Listing(Base):
     cancellation_policy = Column(String, default="moderate")
     cancellation_hours_free = Column(Integer, default=48)
     rooms_available = Column(Integer, default=10)
+    max_capacity_per_day = Column(Integer, nullable=True)
 
     owner = relationship("User", back_populates="owned_listings")
     bookings = relationship("Booking", back_populates="listing")
