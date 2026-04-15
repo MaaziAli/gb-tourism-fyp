@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     EMAIL_FROM: str = "noreply@gbtourism.com"
 
     # Admin email – receives new-listing notifications
-    ADMIN_EMAIL: str = "admin@gbtourism.com"
+    ADMIN_EMAIL: str = "maazalisshahid@gmail.com"
 
     class Config:
         env_file = ".env"
