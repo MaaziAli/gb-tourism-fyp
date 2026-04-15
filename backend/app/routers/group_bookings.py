@@ -43,7 +43,7 @@ class GroupBookingRequest(BaseModel):
     listing_id: int
     room_type_id: int | None = None
     check_in: str
-    check_out: str
+    check_out: str | None = None
     group_size: int
     group_lead_name: str | None = None
     special_requirements: str | None = None
@@ -52,18 +52,44 @@ class GroupBookingRequest(BaseModel):
 
 
 PER_PERSON_TYPES = frozenset({
+    "medical",
+})
+
+SINGLE_DATE_TYPES = frozenset({
     "tour",
     "activity",
     "horse_riding",
     "guide",
-    "medical",
 })
 
 PER_ROOM_TYPES = frozenset({"hotel", "camping"})
 
-def _parse_dates(check_in: str, check_out: str) -> tuple[date_type, date_type, int]:
+def _parse_dates(
+    check_in: str,
+    check_out: str | None,
+    *,
+    service_type: str,
+) -> tuple[date_type, date_type, int]:
     try:
         ci = datetime.strptime(check_in, "%Y-%m-%d").date()
+    except ValueError as e:
+        raise HTTPException(400, "Invalid date format") from e
+
+    if service_type in SINGLE_DATE_TYPES:
+        if check_out:
+            try:
+                co = datetime.strptime(check_out, "%Y-%m-%d").date()
+            except ValueError as e:
+                raise HTTPException(400, "Invalid date format") from e
+            if co != ci:
+                raise HTTPException(400, "For tours, check-out must equal check-in.")
+        else:
+            co = ci
+        return ci, co, 1
+
+    if not check_out:
+        raise HTTPException(400, "Check-out is required")
+    try:
         co = datetime.strptime(check_out, "%Y-%m-%d").date()
     except ValueError as e:
         raise HTTPException(400, "Invalid date format") from e
@@ -87,7 +113,13 @@ def _build_breakdown(
     unit_label: str,
 ) -> list[str]:
     lines: list[str] = []
-    if service_type in PER_PERSON_TYPES:
+    if service_type in SINGLE_DATE_TYPES:
+        lines.append(
+            f"PKR {price_unit:,.0f}/person × "
+            f"{group_size} people = "
+            f"PKR {base_price:,.0f}"
+        )
+    elif service_type in PER_PERSON_TYPES:
         lines.append(
             f"PKR {price_unit:,.0f}/person × "
             f"{group_size} people × "
@@ -141,7 +173,14 @@ def calculate_price_for_group(
     room_capacity_val: int | None = None
     base_price = 0.0
 
-    if service_type in PER_PERSON_TYPES:
+    if service_type in SINGLE_DATE_TYPES:
+        nights = 1
+        units_needed = group_size
+        price_label = "person"
+        unit_label = "person"
+        base_price = price_unit * group_size
+
+    elif service_type in PER_PERSON_TYPES:
         units_needed = group_size
         price_label = "person"
         unit_label = "person"
@@ -238,6 +277,7 @@ def calculate_group_price(
             400,
             "Group booking is not available for restaurants",
         )
+    service_type = (listing.service_type or "").strip().lower()
 
     room = None
     if body.room_type_id:
@@ -250,7 +290,11 @@ def calculate_group_price(
             .first()
         )
 
-    _, _, nights = _parse_dates(body.check_in, body.check_out)
+    _, _, nights = _parse_dates(
+        body.check_in,
+        body.check_out,
+        service_type=service_type,
+    )
 
     result = calculate_price_for_group(
         listing,
@@ -267,9 +311,11 @@ def calculate_group_price(
         "price_label": result["price_label"],
         "unit_label": result["unit_label"],
         "units_needed": result["units_needed"],
-        "nights": nights,
+        "nights": result["nights"],
         "check_in": body.check_in,
-        "check_out": body.check_out,
+        "check_out": (
+            body.check_in if service_type in SINGLE_DATE_TYPES else body.check_out
+        ),
         "group_size": body.group_size,
         "base_price": result["base_price"],
         "discount_rate": result["discount_rate"],
@@ -301,6 +347,7 @@ def create_group_booking(
             400,
             "Group booking is not available for restaurants",
         )
+    service_type = (listing.service_type or "").strip().lower()
 
     room = None
     if body.room_type_id:
@@ -313,22 +360,37 @@ def create_group_booking(
             .first()
         )
 
-    ci, co, nights = _parse_dates(body.check_in, body.check_out)
+    ci, co, nights = _parse_dates(
+        body.check_in,
+        body.check_out,
+        service_type=service_type,
+    )
 
     today = date_type.today()
     if ci < today:
         raise HTTPException(400, "Check-in date cannot be in the past")
 
-    overlapping = (
-        db.query(Booking)
-        .filter(
-            Booking.listing_id == body.listing_id,
-            Booking.status == "active",
-            Booking.check_in < co,
-            Booking.check_out > ci,
+    if service_type in SINGLE_DATE_TYPES:
+        overlapping = (
+            db.query(Booking)
+            .filter(
+                Booking.listing_id == body.listing_id,
+                Booking.status == "active",
+                Booking.check_in == ci,
+            )
+            .first()
         )
-        .first()
-    )
+    else:
+        overlapping = (
+            db.query(Booking)
+            .filter(
+                Booking.listing_id == body.listing_id,
+                Booking.status == "active",
+                Booking.check_in < co,
+                Booking.check_out > ci,
+            )
+            .first()
+        )
     if overlapping:
         raise HTTPException(
             400,
@@ -385,13 +447,13 @@ def create_group_booking(
         listing_id=body.listing_id,
         user_id=current_user.id,
         check_in=ci,
-        check_out=co,
+        check_out=ci if service_type in SINGLE_DATE_TYPES else co,
         total_price=total_price,
         status="active",
         room_type_id=room_type_id,
         room_type_name=room_name,
         group_size=body.group_size,
-        is_group_booking=body.group_size > 1,
+        is_group_booking=True,
         group_lead_name=body.group_lead_name or current_user.full_name,
         group_discount_applied=group_discount_amount,
         price_per_person=price_per_person_val,
@@ -421,7 +483,8 @@ def create_group_booking(
             title="Group Booking Confirmed! 👥",
             message=(
                 f"{group_text} booked '{listing.title}' from "
-                f"{body.check_in} to {body.check_out}. "
+                f"{ci.isoformat()} to "
+                f"{(ci if service_type in SINGLE_DATE_TYPES else co).isoformat()}. "
                 f"Total: PKR {total_price:,.0f}"
                 + (
                     f" (saved PKR {group_discount_amount:,.0f}!)"
@@ -449,9 +512,9 @@ def create_group_booking(
         "listing_title": listing.title,
         "service_type": listing.service_type,
         "check_in": booking.check_in.isoformat() if booking.check_in else body.check_in,
-        "check_out": booking.check_out.isoformat() if booking.check_out else body.check_out,
+        "check_out": booking.check_out.isoformat() if booking.check_out else body.check_in,
         "group_size": body.group_size,
-        "nights": nights,
+        "nights": calc["nights"],
         "units_needed": calc["units_needed"],
         "unit_label": calc["unit_label"],
         "total_price": total_price,
