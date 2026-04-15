@@ -16,8 +16,6 @@ from app.models.user import User
 
 router = APIRouter(tags=["Payouts"])
 
-ACTIVE_PAYOUT_STATUSES = ["pending", "approved", "paid"]
-
 
 class PayoutRequestCreate(BaseModel):
     amount: float
@@ -33,7 +31,7 @@ def _ensure_provider(user: User):
         raise HTTPException(status_code=403, detail="Providers only")
 
 
-def get_provider_balance(db: Session, provider_id: int) -> float:
+def get_provider_balance_breakdown(db: Session, provider_id: int) -> dict:
     total_earned = (
         db.query(func.coalesce(func.sum(Payment.provider_amount), 0.0))
         .join(Booking, Booking.id == Payment.booking_id)
@@ -46,17 +44,53 @@ def get_provider_balance(db: Session, provider_id: int) -> float:
         or 0.0
     )
 
-    reserved = (
+    reserved_pending = (
         db.query(func.coalesce(func.sum(PayoutRequest.amount), 0.0))
         .filter(
             PayoutRequest.provider_id == provider_id,
-            PayoutRequest.status.in_(ACTIVE_PAYOUT_STATUSES),
+            PayoutRequest.status == "pending",
+        )
+        .scalar()
+        or 0.0
+    )
+    reserved_approved = (
+        db.query(func.coalesce(func.sum(PayoutRequest.amount), 0.0))
+        .filter(
+            PayoutRequest.provider_id == provider_id,
+            PayoutRequest.status == "approved",
+        )
+        .scalar()
+        or 0.0
+    )
+    already_paid = (
+        db.query(func.coalesce(func.sum(PayoutRequest.amount), 0.0))
+        .filter(
+            PayoutRequest.provider_id == provider_id,
+            PayoutRequest.status == "paid",
         )
         .scalar()
         or 0.0
     )
 
-    return round(max(0.0, float(total_earned) - float(reserved)), 2)
+    total_earned = round(float(total_earned), 2)
+    reserved_pending = round(float(reserved_pending), 2)
+    reserved_approved = round(float(reserved_approved), 2)
+    already_paid = round(float(already_paid), 2)
+    total_reserved = round(reserved_pending + reserved_approved + already_paid, 2)
+    available = round(max(0.0, total_earned - total_reserved), 2)
+
+    return {
+        "total_earned": total_earned,
+        "reserved_pending": reserved_pending,
+        "reserved_approved": reserved_approved,
+        "already_paid": already_paid,
+        "total_reserved": total_reserved,
+        "available_balance": available,
+    }
+
+
+def get_provider_balance(db: Session, provider_id: int) -> float:
+    return get_provider_balance_breakdown(db, provider_id)["available_balance"]
 
 
 @router.post("/payments/request-payout")
@@ -88,9 +122,11 @@ def request_payout(
     db.commit()
     db.refresh(payout)
 
+    breakdown = get_provider_balance_breakdown(db, current_user.id)
     return {
         "message": "Payout request submitted",
-        "available_balance": get_provider_balance(db, current_user.id),
+        "available_balance": breakdown["available_balance"],
+        "balance_breakdown": breakdown,
         "request": {
             "id": payout.id,
             "amount": payout.amount,
@@ -116,8 +152,10 @@ def list_my_payout_requests(
         .all()
     )
 
+    breakdown = get_provider_balance_breakdown(db, current_user.id)
     return {
-        "available_balance": get_provider_balance(db, current_user.id),
+        "available_balance": breakdown["available_balance"],
+        "balance_breakdown": breakdown,
         "requests": [
             {
                 "id": r.id,

@@ -68,6 +68,14 @@ export default function ProviderDashboard() {
   const [payoutAmount, setPayoutAmount] = useState('')
   const [payoutNotes, setPayoutNotes] = useState('')
   const [availableBalance, setAvailableBalance] = useState(0)
+  const [balanceBreakdown, setBalanceBreakdown] = useState({
+    total_earned: 0,
+    reserved_pending: 0,
+    reserved_approved: 0,
+    already_paid: 0,
+    total_reserved: 0,
+    available_balance: 0,
+  })
   const [payoutRequests, setPayoutRequests] = useState([])
 
   useEffect(() => {
@@ -105,6 +113,16 @@ export default function ProviderDashboard() {
     try {
       const res = await api.get('/payments/payout-requests')
       setAvailableBalance(Number(res.data?.available_balance || 0))
+      setBalanceBreakdown(
+        res.data?.balance_breakdown || {
+          total_earned: 0,
+          reserved_pending: 0,
+          reserved_approved: 0,
+          already_paid: 0,
+          total_reserved: 0,
+          available_balance: Number(res.data?.available_balance || 0),
+        },
+      )
       setPayoutRequests(Array.isArray(res.data?.requests) ? res.data.requests : [])
     } catch (error) {
       console.error(error)
@@ -625,6 +643,35 @@ export default function ProviderDashboard() {
               <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>💸 Request Payout</div>
               <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>
                 Available balance: <strong>{formatPKR(availableBalance)}</strong>
+              </div>
+              <div
+                style={{
+                  marginTop: 8,
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, minmax(120px, 1fr))',
+                  gap: 8,
+                }}
+              >
+                {[
+                  { label: 'Earned', value: balanceBreakdown.total_earned, color: '#16a34a' },
+                  { label: 'Pending', value: balanceBreakdown.reserved_pending, color: '#92400e' },
+                  { label: 'Approved', value: balanceBreakdown.reserved_approved, color: '#1e40af' },
+                  { label: 'Paid', value: balanceBreakdown.already_paid, color: '#166534' },
+                  { label: 'Reserved', value: balanceBreakdown.total_reserved, color: '#475569' },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 8,
+                      padding: '8px 10px',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{item.label}</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: item.color }}>{formatPKR(item.value)}</div>
+                  </div>
+                ))}
               </div>
               <div style={{ display: 'grid', gap: 10, marginTop: 12, maxWidth: 420 }}>
                 <input
