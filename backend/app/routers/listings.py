@@ -352,6 +352,7 @@ def smart_search(
     min_price: float | None = None,
     max_price: float | None = None,
     min_rating: float | None = None,
+    amenities: str | None = None,
     sort_by: str = "relevance",
     limit: int = 20,
     check_in: date_type | None = Query(None),
@@ -397,6 +398,16 @@ def smart_search(
         query = query.filter(Listing.price <= max_price)
 
     listings = query.all()
+
+    # Amenities filter – parsed in Python (SQLite has no native JSON operators)
+    required_amenities = [a.strip() for a in amenities.split(",") if a.strip()] if amenities else []
+    if required_amenities:
+        filtered = []
+        for listing in listings:
+            listing_amenities = _parse_amenities(getattr(listing, "amenities", None))
+            if all(a in listing_amenities for a in required_amenities):
+                filtered.append(listing)
+        listings = filtered
 
     results = []
     for listing in listings:
@@ -484,6 +495,7 @@ def smart_search(
             "min_price": min_price,
             "max_price": max_price,
             "min_rating": min_rating,
+            "amenities": amenities,
             "sort_by": sort_by,
             "check_in": check_in.isoformat() if check_in else None,
             "check_out": check_out.isoformat() if check_out else None,

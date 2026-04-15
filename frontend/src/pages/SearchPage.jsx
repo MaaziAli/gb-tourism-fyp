@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import useWindowSize from '../hooks/useWindowSize'
+import { ALL_AMENITIES } from '../utils/amenities'
 
 const SERVICE_TYPES = [
   { value: 'hotel', label: '🏨 Hotel' },
@@ -83,6 +84,9 @@ export default function SearchPage() {
   const [selectedTypes, setSelectedTypes] = useState(
     searchParams.get('types')?.split(',').filter(Boolean) || [],
   )
+  const [selectedAmenities, setSelectedAmenities] = useState(
+    searchParams.get('amenities')?.split(',').filter(Boolean) || [],
+  )
   const [location, setLocation] = useState(searchParams.get('location') || '')
   const [minPrice, setMinPrice] = useState(searchParams.get('min_price') || '')
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') || '')
@@ -144,6 +148,9 @@ export default function SearchPage() {
     const types = overrides.types ?? selectedTypes
     if (types.length > 0) params.service_type = types.join(',')
 
+    const amenities = overrides.amenities ?? selectedAmenities
+    if (amenities.length > 0) params.amenities = amenities.join(',')
+
     const loc = overrides.location ?? location
     if (loc) params.location = loc
 
@@ -164,6 +171,7 @@ export default function SearchPage() {
       const urlParams = {}
       if (params.q) urlParams.q = params.q
       if (params.service_type) urlParams.types = params.service_type
+      if (params.amenities) urlParams.amenities = params.amenities
       if (params.location) urlParams.location = params.location
       if (params.min_price) urlParams.min_price = String(params.min_price)
       if (params.max_price) urlParams.max_price = String(params.max_price)
@@ -186,6 +194,14 @@ export default function SearchPage() {
     performSearch({ types: newTypes })
   }
 
+  function toggleAmenity(key) {
+    const next = selectedAmenities.includes(key)
+      ? selectedAmenities.filter((a) => a !== key)
+      : [...selectedAmenities, key]
+    setSelectedAmenities(next)
+    performSearch({ amenities: next })
+  }
+
   function handleSuggestionClick(suggestion) {
     if (suggestion.type === 'location') {
       setLocation(suggestion.text)
@@ -199,6 +215,7 @@ export default function SearchPage() {
 
   function clearFilters() {
     setSelectedTypes([])
+    setSelectedAmenities([])
     setLocation('')
     setMinPrice('')
     setMaxPrice('')
@@ -211,7 +228,7 @@ export default function SearchPage() {
   }
 
   const hasActiveFilters =
-    selectedTypes.length > 0 || location || minPrice || maxPrice || minRating
+    selectedTypes.length > 0 || selectedAmenities.length > 0 || location || minPrice || maxPrice || minRating
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
@@ -685,6 +702,66 @@ export default function SearchPage() {
               </div>
             </div>
 
+            <div style={{ marginBottom: '20px' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '10px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                ✨ Amenities
+              </label>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '6px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  paddingRight: '2px',
+                }}
+              >
+                {ALL_AMENITIES.map((amenity) => {
+                  const active = selectedAmenities.includes(amenity.key)
+                  return (
+                    <label
+                      key={amenity.key}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '5px 8px',
+                        borderRadius: '8px',
+                        border: active ? '1.5px solid #7c3aed' : '1px solid var(--border-color)',
+                        background: active ? '#ede9fe' : 'var(--bg-secondary)',
+                        cursor: 'pointer',
+                        fontSize: '0.72rem',
+                        fontWeight: active ? 700 : 400,
+                        color: active ? '#6d28d9' : 'var(--text-secondary)',
+                        userSelect: 'none',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={active}
+                        onChange={() => toggleAmenity(amenity.key)}
+                        style={{ display: 'none' }}
+                      />
+                      <span style={{ flexShrink: 0 }}>{amenity.icon}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {amenity.label}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
             <div>
               <label
                 style={{
@@ -793,6 +870,7 @@ export default function SearchPage() {
                     }}
                   >
                     {selectedTypes.length +
+                      selectedAmenities.length +
                       (location ? 1 : 0) +
                       (minPrice ? 1 : 0) +
                       (maxPrice ? 1 : 0) +
@@ -831,6 +909,35 @@ export default function SearchPage() {
                   {SERVICE_TYPES.find((s) => s.value === t)?.label || t} ×
                 </span>
               ))}
+              {selectedAmenities.map((key) => {
+                const amenity = ALL_AMENITIES.find((a) => a.key === key)
+                return (
+                  <span
+                    key={key}
+                    role="button"
+                    tabIndex={0}
+                    style={{
+                      background: '#ede9fe',
+                      color: '#6d28d9',
+                      border: '1px solid #c4b5fd',
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    onClick={() => toggleAmenity(key)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') toggleAmenity(key)
+                    }}
+                  >
+                    {amenity?.icon} {amenity?.label} ×
+                  </span>
+                )
+              })}
               {location && (
                 <span
                   role="button"
