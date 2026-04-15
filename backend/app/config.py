@@ -28,6 +28,19 @@ class Settings(BaseSettings):
     # Frontend URL for redirects
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # ── Email ──────────────────────────────────────────────────────────────
+    # Set EMAIL_ENABLED=false to silence all outbound email (useful in dev).
+    EMAIL_ENABLED: bool = True
+    # "resend" uses the Resend API (pip install resend).
+    # "smtp"   uses STARTTLS SMTP (e.g. Gmail app password).
+    EMAIL_PROVIDER: str = "resend"
+    RESEND_API_KEY: str = ""
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAIL_FROM: str = "noreply@gbtourism.com"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

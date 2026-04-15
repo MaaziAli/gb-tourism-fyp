@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Confirmed</title>
+  <style>
+    body { margin: 0; padding: 0; background: #f4f6f8; font-family: 'Segoe UI', Arial, sans-serif; }
+    .wrapper { max-width: 600px; margin: 32px auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .header { background: linear-gradient(135deg, #1a6b3c 0%, #27a85f 100%); padding: 36px 40px 28px; text-align: center; }
+    .header img { width: 48px; margin-bottom: 12px; }
+    .header h1 { margin: 0; color: #ffffff; font-size: 26px; font-weight: 700; letter-spacing: -0.3px; }
+    .header p { margin: 6px 0 0; color: rgba(255,255,255,0.85); font-size: 15px; }
+    .body { padding: 36px 40px; }
+    .greeting { font-size: 17px; color: #1a1a1a; margin-bottom: 20px; }
+    .card { background: #f8faf9; border: 1px solid #d6e9dc; border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .card-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e8f0eb; font-size: 14px; }
+    .card-row:last-child { border-bottom: none; }
+    .card-label { color: #6b7280; font-weight: 500; }
+    .card-value { color: #111827; font-weight: 600; text-align: right; }
+    .total-row { margin-top: 4px; }
+    .total-row .card-label { font-size: 15px; color: #1a6b3c; font-weight: 700; }
+    .total-row .card-value { font-size: 16px; color: #1a6b3c; font-weight: 700; }
+    .badge { display: inline-block; background: #d1fae5; color: #065f46; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.3px; }
+    .btn-wrap { text-align: center; margin: 28px 0 20px; }
+    .btn { display: inline-block; background: #1a6b3c; color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 6px; font-size: 15px; font-weight: 600; letter-spacing: 0.2px; }
+    .note { background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 6px 6px 0; padding: 12px 16px; font-size: 13px; color: #92400e; margin-bottom: 24px; }
+    .footer { background: #f4f6f8; padding: 24px 40px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+    .footer a { color: #6b7280; text-decoration: underline; }
+    @media (max-width: 480px) {
+      .body, .header { padding: 24px 20px; }
+      .card-row { flex-direction: column; gap: 2px; }
+      .card-value { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>Booking Confirmed!</h1>
+      <p>Your adventure in Gilgit-Baltistan awaits</p>
+    </div>
+
+    <div class="body">
+      <p class="greeting">Hi <strong>{{ user_name }}</strong>,</p>
+      <p style="color:#374151;font-size:15px;margin-top:0;">
+        Great news! Your booking has been confirmed. Here are the details:
+      </p>
+
+      <div class="card">
+        <div class="card-row">
+          <span class="card-label">Booking #</span>
+          <span class="card-value">#{{ booking_id }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Property / Service</span>
+          <span class="card-value">{{ listing_title }}</span>
+        </div>
+        {% if location %}
+        <div class="card-row">
+          <span class="card-label">Location</span>
+          <span class="card-value">{{ location }}</span>
+        </div>
+        {% endif %}
+        <div class="card-row">
+          <span class="card-label">Check-in</span>
+          <span class="card-value">{{ check_in }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Check-out</span>
+          <span class="card-value">{{ check_out }}</span>
+        </div>
+        {% if room_type_name %}
+        <div class="card-row">
+          <span class="card-label">Room Type</span>
+          <span class="card-value">{{ room_type_name }}</span>
+        </div>
+        {% endif %}
+        {% if guests %}
+        <div class="card-row">
+          <span class="card-label">Guests</span>
+          <span class="card-value">{{ guests }}</span>
+        </div>
+        {% endif %}
+        {% if savings %}
+        <div class="card-row">
+          <span class="card-label">Savings Applied</span>
+          <span class="card-value" style="color:#059669;">- PKR {{ savings }}</span>
+        </div>
+        {% endif %}
+        <div class="card-row total-row">
+          <span class="card-label">Total Amount</span>
+          <span class="card-value">PKR {{ total_price }}</span>
+        </div>
+        <div class="card-row" style="border-bottom:none; padding-top: 12px;">
+          <span class="card-label">Status</span>
+          <span class="card-value"><span class="badge">Confirmed</span></span>
+        </div>
+      </div>
+
+      {% if payment_status == "unpaid" %}
+      <div class="note">
+        <strong>Payment pending.</strong> Complete your payment to secure the booking before it expires.
+      </div>
+      {% endif %}
+
+      <div class="btn-wrap">
+        <a href="{{ frontend_url }}/bookings" class="btn">View My Bookings</a>
+      </div>
+
+      <p style="color:#6b7280;font-size:13px;line-height:1.6;">
+        If you have any questions, reply to this email or contact the property directly.
+        We hope you enjoy your stay!
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>GB Tourism &mdash; Discover the Magic of Gilgit-Baltistan</p>
+      <p><a href="{{ frontend_url }}">Visit our website</a> &nbsp;|&nbsp; <a href="{{ frontend_url }}/support">Support</a></p>
+      <p style="margin-top:10px; color:#d1d5db;">You received this email because you created a booking on GB Tourism.</p>
+    </div>
+  </div>
+</body>
+</html>

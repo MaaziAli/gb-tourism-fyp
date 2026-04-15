@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Booking Alert</title>
+  <style>
+    body { margin: 0; padding: 0; background: #f4f6f8; font-family: 'Segoe UI', Arial, sans-serif; }
+    .wrapper { max-width: 600px; margin: 32px auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 36px 40px 28px; text-align: center; }
+    .header h1 { margin: 0; color: #ffffff; font-size: 26px; font-weight: 700; }
+    .header p { margin: 6px 0 0; color: rgba(255,255,255,0.85); font-size: 15px; }
+    .body { padding: 36px 40px; }
+    .greeting { font-size: 17px; color: #1a1a1a; margin-bottom: 20px; }
+    .card { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .card-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #dbeafe; font-size: 14px; }
+    .card-row:last-child { border-bottom: none; }
+    .card-label { color: #6b7280; font-weight: 500; }
+    .card-value { color: #111827; font-weight: 600; text-align: right; }
+    .revenue-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+    .revenue-label { font-size: 14px; color: #166534; font-weight: 500; }
+    .revenue-amount { font-size: 22px; color: #15803d; font-weight: 700; }
+    .commission-note { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .btn-wrap { text-align: center; margin: 28px 0 20px; }
+    .btn { display: inline-block; background: #1e40af; color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 6px; font-size: 15px; font-weight: 600; }
+    .footer { background: #f4f6f8; padding: 24px 40px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+    .footer a { color: #6b7280; text-decoration: underline; }
+    @media (max-width: 480px) {
+      .body, .header { padding: 24px 20px; }
+      .card-row { flex-direction: column; gap: 2px; }
+      .card-value { text-align: left; }
+      .revenue-card { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>New Booking Received!</h1>
+      <p>A guest has booked your listing</p>
+    </div>
+
+    <div class="body">
+      <p class="greeting">Hi <strong>{{ user_name }}</strong>,</p>
+      <p style="color:#374151;font-size:15px;margin-top:0;">
+        You have a new booking! Here are the details:
+      </p>
+
+      <div class="card">
+        <div class="card-row">
+          <span class="card-label">Booking #</span>
+          <span class="card-value">#{{ booking_id }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Listing</span>
+          <span class="card-value">{{ listing_title }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Guest Name</span>
+          <span class="card-value">{{ guest_name }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Check-in</span>
+          <span class="card-value">{{ check_in }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Check-out</span>
+          <span class="card-value">{{ check_out }}</span>
+        </div>
+        {% if room_type_name %}
+        <div class="card-row">
+          <span class="card-label">Room Type</span>
+          <span class="card-value">{{ room_type_name }}</span>
+        </div>
+        {% endif %}
+        {% if guests %}
+        <div class="card-row">
+          <span class="card-label">Guests</span>
+          <span class="card-value">{{ guests }}</span>
+        </div>
+        {% endif %}
+        <div class="card-row">
+          <span class="card-label">Total Booking Value</span>
+          <span class="card-value">PKR {{ total_price }}</span>
+        </div>
+      </div>
+
+      <div class="revenue-card">
+        <div>
+          <div class="revenue-label">Your Earnings (after 10% platform fee)</div>
+          <div class="commission-note">Platform commission: PKR {{ commission }}</div>
+        </div>
+        <div class="revenue-amount">PKR {{ provider_amount }}</div>
+      </div>
+
+      <div class="btn-wrap">
+        <a href="{{ frontend_url }}/provider/dashboard" class="btn">View Dashboard</a>
+      </div>
+
+      <p style="color:#6b7280;font-size:13px;line-height:1.6;">
+        Please ensure everything is ready for your guest's arrival. For any issues
+        with the booking, contact us at support.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>GB Tourism &mdash; Provider Portal</p>
+      <p><a href="{{ frontend_url }}">Visit our website</a> &nbsp;|&nbsp; <a href="{{ frontend_url }}/support">Support</a></p>
+    </div>
+  </div>
+</body>
+</html>

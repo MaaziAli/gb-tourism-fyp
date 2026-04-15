@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -119,6 +119,7 @@ def apply_loyalty_discount(
 @router.post("/process", response_model=PaymentResponse)
 def process_payment(
     body: PaymentRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -181,27 +182,42 @@ def process_payment(
     booking.payment_status = "paid"
     db.commit()
 
+    from datetime import datetime as _dt
+
+    listing = (
+        db.query(Listing).filter(Listing.id == booking.listing_id).first()
+    )
+
     # Notify traveler
     create_notification(
         db,
         user_id=current_user.id,
-        title="Payment Successful 💳",
+        title="Payment Successful",
         message=(
             f"PKR {amount:,.0f} paid for booking. "
             f"Transaction ID: {txn_id}"
         ),
         type="success",
+        email_type="payment_success",
+        email_context={
+            "booking_id":     booking.id,
+            "listing_title":  listing.title if listing else f"Booking #{booking.id}",
+            "check_in":       str(booking.check_in) if booking.check_in else "",
+            "check_out":      str(booking.check_out) if booking.check_out else "",
+            "amount":         f"{amount:,.0f}",
+            "transaction_id": txn_id,
+            "card_last4":     card_last4 or "",
+            "payment_date":   _dt.utcnow().strftime("%B %d, %Y"),
+        },
+        background_tasks=background_tasks,
     )
 
-    # Notify provider
-    listing = (
-        db.query(Listing).filter(Listing.id == booking.listing_id).first()
-    )
+    # Notify provider (in-app only)
     if listing:
         create_notification(
             db,
             user_id=listing.owner_id,
-            title="Payment Received 💰",
+            title="Payment Received",
             message=(
                 f"PKR {provider_amount:,.0f} payment "
                 f"received for booking #{booking.id}. "

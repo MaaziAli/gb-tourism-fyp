@@ -4,7 +4,7 @@ Bookings router - create, list, and cancel bookings.
 from datetime import date as date_type
 from datetime import datetime, time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -79,6 +79,7 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
 @router.post("/", response_model=BookingResponse)
 def create_booking(
     body: BookingCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -319,6 +320,7 @@ def create_booking(
 
     # Notify the traveler
     savings_note = ""
+    total_savings = 0.0
     if coupon_discount > 0 or loyalty_discount > 0:
         total_savings = coupon_discount + loyalty_discount
         savings_note = f" You saved PKR {total_savings:,.0f}!"
@@ -332,13 +334,29 @@ def create_booking(
             f"is confirmed. Total: PKR {total_price:,.0f}.{savings_note}"
         ),
         type="success",
+        email_type="booking_created",
+        email_context={
+            "booking_id":     booking.id,
+            "listing_title":  listing.title,
+            "location":       listing.location or "",
+            "check_in":       str(body.check_in),
+            "check_out":      str(effective_check_out),
+            "room_type_name": booking.room_type_name or "",
+            "guests":         booking.group_size or 1,
+            "total_price":    f"{total_price:,.0f}",
+            "savings":        f"{total_savings:,.0f}" if total_savings > 0 else "",
+            "payment_status": booking.payment_status or "unpaid",
+        },
+        background_tasks=background_tasks,
     )
 
     # Notify the listing owner (provider)
+    commission = round(total_price * 0.10, 2)
+    provider_amount = round(total_price - commission, 2)
     create_notification(
         db,
         user_id=listing.owner_id,
-        title="New Booking Received! 📅",
+        title="New Booking Received!",
         message=(
             f"{current_user.full_name} booked "
             f"'{listing.title}' from {body.check_in} "
@@ -346,6 +364,20 @@ def create_booking(
             f"Revenue: PKR {total_price:,.0f}"
         ),
         type="booking",
+        email_type="booking_created_provider",
+        email_context={
+            "booking_id":     booking.id,
+            "listing_title":  listing.title,
+            "guest_name":     current_user.full_name,
+            "check_in":       str(body.check_in),
+            "check_out":      str(effective_check_out),
+            "room_type_name": booking.room_type_name or "",
+            "guests":         booking.group_size or 1,
+            "total_price":    f"{total_price:,.0f}",
+            "commission":     f"{commission:,.0f}",
+            "provider_amount": f"{provider_amount:,.0f}",
+        },
+        background_tasks=background_tasks,
     )
 
     try:
@@ -1091,6 +1123,7 @@ def get_booking_voucher(
 @router.patch("/{booking_id}/cancel", response_model=BookingResponse)
 def cancel_booking(
     booking_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -1162,6 +1195,10 @@ def cancel_booking(
     listing_title = listing.title if listing else f"Booking #{booking_id}"
     refund_str = f"PKR {refund_amount:,.0f}" if refund_amount > 0 else "no refund"
 
+    from datetime import date as _date
+
+    cancellation_policy = listing.cancellation_policy if listing else "moderate"
+
     # Guest notification
     create_notification(
         db,
@@ -1172,9 +1209,21 @@ def cancel_booking(
             f"Refund of {refund_str} has been processed."
         ),
         type="warning",
+        email_type="booking_cancelled",
+        email_context={
+            "booking_id":          booking_id,
+            "listing_title":       listing_title,
+            "check_in":            str(booking.check_in) if booking.check_in else "",
+            "check_out":           str(booking.check_out) if booking.check_out else "",
+            "total_price":         f"{booking.total_price:,.0f}",
+            "refund_amount":       f"{refund_amount:,.0f}" if refund_amount > 0 else "0",
+            "cancellation_policy": cancellation_policy,
+            "cancellation_date":   str(_date.today()),
+        },
+        background_tasks=background_tasks,
     )
 
-    # Provider notification
+    # Provider notification (in-app only – no email template for provider cancel)
     if listing:
         create_notification(
             db,

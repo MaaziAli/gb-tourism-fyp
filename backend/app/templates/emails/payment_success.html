@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Successful</title>
+  <style>
+    body { margin: 0; padding: 0; background: #f4f6f8; font-family: 'Segoe UI', Arial, sans-serif; }
+    .wrapper { max-width: 600px; margin: 32px auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .header { background: linear-gradient(135deg, #065f46 0%, #10b981 100%); padding: 36px 40px 28px; text-align: center; }
+    .checkmark { width: 56px; height: 56px; background: rgba(255,255,255,0.2); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; font-size: 28px; }
+    .header h1 { margin: 0; color: #ffffff; font-size: 26px; font-weight: 700; }
+    .header p { margin: 6px 0 0; color: rgba(255,255,255,0.85); font-size: 15px; }
+    .body { padding: 36px 40px; }
+    .amount-hero { text-align: center; margin: 0 0 28px; }
+    .amount-hero .label { font-size: 13px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; }
+    .amount-hero .amount { font-size: 40px; font-weight: 800; color: #065f46; line-height: 1.1; margin: 4px 0; }
+    .card { background: #f8faf9; border: 1px solid #d1fae5; border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .card-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e8f5ee; font-size: 14px; }
+    .card-row:last-child { border-bottom: none; }
+    .card-label { color: #6b7280; font-weight: 500; }
+    .card-value { color: #111827; font-weight: 600; text-align: right; }
+    .txn-badge { font-family: 'Courier New', monospace; background: #f3f4f6; padding: 2px 8px; border-radius: 4px; font-size: 13px; color: #374151; }
+    .btn-wrap { text-align: center; margin: 28px 0 20px; }
+    .btn { display: inline-block; background: #065f46; color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 6px; font-size: 15px; font-weight: 600; }
+    .footer { background: #f4f6f8; padding: 24px 40px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+    .footer a { color: #6b7280; text-decoration: underline; }
+    @media (max-width: 480px) {
+      .body, .header { padding: 24px 20px; }
+      .card-row { flex-direction: column; gap: 2px; }
+      .card-value { text-align: left; }
+      .amount-hero .amount { font-size: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="checkmark">&#10003;</div>
+      <h1>Payment Successful!</h1>
+      <p>Your booking is fully paid and confirmed</p>
+    </div>
+
+    <div class="body">
+      <p style="font-size:17px;color:#1a1a1a;margin-bottom:20px;">
+        Hi <strong>{{ user_name }}</strong>,
+      </p>
+
+      <div class="amount-hero">
+        <div class="label">Amount Paid</div>
+        <div class="amount">PKR {{ amount }}</div>
+      </div>
+
+      <div class="card">
+        <div class="card-row">
+          <span class="card-label">Transaction ID</span>
+          <span class="card-value"><span class="txn-badge">{{ transaction_id }}</span></span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Booking #</span>
+          <span class="card-value">#{{ booking_id }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Property / Service</span>
+          <span class="card-value">{{ listing_title }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Check-in</span>
+          <span class="card-value">{{ check_in }}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-label">Check-out</span>
+          <span class="card-value">{{ check_out }}</span>
+        </div>
+        {% if card_last4 %}
+        <div class="card-row">
+          <span class="card-label">Card Charged</span>
+          <span class="card-value">&bull;&bull;&bull;&bull; {{ card_last4 }}</span>
+        </div>
+        {% endif %}
+        <div class="card-row">
+          <span class="card-label">Payment Date</span>
+          <span class="card-value">{{ payment_date }}</span>
+        </div>
+      </div>
+
+      <div class="btn-wrap">
+        <a href="{{ frontend_url }}/bookings" class="btn">View My Bookings</a>
+      </div>
+
+      <p style="color:#6b7280;font-size:13px;line-height:1.6;">
+        Please keep this receipt for your records. If you have any questions about
+        this transaction, please contact us with your Transaction ID.
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>GB Tourism &mdash; Discover the Magic of Gilgit-Baltistan</p>
+      <p><a href="{{ frontend_url }}">Visit our website</a> &nbsp;|&nbsp; <a href="{{ frontend_url }}/support">Support</a></p>
+    </div>
+  </div>
+</body>
+</html>
