@@ -1,4 +1,4 @@
-import { useState, useEffect }
+import { useState, useEffect, useRef }
   from 'react'
 import { useParams, useNavigate }
   from 'react-router-dom'
@@ -100,6 +100,8 @@ export default function BookingVoucher() {
   const navigate = useNavigate()
   const [voucher, setVoucher] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [downloading, setDownloading] = useState(false)
+  const voucherRef = useRef(null)
 
   useEffect(() => {
     api.get(`/bookings/${bookingId}/voucher`)
@@ -110,6 +112,36 @@ export default function BookingVoucher() {
 
   function handlePrint() {
     window.print()
+  }
+
+  async function handleDownloadPDF() {
+    if (!voucherRef.current) return
+    setDownloading(true)
+    try {
+      const html2pdf =
+        (await import('html2pdf.js')).default
+      const opt = {
+        margin: [0.5, 0.5, 0.5, 0.5],
+        filename: `booking_voucher_${bookingId}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2, useCORS: true, logging: false
+        },
+        jsPDF: {
+          unit: 'in', format: 'a4',
+          orientation: 'portrait'
+        }
+      }
+      await html2pdf()
+        .set(opt)
+        .from(voucherRef.current)
+        .save()
+    } catch (err) {
+      console.error('PDF generation failed:', err)
+      alert('Failed to generate PDF. Please try again.')
+    } finally {
+      setDownloading(false)
+    }
   }
 
   function formatDate(d) {
@@ -218,22 +250,46 @@ export default function BookingVoucher() {
         }}>
           🎫 Booking Voucher
         </div>
-        <button
-          type="button"
-          onClick={handlePrint}
-          style={{
-            background: '#f59e0b',
-            border: 'none', color: 'white',
-            borderRadius: '8px',
-            padding: '8px 20px',
-            cursor: 'pointer', fontWeight: 700,
-            fontSize: '0.875rem',
-            display: 'flex', alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          🖨️ Print / Save PDF
-        </button>
+        <div style={{display: 'flex', gap: '8px'}}>
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+            style={{
+              background: downloading
+                ? '#64748b' : '#16a34a',
+              border: 'none', color: 'white',
+              borderRadius: '8px',
+              padding: '8px 20px',
+              cursor: downloading
+                ? 'not-allowed' : 'pointer',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              display: 'flex', alignItems: 'center',
+              gap: '6px', opacity: downloading ? 0.8 : 1
+            }}
+          >
+            {downloading
+              ? '⏳ Generating PDF…'
+              : '📄 Download PDF'}
+          </button>
+          <button
+            type="button"
+            onClick={handlePrint}
+            style={{
+              background: '#f59e0b',
+              border: 'none', color: 'white',
+              borderRadius: '8px',
+              padding: '8px 20px',
+              cursor: 'pointer', fontWeight: 700,
+              fontSize: '0.875rem',
+              display: 'flex', alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            🖨️ Print / Save PDF
+          </button>
+        </div>
       </div>
 
       <div
@@ -247,6 +303,7 @@ export default function BookingVoucher() {
         }}
       >
         <div
+          ref={voucherRef}
           style={{
             width: '100%', maxWidth: '680px',
             background: 'white',
