@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     EMAIL_FROM: str = "noreply@gbtourism.com"
 
+    # Admin email – receives new-listing notifications
+    ADMIN_EMAIL: str = "admin@gbtourism.com"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

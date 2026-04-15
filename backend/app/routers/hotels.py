@@ -12,7 +12,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import (
-    APIRouter, Depends, File, Form, HTTPException, UploadFile,
+    APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile,
 )
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -260,6 +260,7 @@ def create_hotel(
     cancellation_policy: str = Form("moderate"),
     rooms_available: int = Form(10),
     image: UploadFile | None = File(None),
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -283,6 +284,19 @@ def create_hotel(
     db.add(hotel)
     db.commit()
     db.refresh(hotel)
+
+    from app.utils.notify import notify_admin_new_listing
+    notify_admin_new_listing(
+        db=db,
+        listing_title=hotel.title,
+        service_type="hotel",
+        location=hotel.location,
+        price=hotel.price or 0,
+        provider_name=current_user.full_name or current_user.email,
+        provider_email=current_user.email,
+        background_tasks=background_tasks,
+    )
+
     return _hotel_dict(hotel, db)
 
 

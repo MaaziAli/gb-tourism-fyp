@@ -8,7 +8,7 @@ from uuid import uuid4
 import shutil
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, File, Form, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, File, Form, Query, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -117,6 +117,7 @@ def create_listing(
     cancellation_hours_free: int = Form(48),
     rooms_available: int = Form(10),
     image: UploadFile | None = File(None),
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -143,6 +144,19 @@ def create_listing(
     db.add(listing)
     db.commit()
     db.refresh(listing)
+
+    from app.utils.notify import notify_admin_new_listing
+    notify_admin_new_listing(
+        db=db,
+        listing_title=listing.title,
+        service_type=listing.service_type,
+        location=listing.location,
+        price=listing.price or 0,
+        provider_name=current_user.full_name or current_user.email,
+        provider_email=current_user.email,
+        background_tasks=background_tasks,
+    )
+
     return listing
 
 

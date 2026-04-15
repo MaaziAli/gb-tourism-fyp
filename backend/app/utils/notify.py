@@ -34,6 +34,7 @@ _EMAIL_TEMPLATES: Dict[str, str] = {
     "booking_created_provider": "booking_confirmation_provider.html",
     "payment_success":          "payment_success.html",
     "booking_cancelled":        "booking_cancellation.html",
+    "new_listing_notification": "new_listing_notification.html",
 }
 
 
@@ -116,3 +117,70 @@ def create_notification(
     html = render_email_template(email_type, ctx)
     if html:
         send_email_background(background_tasks, user.email, title, html)
+
+
+# ── Admin helpers ─────────────────────────────────────────────────────────────
+
+def notify_admin_new_listing(
+    db: Session,
+    listing_title: str,
+    service_type: str,
+    location: str,
+    price: float,
+    provider_name: str,
+    provider_email: str,
+    background_tasks: BackgroundTasks,
+) -> None:
+    """
+    Send a new-listing notification to the configured ADMIN_EMAIL.
+
+    Tries to find an admin user in the DB so an in-app Notification is also
+    stored.  If no matching user exists the email is still delivered directly
+    to ADMIN_EMAIL (graceful fallback – never raises).
+    """
+    try:
+        from ..models.user import User
+        from ..config import settings
+        from .email import send_email_background
+
+        admin_email = settings.ADMIN_EMAIL
+        if not admin_email:
+            return
+
+        from datetime import datetime
+        ctx: Dict[str, Any] = {
+            "listing_title": listing_title,
+            "service_type":  service_type,
+            "location":      location,
+            "price":         price,
+            "provider_name": provider_name,
+            "provider_email": provider_email,
+            "frontend_url":  settings.FRONTEND_URL,
+            "created_at":    datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+        }
+        subject = f"New Listing Created: {listing_title}"
+
+        admin_user = db.query(User).filter(User.email == admin_email).first()
+        if admin_user:
+            # In-app notification + email via the standard path
+            create_notification(
+                db,
+                user_id=admin_user.id,
+                title=subject,
+                message=(
+                    f"{provider_name} created a new {service_type} listing "
+                    f"in {location}."
+                ),
+                type="info",
+                email_type="new_listing_notification",
+                email_context=ctx,
+                background_tasks=background_tasks,
+            )
+        else:
+            # No admin user in DB – send email directly
+            ctx["user_name"] = "Admin"
+            html = render_email_template("new_listing_notification", ctx)
+            if html:
+                send_email_background(background_tasks, admin_email, subject, html)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("notify_admin_new_listing failed: %s", exc)
