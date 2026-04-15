@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Frontend URL for redirects
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Webhook log verbosity: "debug" | "info" | "warning" | "error"
+    WEBHOOK_LOG_LEVEL: str = "info"
+
     # ── Email ──────────────────────────────────────────────────────────────
     # Set EMAIL_ENABLED=false to silence all outbound email (useful in dev).
     EMAIL_ENABLED: bool = True

@@ -35,6 +35,8 @@ from app.models.payment import Payment
 from app.models.user import User
 from app.utils.addon_utils import calculate_nights, validate_and_normalize_addons
 from app.utils.notify import create_notification
+from app.utils import webhook_utils
+from app.utils.webhook_utils import WebhookSource
 
 logger = logging.getLogger(__name__)
 
@@ -384,56 +386,147 @@ async def xpay_webhook(
 
     XPay sends a POST with payment result details.
     The exact event payload shape depends on your XPay account configuration.
+
+    Idempotency:  processed events are stored in webhook_events keyed by a
+                  stable event_id derived from transaction_id + event_type.
+    Retry logic:  transient DB errors return HTTP 500 so XPay retries;
+                  permanent data errors return HTTP 200 after logging.
     """
     payload = await request.body()
-    signature = request.headers.get("x-signature") or request.headers.get("x-xpay-signature", "")
 
-    if not _verify_webhook_signature(payload, signature):
-        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+    # ── 1. Signature verification ─────────────────────────────────────────
+    signature = (
+        request.headers.get("x-signature")
+        or request.headers.get("x-xpay-signature", "")
+    )
+    secret = settings.XPAY_WEBHOOK_SECRET
+    dev_mode = not secret or secret.startswith("whsec_your")
 
+    if dev_mode:
+        logger.warning(
+            "XPay webhook: XPAY_WEBHOOK_SECRET not configured — "
+            "skipping signature verification (development mode)"
+        )
+    else:
+        if not _verify_webhook_signature(payload, signature):
+            logger.error(
+                "XPay webhook: HMAC signature mismatch (sig=%s)", signature[:16] if signature else "—"
+            )
+            raise HTTPException(status_code=400, detail="Invalid webhook signature")
+
+    # ── 2. Parse payload ──────────────────────────────────────────────────
     try:
         event = json.loads(payload)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
+        logger.error("XPay webhook: invalid JSON payload: %s", exc)
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
-    logger.info("XPay webhook received: type=%s", event.get("type") or event.get("status"))
+    event_type = (event.get("type") or event.get("status") or "unknown").lower()
 
-    # Handle payment success
-    # XPay may use "payment.succeeded", "PAID", or similar — adjust to match their docs
-    event_type = event.get("type") or event.get("status") or ""
-    is_success = event_type.lower() in ("payment.succeeded", "paid", "success", "completed")
+    # Derive a stable idempotency key from the transaction id + type because
+    # XPay does not always supply a top-level unique event id.
+    transaction_id = (
+        event.get("id")
+        or event.get("transaction_id")
+        or event.get("data", {}).get("id")
+    )
+    event_id = (
+        str(event.get("event_id") or "")
+        or f"xpay-{transaction_id}-{event_type}"
+        if transaction_id
+        else f"xpay-unknown-{event_type}-{datetime.utcnow().timestamp()}"
+    )
 
-    if is_success:
-        # Extract transaction ID and booking ID from the event payload
-        transaction_id = (
-            event.get("id")
-            or event.get("transaction_id")
-            or event.get("data", {}).get("id")
+    webhook_utils.log_webhook_received(
+        WebhookSource.XPAY,
+        event_id,
+        event_type,
+        extra={"transaction_id": transaction_id},
+    )
+
+    # ── 3. Idempotency check ──────────────────────────────────────────────
+    if webhook_utils.is_event_processed(db, event_id):
+        webhook_utils.log_webhook_skipped(
+            WebhookSource.XPAY, event_id, "already_processed"
         )
-        booking_id_raw = (
-            event.get("custom_fields", {}).get("booking_id")
-            or event.get("metadata", {}).get("booking_id")
-            or event.get("data", {}).get("custom_fields", {}).get("booking_id")
+        return {"status": "already_processed"}
+
+    # ── 4. Event dispatch ─────────────────────────────────────────────────
+    is_success = event_type in ("payment.succeeded", "paid", "success", "completed")
+
+    if not is_success:
+        logger.info(
+            "XPay webhook %s: non-success event type=%s — acking", event_id, event_type
         )
+        webhook_utils.mark_event_processed(
+            db, event_id, event_type, source=WebhookSource.XPAY
+        )
+        return {"status": "ok"}
 
-        if not booking_id_raw:
-            logger.warning("XPay webhook: no booking_id in payload")
-            return {"status": "ok"}
+    # Extract booking ID
+    booking_id_raw = (
+        event.get("custom_fields", {}).get("booking_id")
+        or event.get("metadata", {}).get("booking_id")
+        or event.get("data", {}).get("custom_fields", {}).get("booking_id")
+    )
 
-        try:
-            booking_id = int(booking_id_raw)
-        except (ValueError, TypeError):
-            logger.warning("XPay webhook: invalid booking_id %s", booking_id_raw)
-            return {"status": "ok"}
+    if not booking_id_raw:
+        logger.warning(
+            "XPay webhook %s: no booking_id in payload — acking to stop retries",
+            event_id,
+        )
+        webhook_utils.mark_event_processed(
+            db, event_id, event_type, source=WebhookSource.XPAY
+        )
+        return {"status": "no_booking_id"}
 
+    try:
+        booking_id = int(booking_id_raw)
+    except (ValueError, TypeError):
+        logger.error(
+            "XPay webhook %s: invalid booking_id=%r — permanent error, acking",
+            event_id,
+            booking_id_raw,
+        )
+        webhook_utils.mark_event_processed(
+            db, event_id, event_type, source=WebhookSource.XPAY
+        )
+        return {"status": "invalid_booking_id"}
+
+    resolved_txn_id = str(transaction_id or f"xpay-{booking_id}")
+
+    try:
         booking = db.get(Booking, booking_id)
-        if booking:
-            try:
-                _confirm_booking(db, booking, str(transaction_id or f"xpay-{booking_id}"))
-                logger.info("XPay webhook: confirmed booking %s", booking_id)
-            except Exception as exc:
-                logger.error("XPay webhook: confirm error for booking %s: %s", booking_id, exc)
-        else:
-            logger.warning("XPay webhook: booking %s not found", booking_id)
+        if not booking:
+            raise ValueError(f"Booking {booking_id} not found in database")
+
+        _confirm_booking(db, booking, resolved_txn_id)
+        webhook_utils.mark_event_processed(
+            db, event_id, event_type, source=WebhookSource.XPAY
+        )
+        webhook_utils.log_webhook_processed(WebhookSource.XPAY, event_id, event_type)
+        logger.info(
+            "XPay webhook %s: confirmed booking %s (txn=%s)",
+            event_id,
+            booking_id,
+            resolved_txn_id,
+        )
+
+    except Exception as exc:
+        kind = webhook_utils.classify_exception(exc)
+        webhook_utils.log_webhook_error(
+            WebhookSource.XPAY, event_id, event_type, exc, kind
+        )
+        if kind == "transient":
+            # Non-2xx response → XPay retries
+            raise HTTPException(
+                status_code=500,
+                detail="Transient error processing webhook — XPay will retry",
+            )
+        # Permanent error: ack so XPay stops retrying
+        webhook_utils.mark_event_processed(
+            db, event_id, event_type, source=WebhookSource.XPAY
+        )
+        return {"status": "error_logged"}
 
     return {"status": "ok"}

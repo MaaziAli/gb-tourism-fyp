@@ -34,6 +34,7 @@ from app.models import loyalty as _loyalty_model  # noqa
 from app.models import refund as _refund_model  # noqa
 from app.models import listing_addon as _addon_model  # noqa
 from app.models import seasonal_price as _sp_model  # noqa
+from app.models import webhook_event as _we_model  # noqa
 
 try:
     from app.models import message as _msg  # noqa

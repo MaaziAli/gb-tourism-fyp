@@ -33,6 +33,8 @@ from app.utils.loyalty_utils import (
     redeem_points_transactional,
 )
 from app.utils.notify import create_notification
+from app.utils import webhook_utils
+from app.utils.webhook_utils import WebhookSource
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -393,67 +395,171 @@ async def stripe_webhook(
     https://dashboard.stripe.com/webhooks
 
     Events handled:
-      - checkout.session.completed  → confirm booking
+      - checkout.session.completed    → confirm booking (idempotent)
       - payment_intent.payment_failed → log failure
+
+    Idempotency:  processed event IDs are stored in webhook_events so that
+                  Stripe retries are silently acknowledged with HTTP 200.
+    Retry logic:  transient failures (DB errors) return HTTP 500 so Stripe
+                  retries; permanent failures (bad data) return HTTP 200 after
+                  logging so Stripe stops retrying.
     """
     payload = await request.body()
 
+    # ── 1. Signature verification ─────────────────────────────────────────
     if not stripe_signature:
         raise HTTPException(status_code=400, detail="Missing stripe-signature header")
 
     webhook_secret = settings.STRIPE_WEBHOOK_SECRET
-    if not webhook_secret or webhook_secret.startswith("whsec_your"):
-        # Webhook secret not configured — skip signature validation in dev
+    dev_mode = not webhook_secret or webhook_secret.startswith("whsec_your")
+
+    if dev_mode:
+        logger.warning(
+            "Stripe webhook: STRIPE_WEBHOOK_SECRET not configured — "
+            "skipping signature verification (development mode)"
+        )
         try:
+            import json as _json
+            raw = _json.loads(payload.decode("utf-8"))
             event = stripe.Event.construct_from(
-                stripe.util.convert_to_stripe_object(
-                    stripe.util.json.loads(payload.decode("utf-8"))
-                ),
+                stripe.util.convert_to_stripe_object(raw),
                 stripe.api_key,
             )
         except Exception as exc:
+            logger.error("Stripe webhook: failed to parse payload: %s", exc)
             raise HTTPException(status_code=400, detail=str(exc))
     else:
         try:
-            event = stripe.Webhook.construct_event(payload, stripe_signature, webhook_secret)
-        except stripe.error.SignatureVerificationError:
+            event = stripe.Webhook.construct_event(
+                payload, stripe_signature, webhook_secret
+            )
+        except stripe.error.SignatureVerificationError as exc:
+            logger.error("Stripe webhook: signature verification failed: %s", exc)
             raise HTTPException(status_code=400, detail="Invalid Stripe signature")
         except Exception as exc:
+            logger.error("Stripe webhook: payload construction failed: %s", exc)
             raise HTTPException(status_code=400, detail=str(exc))
 
-    if event["type"] == "checkout.session.completed":
+    event_id = event["id"]
+    event_type = event["type"]
+
+    webhook_utils.log_webhook_received(
+        WebhookSource.STRIPE,
+        event_id,
+        event_type,
+        extra={"livemode": event.get("livemode")},
+    )
+
+    # ── 2. Idempotency check ──────────────────────────────────────────────
+    if webhook_utils.is_event_processed(db, event_id):
+        webhook_utils.log_webhook_skipped(
+            WebhookSource.STRIPE, event_id, "already_processed"
+        )
+        return {"status": "already_processed"}
+
+    # ── 3. Event dispatch ─────────────────────────────────────────────────
+    if event_type == "checkout.session.completed":
         session = event["data"]["object"]
-        if session.get("payment_status") == "paid":
-            booking_id = int(session.get("metadata", {}).get("booking_id", 0))
-            loyalty_points = int(
-                session.get("metadata", {}).get("loyalty_points_used", 0)
+        if session.get("payment_status") != "paid":
+            # Not yet paid (e.g. async payment method still pending) — ack and wait
+            webhook_utils.log_webhook_skipped(
+                WebhookSource.STRIPE, event_id, "payment_status_not_paid"
             )
-            amount_total = session.get("amount_total")
-            amount_paid = (
-                round(amount_total / 100.0, 2)
-                if amount_total is not None
-                else None
-            )
-            if booking_id:
-                try:
-                    wb_booking = db.query(Booking).filter(Booking.id == booking_id).first()
-                    _confirm_booking(
-                        db,
-                        booking_id,
-                        session["id"],
-                        loyalty_points_used=loyalty_points,
-                        paid_amount=amount_paid,
-                        normalized_addons=wb_booking.addons if wb_booking else [],
-                    )
-                    logger.info("Webhook confirmed booking %s", booking_id)
-                except Exception as exc:
-                    logger.error("Webhook booking confirm error: %s", exc)
+            return {"status": "ok"}
 
-    elif event["type"] == "payment_intent.payment_failed":
+        booking_id_raw = session.get("metadata", {}).get("booking_id", "0")
+        try:
+            booking_id = int(booking_id_raw)
+        except (ValueError, TypeError):
+            logger.error(
+                "Stripe webhook %s: invalid booking_id=%r — permanent error, acking",
+                event_id,
+                booking_id_raw,
+            )
+            # Permanent data error — mark processed so we don't retry forever
+            webhook_utils.mark_event_processed(
+                db, event_id, event_type, source=WebhookSource.STRIPE
+            )
+            return {"status": "invalid_booking_id"}
+
+        if not booking_id:
+            logger.warning(
+                "Stripe webhook %s: missing booking_id in metadata — acking", event_id
+            )
+            webhook_utils.mark_event_processed(
+                db, event_id, event_type, source=WebhookSource.STRIPE
+            )
+            return {"status": "no_booking_id"}
+
+        loyalty_points = int(session.get("metadata", {}).get("loyalty_points_used", 0))
+        amount_total = session.get("amount_total")
+        amount_paid = (
+            round(amount_total / 100.0, 2) if amount_total is not None else None
+        )
+
+        try:
+            wb_booking = db.query(Booking).filter(Booking.id == booking_id).first()
+            if not wb_booking:
+                raise ValueError(f"Booking {booking_id} not found in database")
+
+            _confirm_booking(
+                db,
+                booking_id,
+                session["id"],
+                loyalty_points_used=loyalty_points,
+                paid_amount=amount_paid,
+                normalized_addons=wb_booking.addons if wb_booking else [],
+            )
+            webhook_utils.mark_event_processed(
+                db, event_id, event_type, source=WebhookSource.STRIPE
+            )
+            webhook_utils.log_webhook_processed(
+                WebhookSource.STRIPE, event_id, event_type
+            )
+            logger.info(
+                "Stripe webhook %s: confirmed booking %s (amount=PKR %.2f)",
+                event_id,
+                booking_id,
+                amount_paid or 0,
+            )
+
+        except Exception as exc:
+            kind = webhook_utils.classify_exception(exc)
+            webhook_utils.log_webhook_error(
+                WebhookSource.STRIPE, event_id, event_type, exc, kind
+            )
+            if kind == "transient":
+                # Return 500 → Stripe retries with exponential back-off
+                raise HTTPException(
+                    status_code=500,
+                    detail="Transient error processing webhook — Stripe will retry",
+                )
+            # Permanent error (e.g. booking not found, bad data) → ack so
+            # Stripe stops retrying; the error is already logged above.
+            webhook_utils.mark_event_processed(
+                db, event_id, event_type, source=WebhookSource.STRIPE
+            )
+            return {"status": "error_logged"}
+
+    elif event_type == "payment_intent.payment_failed":
         pi = event["data"]["object"]
-        logger.warning("Payment failed for intent %s", pi.get("id"))
+        logger.warning(
+            "Stripe webhook %s: payment_intent.payment_failed intent=%s",
+            event_id,
+            pi.get("id"),
+        )
+        webhook_utils.mark_event_processed(
+            db, event_id, event_type, source=WebhookSource.STRIPE
+        )
 
-    return {"received": True}
+    else:
+        # Unhandled event type — ack so Stripe doesn't keep sending it
+        logger.debug("Stripe webhook %s: unhandled event type=%s", event_id, event_type)
+        webhook_utils.mark_event_processed(
+            db, event_id, event_type, source=WebhookSource.STRIPE
+        )
+
+    return {"status": "ok"}
 
 
 @router.get("/config")
