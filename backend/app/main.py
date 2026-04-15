@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import Base, engine
+from app.db_bootstrap import ensure_sqlite_schema_compat
 
 # ── Model imports ──
 from app.models import user as _user_model  # noqa
@@ -104,6 +105,7 @@ def create_app() -> FastAPI:
     )
     origins = [
         "http://localhost:5173",
+        "http://127.0.0.1:5173",
     ]
 
     app.add_middleware(
@@ -115,6 +117,11 @@ def create_app() -> FastAPI:
     )
 
     Base.metadata.create_all(bind=engine)
+    schema_updates = ensure_sqlite_schema_compat(settings.DATABASE_URL)
+    if schema_updates:
+        print(
+            f"[DB] Applied sqlite compatibility columns: {', '.join(schema_updates)}"
+        )
 
     app.include_router(auth.router)
     app.include_router(users.router)
