@@ -1,7 +1,7 @@
 """
 Bookings router - create, list, and cancel bookings.
 """
-from datetime import date as date_type
+from datetime import date as date_type, timedelta
 from datetime import datetime, time
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -74,6 +74,71 @@ def _refund_reason(policy: str, refund_amount: float, total_price: float) -> str
 SINGLE_DATE_TYPES = {"tour", "activity", "horse_riding", "guide"}
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
+
+
+def _get_seasonal_subtotal(
+    db: Session,
+    listing_id: int,
+    check_in: date_type,
+    check_out: date_type,
+    base_price: float,
+    is_single_date: bool,
+) -> tuple[float, bool]:
+    """
+    Return (adjusted_subtotal, seasonal_applied).
+
+    For date-range services: iterate each night and apply the best active
+    seasonal rule per night, then sum.
+    For single-date services: apply the best active seasonal rule to the
+    single check_in date.
+
+    Rule priority: highest price_multiplier wins; on a tie, surcharges are
+    summed across all tied rules.
+    """
+    from app.models.seasonal_price import SeasonalPrice
+
+    rules = (
+        db.query(SeasonalPrice)
+        .filter(
+            SeasonalPrice.listing_id == listing_id,
+            SeasonalPrice.is_active.is_(True),
+        )
+        .all()
+    )
+    if not rules:
+        nights = 1 if is_single_date else (check_out - check_in).days
+        return round(base_price * nights, 2), False
+
+    def best_for_date(dt: date_type) -> tuple[float, float]:
+        """Return (best_multiplier, combined_surcharge) for a single date."""
+        best_mult = 1.0
+        surcharge = 0.0
+        for r in rules:
+            if r.start_date <= dt <= r.end_date:
+                if r.price_multiplier > best_mult:
+                    best_mult = r.price_multiplier
+                    surcharge = r.fixed_surcharge
+                elif r.price_multiplier == best_mult:
+                    surcharge += r.fixed_surcharge
+        return best_mult, surcharge
+
+    if is_single_date:
+        mult, sur = best_for_date(check_in)
+        total = round((base_price * mult) + sur, 2)
+        applied = mult != 1.0 or sur != 0.0
+        return total, applied
+
+    # Date-range: sum each night
+    nights = (check_out - check_in).days
+    total = 0.0
+    applied = False
+    for i in range(nights):
+        night = check_in + timedelta(days=i)
+        mult, sur = best_for_date(night)
+        total += (base_price * mult) + sur
+        if mult != 1.0 or sur != 0.0:
+            applied = True
+    return round(total, 2), applied
 
 
 @router.post("/", response_model=BookingResponse)
@@ -190,6 +255,18 @@ def create_booking(
     )
     nights = 1 if is_single_date else (effective_check_out - body.check_in).days
 
+    # ── Seasonal pricing adjustment ───────────────────────────────────────
+    # The helper returns the full date-range subtotal with per-night
+    # multipliers already applied, so we override subtotal below.
+    seasonal_subtotal, seasonal_applied = _get_seasonal_subtotal(
+        db,
+        listing_id=body.listing_id,
+        check_in=body.check_in,
+        check_out=effective_check_out,
+        base_price=price_per_night,
+        is_single_date=is_single_date,
+    )
+
     # ── Car rental: merge defaults and compute insurance ──────────────────
     rental_details_final = None
     insurance_total = 0.0
@@ -220,7 +297,7 @@ def create_booking(
         rental_details_final["insurance_breakdown"] = ins_breakdown
         rental_details_final["insurance_total"] = insurance_total
 
-    subtotal = nights * price_per_night
+    subtotal = seasonal_subtotal   # already accounts for seasonal multipliers
     total_price = subtotal
     coupon_discount = 0.0
     coupon_obj = None

@@ -10,6 +10,7 @@ import { getImageUrl } from '../utils/image'
 import AvailabilityCalendar from '../components/AvailabilityCalendar'
 import AmenitiesSelector from '../components/AmenitiesSelector'
 import ListingAddonManager from '../components/ListingAddonManager'
+import { seasonalPricesApi } from '../api/seasonalPrices'
 
 function EditListing() {
   const { listingId } = useParams()
@@ -70,6 +71,20 @@ function EditListing() {
   const [insuranceOptionsState, setInsuranceOptionsState] = useState([])
   const [newInsuranceName, setNewInsuranceName] = useState('')
   const [newInsurancePrice, setNewInsurancePrice] = useState('')
+
+  // Seasonal pricing
+  const [seasonalPrices, setSeasonalPrices] = useState([])
+  const [seasonalMsg, setSeasonalMsg] = useState('')
+  const [showSeasonalForm, setShowSeasonalForm] = useState(false)
+  const [editingSeasonalId, setEditingSeasonalId] = useState(null)
+  const [seasonalForm, setSeasonalForm] = useState({
+    name: '',
+    start_date: '',
+    end_date: '',
+    price_multiplier: '1.5',
+    fixed_surcharge: '0',
+    is_active: true,
+  })
 
   useEffect(() => {
     let isMounted = true
@@ -182,6 +197,14 @@ function EditListing() {
       .get(`/dining/packages/${listingId}`)
       .then((r) => setDiningPackages(r.data || []))
       .catch(() => setDiningPackages([]))
+  }, [listingId])
+
+  useEffect(() => {
+    if (!listingId) return
+    seasonalPricesApi
+      .list(listingId)
+      .then((data) => setSeasonalPrices(data))
+      .catch(() => setSeasonalPrices([]))
   }, [listingId])
 
   async function uploadExtraImage(file) {
@@ -359,6 +382,91 @@ function EditListing() {
       setError('Failed to update listing.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // ── Seasonal price handlers ──────────────────────────────────────────────
+  function openNewSeasonalForm() {
+    setEditingSeasonalId(null)
+    setSeasonalForm({
+      name: '',
+      start_date: '',
+      end_date: '',
+      price_multiplier: '1.5',
+      fixed_surcharge: '0',
+      is_active: true,
+    })
+    setSeasonalMsg('')
+    setShowSeasonalForm(true)
+  }
+
+  function openEditSeasonalForm(sp) {
+    setEditingSeasonalId(sp.id)
+    setSeasonalForm({
+      name: sp.name,
+      start_date: sp.start_date,
+      end_date: sp.end_date,
+      price_multiplier: String(sp.price_multiplier),
+      fixed_surcharge: String(sp.fixed_surcharge),
+      is_active: sp.is_active,
+    })
+    setSeasonalMsg('')
+    setShowSeasonalForm(true)
+  }
+
+  async function saveSeasonalPrice() {
+    if (!seasonalForm.name || !seasonalForm.start_date || !seasonalForm.end_date) {
+      setSeasonalMsg('Name, start date, and end date are required.')
+      return
+    }
+    const payload = {
+      name: seasonalForm.name,
+      start_date: seasonalForm.start_date,
+      end_date: seasonalForm.end_date,
+      price_multiplier: parseFloat(seasonalForm.price_multiplier) || 1.0,
+      fixed_surcharge: parseFloat(seasonalForm.fixed_surcharge) || 0,
+      is_active: seasonalForm.is_active,
+    }
+    try {
+      if (editingSeasonalId) {
+        const updated = await seasonalPricesApi.update(editingSeasonalId, payload)
+        setSeasonalPrices((prev) =>
+          prev.map((p) => (p.id === editingSeasonalId ? updated : p)),
+        )
+      } else {
+        const created = await seasonalPricesApi.create(listingId, payload)
+        setSeasonalPrices((prev) => [...prev, created])
+      }
+      setShowSeasonalForm(false)
+      setSeasonalMsg('')
+    } catch (e) {
+      setSeasonalMsg(e.response?.data?.detail || 'Failed to save seasonal price.')
+    }
+  }
+
+  async function deleteSeasonalPrice(id) {
+    if (!window.confirm('Delete this seasonal rule?')) return
+    try {
+      await seasonalPricesApi.remove(id)
+      setSeasonalPrices((prev) => prev.filter((p) => p.id !== id))
+    } catch {
+      setSeasonalMsg('Failed to delete.')
+    }
+  }
+
+  async function toggleSeasonalActive(sp) {
+    try {
+      const updated = await seasonalPricesApi.update(sp.id, {
+        name: sp.name,
+        start_date: sp.start_date,
+        end_date: sp.end_date,
+        price_multiplier: sp.price_multiplier,
+        fixed_surcharge: sp.fixed_surcharge,
+        is_active: !sp.is_active,
+      })
+      setSeasonalPrices((prev) => prev.map((p) => (p.id === sp.id ? updated : p)))
+    } catch {
+      setSeasonalMsg('Failed to toggle.')
     }
   }
 
@@ -1780,6 +1888,251 @@ function EditListing() {
               >
                 {imageMsg}
               </p>
+            )}
+          </div>
+
+          {/* ── Seasonal Pricing ─────────────────────────────────────── */}
+          <div style={{ marginBottom: '28px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <label style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                🌤️ Seasonal Pricing
+              </label>
+              <button
+                type="button"
+                onClick={openNewSeasonalForm}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--accent)',
+                  background: 'var(--accent-light, #e0f2fe)',
+                  color: 'var(--accent)',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                }}
+              >
+                + Add Rule
+              </button>
+            </div>
+
+            <p style={{ margin: '0 0 12px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Define date ranges when a price multiplier or fixed surcharge applies automatically at booking time.
+            </p>
+
+            {/* Existing rules list */}
+            {seasonalPrices.length === 0 && (
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
+                No seasonal rules defined yet.
+              </p>
+            )}
+            {seasonalPrices.map((sp) => (
+              <div
+                key={sp.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: sp.is_active ? 'var(--bg-secondary)' : '#f9f9f9',
+                  marginBottom: '8px',
+                  opacity: sp.is_active ? 1 : 0.6,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ flex: 1, minWidth: '180px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                    {sp.name}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    {sp.start_date} → {sp.end_date}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{
+                    background: '#fef3c7', color: '#d97706',
+                    padding: '2px 8px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700,
+                  }}>
+                    {sp.price_multiplier}×
+                  </span>
+                  {sp.fixed_surcharge > 0 && (
+                    <span style={{
+                      background: '#dcfce7', color: '#16a34a',
+                      padding: '2px 8px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700,
+                    }}>
+                      +PKR {sp.fixed_surcharge}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => toggleSeasonalActive(sp)}
+                    title={sp.is_active ? 'Deactivate' : 'Activate'}
+                    style={{
+                      padding: '3px 8px', borderRadius: '6px', border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)', cursor: 'pointer', fontSize: '0.72rem',
+                    }}
+                  >
+                    {sp.is_active ? '✅ Active' : '⏸ Off'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openEditSeasonalForm(sp)}
+                    style={{
+                      padding: '3px 8px', borderRadius: '6px', border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)', cursor: 'pointer', fontSize: '0.72rem',
+                    }}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteSeasonalPrice(sp.id)}
+                    style={{
+                      padding: '3px 8px', borderRadius: '6px', border: '1px solid #fca5a5',
+                      background: '#fee2e2', color: '#dc2626', cursor: 'pointer', fontSize: '0.72rem',
+                    }}
+                  >
+                    🗑
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* Inline add/edit form */}
+            {showSeasonalForm && (
+              <div style={{
+                marginTop: '12px',
+                padding: '16px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-card)',
+              }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                  {editingSeasonalId ? 'Edit Seasonal Rule' : 'New Seasonal Rule'}
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      Rule Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Summer Peak 2026"
+                      value={seasonalForm.name}
+                      onChange={(e) => setSeasonalForm((f) => ({ ...f, name: e.target.value }))}
+                      style={{
+                        width: '100%', padding: '7px 10px', borderRadius: '6px',
+                        border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)', fontSize: '0.875rem', boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                        Start Date
+                      </label>
+                      <input
+                        type="date"
+                        value={seasonalForm.start_date}
+                        onChange={(e) => setSeasonalForm((f) => ({ ...f, start_date: e.target.value }))}
+                        style={{
+                          width: '100%', padding: '7px 10px', borderRadius: '6px',
+                          border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)', fontSize: '0.875rem', boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                        End Date
+                      </label>
+                      <input
+                        type="date"
+                        value={seasonalForm.end_date}
+                        onChange={(e) => setSeasonalForm((f) => ({ ...f, end_date: e.target.value }))}
+                        style={{
+                          width: '100%', padding: '7px 10px', borderRadius: '6px',
+                          border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)', fontSize: '0.875rem', boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                        Price Multiplier (e.g. 1.5 = +50%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        value={seasonalForm.price_multiplier}
+                        onChange={(e) => setSeasonalForm((f) => ({ ...f, price_multiplier: e.target.value }))}
+                        style={{
+                          width: '100%', padding: '7px 10px', borderRadius: '6px',
+                          border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)', fontSize: '0.875rem', boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                        Fixed Surcharge (PKR / night)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="50"
+                        value={seasonalForm.fixed_surcharge}
+                        onChange={(e) => setSeasonalForm((f) => ({ ...f, fixed_surcharge: e.target.value }))}
+                        style={{
+                          width: '100%', padding: '7px 10px', borderRadius: '6px',
+                          border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)', fontSize: '0.875rem', boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={seasonalForm.is_active}
+                      onChange={(e) => setSeasonalForm((f) => ({ ...f, is_active: e.target.checked }))}
+                    />
+                    Active (applies to new bookings immediately)
+                  </label>
+                  {seasonalMsg && (
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#dc2626' }}>{seasonalMsg}</p>
+                  )}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={saveSeasonalPrice}
+                      style={{
+                        padding: '7px 16px', borderRadius: '6px', border: 'none',
+                        background: 'var(--accent)', color: 'white', cursor: 'pointer',
+                        fontWeight: 700, fontSize: '0.85rem',
+                      }}
+                    >
+                      {editingSeasonalId ? 'Update' : 'Save Rule'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowSeasonalForm(false); setSeasonalMsg('') }}
+                      style={{
+                        padding: '7px 16px', borderRadius: '6px',
+                        border: '1px solid var(--border-color)', background: 'var(--bg-secondary)',
+                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.85rem',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
