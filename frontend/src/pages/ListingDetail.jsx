@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import { getUser, getRole, isLoggedIn } from '../utils/role'
@@ -259,6 +259,12 @@ export default function ListingDetail() {
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponApplied, setCouponApplied] = useState(false)
 
+  // ── Availability polling state ──
+  const [checkingAvailability, setCheckingAvailability] = useState(false)
+  const [availabilityWarning, setAvailabilityWarning] = useState(null)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const pollIntervalRef = useRef(null)
+
   const sidebarNights = useMemo(() => {
     if (!sidebarCheckIn || !sidebarCheckOut) return 0
     const d1 = new Date(sidebarCheckIn)
@@ -272,6 +278,76 @@ export default function ListingDetail() {
   const isAdmin = userRole === 'admin'
   const isOwner =
     currentUser && listing ? currentUser.id === listing.owner_id : false
+
+  // ── Check availability against the blocked-dates endpoint ──
+  const checkAvailability = useCallback(async (checkInDate, checkOutDate) => {
+    const ci = checkInDate || sidebarCheckIn
+    const co = checkOutDate || sidebarCheckOut
+    if (!ci || !co) return
+    setCheckingAvailability(true)
+    try {
+      const res = await api.get(`/availability/${id}/range`, {
+        params: { months_ahead: 3 },
+      })
+      const blockedDates = res.data || []
+      // Walk every date in [checkIn, checkOut) and look for a blocked one
+      let isUnavailable = false
+      const cursor = new Date(ci)
+      const end = new Date(co)
+      while (cursor < end) {
+        if (blockedDates.includes(cursor.toISOString().split('T')[0])) {
+          isUnavailable = true
+          break
+        }
+        cursor.setDate(cursor.getDate() + 1)
+      }
+      if (isUnavailable) {
+        setAvailabilityWarning(
+          '⚠️ The selected dates are no longer available. Please choose different dates.'
+        )
+      } else {
+        setAvailabilityWarning(null)
+        // Refresh room availability for hotels/camping
+        if (listing?.service_type &&
+            ['hotel', 'camping', 'resort'].includes(listing.service_type)) {
+          const params = new URLSearchParams({ check_in: ci, check_out: co })
+          api.get(`/rooms/hotel/${id}/availability?${params.toString()}`)
+            .then(r => {
+              const roomData = r.data || []
+              setRooms(roomData)
+              if (selectedRoom) {
+                const updated = roomData.find(rm => rm.id === selectedRoom.id)
+                if (updated && updated.available_rooms <= 0) setSelectedRoom(null)
+                else if (updated) setSelectedRoom(updated)
+              }
+            })
+            .catch(() => {})
+        }
+      }
+    } catch (e) {
+      console.error('Availability check failed:', e)
+    } finally {
+      setCheckingAvailability(false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, sidebarCheckIn, sidebarCheckOut, listing?.service_type, selectedRoom?.id])
+
+  // ── Auto-poll every 30 s when both dates are selected ──
+  useEffect(() => {
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+    if (!sidebarCheckIn || !sidebarCheckOut || !autoRefresh) return
+    pollIntervalRef.current = setInterval(() => {
+      checkAvailability(sidebarCheckIn, sidebarCheckOut)
+    }, 30000)
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+    }
+  }, [sidebarCheckIn, sidebarCheckOut, autoRefresh, checkAvailability])
+
+  // Reset warning when dates change so stale warnings don't linger
+  useEffect(() => {
+    setAvailabilityWarning(null)
+  }, [sidebarCheckIn, sidebarCheckOut])
 
   useEffect(() => {
     fetchAll()
@@ -692,6 +768,8 @@ export default function ListingDetail() {
       width: '100%',
       overflowX: 'hidden'
     }}>
+      {/* Spinner keyframe for availability check button */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       {/* HERO — full viewport width */}
       <div style={{
         width: '100%',
@@ -1863,6 +1941,107 @@ export default function ListingDetail() {
                 </div>
               )}
 
+              {/* ── Availability check button + auto-refresh toggle ── */}
+              {checkIn && checkOut && (
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{
+                    display: 'flex', gap: '8px', alignItems: 'center'
+                  }}>
+                    <button
+                      onClick={() =>
+                        checkAvailability(checkIn, checkOut)
+                      }
+                      disabled={checkingAvailability}
+                      style={{
+                        flex: 1,
+                        padding: '8px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        background: checkingAvailability
+                          ? 'var(--bg-secondary)'
+                          : 'var(--bg-card)',
+                        color: 'var(--text-secondary)',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        cursor: checkingAvailability
+                          ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {checkingAvailability ? (
+                        <>
+                          <span style={{
+                            display: 'inline-block',
+                            animation: 'spin 1s linear infinite',
+                            fontSize: '0.85rem'
+                          }}>⏳</span>
+                          Checking...
+                        </>
+                      ) : (
+                        <>🔄 Check Availability</>
+                      )}
+                    </button>
+                    {/* Auto-refresh toggle */}
+                    <button
+                      title={
+                        autoRefresh
+                          ? 'Auto-refresh ON — click to disable'
+                          : 'Auto-refresh OFF — click to enable'
+                      }
+                      onClick={() => setAutoRefresh(v => !v)}
+                      style={{
+                        flexShrink: 0,
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        background: autoRefresh
+                          ? '#dcfce7'
+                          : 'var(--bg-secondary)',
+                        color: autoRefresh ? '#16a34a' : 'var(--text-muted)',
+                        fontWeight: 700,
+                        fontSize: '0.72rem',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {autoRefresh ? '● Auto' : '○ Auto'}
+                    </button>
+                  </div>
+
+                  {/* Availability warning / success */}
+                  {availabilityWarning ? (
+                    <div style={{
+                      marginTop: '8px',
+                      background: '#fee2e2',
+                      color: '#dc2626',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      lineHeight: 1.4,
+                    }}>
+                      {availabilityWarning}
+                    </div>
+                  ) : checkIn && checkOut && !checkingAvailability ? (
+                    <div style={{
+                      marginTop: '8px',
+                      background: '#dcfce7',
+                      color: '#16a34a',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                    }}>
+                      ✅ Selected dates are available
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
               {/* Selected room summary in sidebar */}
               {['hotel','camping'].includes(
                 listing?.service_type
@@ -2087,6 +2266,7 @@ export default function ListingDetail() {
                   !checkIn ||
                   !checkOut ||
                   checkOut <= checkIn ||
+                  !!availabilityWarning ||
                   (
                     ['hotel', 'camping'].includes(
                       listing ? listing.service_type : ''
@@ -2103,21 +2283,24 @@ export default function ListingDetail() {
                   background: (
                     !checkIn ||
                     !checkOut ||
-                    checkOut <= checkIn
+                    checkOut <= checkIn ||
+                    !!availabilityWarning
                   )
                     ? 'var(--bg-secondary)'
                     : 'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
                   color: (
                     !checkIn ||
                     !checkOut ||
-                    checkOut <= checkIn
+                    checkOut <= checkIn ||
+                    !!availabilityWarning
                   ) ? 'var(--text-muted)' : 'white',
                   fontWeight: '800',
                   fontSize: '1rem',
                   cursor: (
                     !checkIn ||
                     !checkOut ||
-                    checkOut <= checkIn
+                    checkOut <= checkIn ||
+                    !!availabilityWarning
                   ) ? 'not-allowed' : 'pointer',
                   marginBottom: '8px',
                   letterSpacing: '0.01em',
@@ -2128,6 +2311,8 @@ export default function ListingDetail() {
                   ? 'Select Check-in Date'
                   : !checkOut
                   ? 'Select Check-out Date'
+                  : availabilityWarning
+                  ? '⚠️ Dates Unavailable'
                   : (
                       ['hotel', 'camping'].includes(
                         listing ? listing.service_type : ''
