@@ -1,240 +1,286 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import useWindowSize from '../hooks/useWindowSize'
 
-const SERVICE_COLORS = {
-  hotel: '#2563eb',
-  tour: '#16a34a',
-  transport: '#d97706',
-  activity: '#7c3aed',
-  restaurant: '#e11d48',
-  car_rental: '#0369a1',
-  bike_rental: '#0891b2',
-  jeep_safari: '#92400e',
-  boat_trip: '#1d4ed8',
-  horse_riding: '#7c2d12',
-  guide: '#059669',
-  camping: '#15803d',
-  medical: '#dc2626',
+function toMonthLabel(year, month) {
+  return new Date(year, month - 1, 1).toLocaleDateString('en-PK', {
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
-const SERVICE_LABELS = {
-  hotel: '🏨 Hotel',
-  tour: '🏔️ Tour',
-  transport: '🚐 Transport',
-  activity: '🎯 Activity',
-  restaurant: '🍽️ Restaurant',
-  car_rental: '🚗 Car',
-  bike_rental: '🚲 Bike',
-  jeep_safari: '🚙 Jeep',
-  boat_trip: '🚢 Boat',
-  horse_riding: '🐴 Horse',
-  guide: '🧭 Guide',
-  camping: '🏕️ Camping',
-  medical: '🏥 Medical',
+function formatPKR(v) {
+  return `PKR ${(Number(v) || 0).toLocaleString('en-PK')}`
+}
+
+function formatDate(date) {
+  if (!date) return '—'
+  return new Date(date).toLocaleDateString('en-PK', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+function parseISODate(isoDate) {
+  const [y, m, d] = (isoDate || '').split('-').map((v) => Number(v))
+  if (!y || !m || !d) return null
+  return new Date(y, m - 1, d)
+}
+
+function expandBookingDays(checkIn, checkOut) {
+  const start = parseISODate(checkIn)
+  const end = parseISODate(checkOut)
+  if (!start || !end) return []
+  const days = []
+  const cursor = new Date(start)
+  while (cursor < end) {
+    const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(
+      cursor.getDate(),
+    ).padStart(2, '0')}`
+    days.push(key)
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  if (days.length === 0) days.push(checkIn)
+  return days
 }
 
 export default function ProviderDashboard() {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview')
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
 
+  const [activeTab, setActiveTab] = useState('overview')
+  const [loadingDashboard, setLoadingDashboard] = useState(true)
+  const [dashboardData, setDashboardData] = useState(null)
+
+  const [calendarLoading, setCalendarLoading] = useState(false)
+  const [calendarError, setCalendarError] = useState('')
+  const today = new Date()
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1)
+  const [calendarBookings, setCalendarBookings] = useState([])
+
+  const [payoutLoading, setPayoutLoading] = useState(false)
+  const [payoutError, setPayoutError] = useState('')
+  const [payoutSuccess, setPayoutSuccess] = useState('')
+  const [payoutAmount, setPayoutAmount] = useState('')
+  const [payoutNotes, setPayoutNotes] = useState('')
+  const [availableBalance, setAvailableBalance] = useState(0)
+  const [payoutRequests, setPayoutRequests] = useState([])
+
   useEffect(() => {
-    api
-      .get('/bookings/provider/dashboard')
-      .then((r) => setData(r.data))
-      .catch(console.error)
-      .finally(() => setLoading(false))
+    const loadDashboard = async () => {
+      setLoadingDashboard(true)
+      try {
+        const res = await api.get('/bookings/provider/dashboard')
+        setDashboardData(res.data)
+      } catch (error) {
+        console.error('Failed to load provider dashboard', error)
+      } finally {
+        setLoadingDashboard(false)
+      }
+    }
+    loadDashboard()
   }, [])
 
-  function formatPKR(v) {
-    const n = v || 0
-    if (n >= 1000000) return `PKR ${(n / 1000000).toFixed(1)}M`
-    if (n >= 1000) return `PKR ${(n / 1000).toFixed(0)}K`
-    return `PKR ${Math.round(n).toLocaleString('en-PK')}`
+  async function fetchCalendar(year = selectedYear, month = selectedMonth) {
+    setCalendarLoading(true)
+    setCalendarError('')
+    try {
+      const res = await api.get(`/bookings/provider/calendar?year=${year}&month=${month}`)
+      setCalendarBookings(Array.isArray(res.data?.bookings) ? res.data.bookings : [])
+    } catch (error) {
+      console.error(error)
+      setCalendarError(error.response?.data?.detail || 'Failed to load monthly bookings')
+    } finally {
+      setCalendarLoading(false)
+    }
   }
 
-  function formatDate(d) {
-    if (!d) return '—'
-    return new Date(d).toLocaleDateString('en-PK', { day: 'numeric', month: 'short' })
+  async function fetchPayoutData() {
+    setPayoutLoading(true)
+    setPayoutError('')
+    try {
+      const res = await api.get('/payments/payout-requests')
+      setAvailableBalance(Number(res.data?.available_balance || 0))
+      setPayoutRequests(Array.isArray(res.data?.requests) ? res.data.requests : [])
+    } catch (error) {
+      console.error(error)
+      setPayoutError(error.response?.data?.detail || 'Failed to load payout data')
+    } finally {
+      setPayoutLoading(false)
+    }
   }
 
-  function timeAgo(d) {
-    if (!d) return ''
-    const diff = Date.now() - new Date(d).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 60) return `${mins}m ago`
-    const hrs = Math.floor(mins / 60)
-    if (hrs < 24) return `${hrs}h ago`
-    return `${Math.floor(hrs / 24)}d ago`
+  useEffect(() => {
+    if (activeTab === 'calendar') {
+      fetchCalendar()
+    }
+    if (activeTab === 'payouts') {
+      fetchPayoutData()
+    }
+  }, [activeTab])
+
+  const groupedByDay = useMemo(() => {
+    const map = {}
+    const monthPrefix = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`
+    for (const booking of calendarBookings) {
+      for (const day of expandBookingDays(booking.check_in, booking.check_out)) {
+        if (!day.startsWith(monthPrefix)) continue
+        if (!map[day]) map[day] = []
+        map[day].push(booking)
+      }
+    }
+    return Object.entries(map).sort((a, b) => (a[0] > b[0] ? 1 : -1))
+  }, [calendarBookings, selectedMonth, selectedYear])
+
+  const tabItems = [
+    { key: 'overview', label: '📊 Overview' },
+    { key: 'listings', label: '🏨 Listings' },
+    { key: 'calendar', label: '📅 All Bookings Calendar' },
+    { key: 'payouts', label: '💸 Payouts' },
+  ]
+
+  function prevMonth() {
+    let month = selectedMonth - 1
+    let year = selectedYear
+    if (month < 1) {
+      month = 12
+      year -= 1
+    }
+    setSelectedMonth(month)
+    setSelectedYear(year)
+    fetchCalendar(year, month)
   }
 
-  if (loading) {
+  function nextMonth() {
+    let month = selectedMonth + 1
+    let year = selectedYear
+    if (month > 12) {
+      month = 1
+      year += 1
+    }
+    setSelectedMonth(month)
+    setSelectedYear(year)
+    fetchCalendar(year, month)
+  }
+
+  async function requestPayout() {
+    setPayoutError('')
+    setPayoutSuccess('')
+
+    const amount = Number(payoutAmount)
+    if (!amount || amount <= 0) {
+      setPayoutError('Please enter a valid amount.')
+      return
+    }
+    if (amount > availableBalance) {
+      setPayoutError('Amount cannot exceed your available balance.')
+      return
+    }
+
+    try {
+      await api.post('/payments/request-payout', {
+        amount,
+        notes: payoutNotes.trim() || null,
+      })
+      setPayoutAmount('')
+      setPayoutNotes('')
+      setPayoutSuccess('Payout request submitted successfully.')
+      fetchPayoutData()
+    } catch (error) {
+      console.error(error)
+      setPayoutError(error.response?.data?.detail || 'Failed to submit payout request')
+    }
+  }
+
+  if (loadingDashboard) {
     return (
       <div
         style={{
           minHeight: '100vh',
-          background: 'var(--bg-primary)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          color: 'var(--text-secondary)',
         }}
       >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📊</div>
-          Loading dashboard...
-        </div>
+        Loading provider dashboard...
       </div>
     )
   }
 
-  if (!data) return null
+  if (!dashboardData) {
+    return (
+      <div style={{ padding: 24, color: 'var(--danger)' }}>
+        Failed to load dashboard. Please refresh.
+      </div>
+    )
+  }
 
-  const { summary, recent_bookings, listing_stats, monthly_trend } = data
-  const s = summary
-
-  const TABS = [
-    { key: 'overview', label: '📊 Overview' },
-    { key: 'bookings', label: '📅 Bookings' },
-    { key: 'listings', label: '🏨 Listings' },
-  ]
-
-  const maxRev = Math.max(...monthly_trend.map((m) => m.revenue || 0), 1)
-
-  const kpiCards = [
-    {
-      icon: '💰',
-      label: 'Total Revenue',
-      value: formatPKR(s.total_revenue),
-      sub: `${formatPKR(s.net_earnings)} net earnings`,
-      color: '#16a34a',
-      change: s.revenue_change,
-    },
-    {
-      icon: '📅',
-      label: 'This Month',
-      value: formatPKR(s.month_revenue),
-      sub: `${s.month_bookings} bookings`,
-      color: '#2563eb',
-      change: s.revenue_change,
-    },
-    {
-      icon: '🏨',
-      label: 'My Services',
-      value: s.total_listings,
-      sub: `${s.total_bookings} total bookings`,
-      color: '#d97706',
-      change: null,
-    },
-    {
-      icon: '⭐',
-      label: 'Avg Rating',
-      value: s.avg_rating > 0 ? `${s.avg_rating}/5` : 'No reviews',
-      sub: `${s.total_reviews} reviews`,
-      color: '#f59e0b',
-      change: null,
-    },
+  const { summary, recent_bookings, listing_stats } = dashboardData
+  const topCards = [
+    { label: 'Total Revenue', value: formatPKR(summary.total_revenue), icon: '💰' },
+    { label: 'Net Earnings', value: formatPKR(summary.net_earnings), icon: '📈' },
+    { label: 'Active Listings', value: summary.active_listings || summary.total_listings, icon: '🏨' },
+    { label: 'Total Bookings', value: summary.total_bookings, icon: '📅' },
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: '48px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 40 }}>
       <div
         style={{
           background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
-          padding: '32px 16px 80px',
+          color: 'white',
+          padding: '28px 16px 24px',
         }}
       >
         <div
           style={{
-            maxWidth: '1100px',
+            maxWidth: 1100,
             margin: '0 auto',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'flex-end',
+            alignItems: 'center',
             flexWrap: 'wrap',
-            gap: '16px',
+            gap: 12,
           }}
         >
           <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'rgba(255,255,255,0.15)',
-                borderRadius: '999px',
-                padding: '6px 16px',
-                marginBottom: '12px',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                color: 'rgba(255,255,255,0.9)',
-              }}
-            >
-              📊 Provider Dashboard
-            </div>
-            <h1
-              style={{
-                color: 'white',
-                margin: '0 0 6px',
-                fontSize: isMobile ? '1.5rem' : '2rem',
-                fontWeight: 800,
-              }}
-            >
-              Welcome Back! 👋
-            </h1>
-            <p style={{ color: 'rgba(255,255,255,0.7)', margin: 0, fontSize: '0.9rem' }}>
-              {s.total_listings} services · {s.total_bookings} bookings · ⭐ {s.avg_rating}/5
+            <h1 style={{ margin: 0, fontSize: isMobile ? '1.35rem' : '1.8rem' }}>Provider Dashboard</h1>
+            <p style={{ margin: '6px 0 0', opacity: 0.9, fontSize: '0.92rem' }}>
+              {summary.total_listings} listings • {summary.total_bookings} bookings
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => navigate('/add-listing')}
               style={{
+                border: 'none',
+                borderRadius: 8,
+                padding: '9px 14px',
                 background: 'white',
                 color: '#1e3a5f',
-                border: 'none',
-                borderRadius: '10px',
-                padding: '9px 16px',
                 cursor: 'pointer',
                 fontWeight: 700,
-                fontSize: '0.875rem',
               }}
             >
-              ➕ Add Service
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/create-event')}
-              style={{
-                background: 'rgba(255,255,255,0.15)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                color: 'white',
-                borderRadius: '10px',
-                padding: '9px 16px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.875rem',
-              }}
-            >
-              🎪 Create Event
+              ➕ Add Listing
             </button>
             <button
               type="button"
               onClick={() => navigate('/earnings-chart')}
               style={{
-                background: 'rgba(255,255,255,0.15)',
-                border: '1px solid rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.35)',
+                borderRadius: 8,
+                padding: '9px 14px',
+                background: 'transparent',
                 color: 'white',
-                borderRadius: '10px',
-                padding: '9px 16px',
                 cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.875rem',
+                fontWeight: 700,
               }}
             >
               📈 Earnings Chart
@@ -243,303 +289,47 @@ export default function ProviderDashboard() {
         </div>
       </div>
 
-      <div style={{ maxWidth: '1100px', margin: '-56px auto 0', padding: '0 16px' }}>
+      <div style={{ maxWidth: 1100, margin: '18px auto 0', padding: '0 16px' }}>
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-            gap: '12px',
-            marginBottom: '20px',
-            position: 'relative',
-            zIndex: 2,
+            gap: 12,
+            marginBottom: 16,
           }}
         >
-          {kpiCards.map((card) => (
+          {topCards.map((card) => (
             <div
               key={card.label}
               style={{
                 background: 'var(--bg-card)',
-                borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--border-color)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                padding: '18px',
-                borderTop: `4px solid ${card.color}`,
+                borderRadius: 12,
+                padding: 14,
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  marginBottom: '8px',
-                }}
-              >
-                <div style={{ fontSize: '1.3rem' }}>{card.icon}</div>
-                {card.change !== null && (
-                  <span
-                    style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: card.change >= 0 ? '#16a34a' : '#dc2626',
-                      background: card.change >= 0 ? '#dcfce7' : '#fee2e2',
-                      padding: '2px 6px',
-                      borderRadius: '999px',
-                    }}
-                  >
-                    {card.change >= 0 ? '↑' : '↓'}
-                    {Math.abs(card.change)}%
-                  </span>
-                )}
-              </div>
-              <div
-                style={{
-                  fontSize: isMobile ? '1.2rem' : '1.4rem',
-                  fontWeight: 800,
-                  color: card.color,
-                  lineHeight: 1,
-                  marginBottom: '4px',
-                }}
-              >
-                {card.value}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>{card.label}</div>
-              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>{card.sub}</div>
+              <div style={{ fontSize: '1.25rem' }}>{card.icon}</div>
+              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{card.value}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{card.label}</div>
             </div>
           ))}
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr',
-            gap: '16px',
-            marginBottom: '16px',
-          }}
-        >
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--border-color)',
-              boxShadow: 'var(--shadow-sm)',
-              padding: '24px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '16px',
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                📈 6-Month Revenue
-              </h3>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Net after 10% commission</span>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-end',
-                gap: '8px',
-                height: '120px',
-                paddingBottom: '24px',
-                position: 'relative',
-              }}
-            >
-              {[0.25, 0.5, 0.75, 1].map((pct) => (
-                <div
-                  key={pct}
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    bottom: 24 + 96 * pct,
-                    borderTop: '1px dashed var(--border-color)',
-                    zIndex: 0,
-                  }}
-                />
-              ))}
-              {monthly_trend.map((m, i) => {
-                const pct = maxRev > 0 ? m.revenue / maxRev : 0
-                const barH = Math.max(4, 96 * pct)
-                const isLatest = i === monthly_trend.length - 1
-                return (
-                  <div
-                    key={i}
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      height: '100%',
-                      zIndex: 1,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '100%',
-                        height: barH,
-                        background: isLatest ? '#0ea5e9' : '#0ea5e930',
-                        borderRadius: '4px 4px 0 0',
-                        transition: 'height 0.4s ease',
-                      }}
-                      title={`${m.month}: ${formatPKR(m.revenue)}`}
-                    />
-                    <div
-                      style={{
-                        fontSize: '0.65rem',
-                        color: isLatest ? '#0ea5e9' : 'var(--text-muted)',
-                        marginTop: '4px',
-                        fontWeight: isLatest ? 700 : 400,
-                      }}
-                    >
-                      {m.month}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '8px',
-                marginTop: '8px',
-                paddingTop: '12px',
-                borderTop: '1px solid var(--border-color)',
-              }}
-            >
-              {[
-                { label: 'Gross Revenue', value: formatPKR(s.total_revenue), color: '#0ea5e9' },
-                { label: 'Commission (10%)', value: formatPKR(s.total_revenue * 0.1), color: '#e11d48' },
-                { label: 'Net Earnings', value: formatPKR(s.net_earnings), color: '#16a34a' },
-              ].map((item) => (
-                <div key={item.label} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                    {item.label}
-                  </div>
-                  <div style={{ fontWeight: 800, color: item.color, fontSize: '0.875rem' }}>{item.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div
-              style={{
-                background: 'var(--bg-card)',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border-color)',
-                boxShadow: 'var(--shadow-sm)',
-                padding: '18px',
-                borderLeft: '4px solid #7c3aed',
-              }}
-            >
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                🎪 Events Revenue
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#7c3aed', marginBottom: '4px' }}>
-                {formatPKR(s.event_revenue)}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{s.total_events} events hosted</div>
-              <button
-                type="button"
-                onClick={() => navigate('/event-analytics')}
-                style={{
-                  marginTop: '8px',
-                  background: '#7c3aed18',
-                  border: '1px solid #7c3aed44',
-                  color: '#7c3aed',
-                  borderRadius: '6px',
-                  padding: '5px 12px',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                }}
-              >
-                View Event Stats →
-              </button>
-            </div>
-            {listing_stats.length > 0 && (
-              <div
-                style={{
-                  background: 'var(--bg-card)',
-                  borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--shadow-sm)',
-                  padding: '18px',
-                  flex: 1,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted)',
-                    marginBottom: '10px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  🏆 Top Service
-                </div>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    color: 'var(--text-primary)',
-                    marginBottom: '3px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {listing_stats[0].title}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                  {listing_stats[0].bookings_count} bookings
-                  {listing_stats[0].avg_rating > 0 ? ` · ⭐ ${listing_stats[0].avg_rating}` : ''}
-                </div>
-                <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#16a34a' }}>
-                  {formatPKR(listing_stats[0].net_earnings)}
-                  <span style={{ fontSize: '0.72rem', fontWeight: 400, color: 'var(--text-muted)', marginLeft: '4px' }}>
-                    net
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            marginBottom: '16px',
-            borderBottom: '2px solid var(--border-color)',
-            paddingBottom: '0',
-          }}
-        >
-          {TABS.map((tab) => (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {tabItems.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
               style={{
-                padding: '10px 16px',
-                borderRadius: '8px 8px 0 0',
-                border: 'none',
-                background: 'transparent',
+                border: '1px solid var(--border-color)',
+                borderRadius: 999,
+                padding: '8px 14px',
                 cursor: 'pointer',
-                fontWeight: activeTab === tab.key ? 700 : 400,
-                fontSize: '0.875rem',
-                color: activeTab === tab.key ? '#0ea5e9' : 'var(--text-secondary)',
-                borderBottom: activeTab === tab.key ? '2px solid #0ea5e9' : '2px solid transparent',
-                marginBottom: '-2px',
-                transition: 'all 0.15s',
+                background: activeTab === tab.key ? '#0ea5e9' : 'var(--bg-card)',
+                color: activeTab === tab.key ? 'white' : 'var(--text-secondary)',
+                fontWeight: 700,
+                fontSize: '0.85rem',
               }}
             >
               {tab.label}
@@ -551,60 +341,35 @@ export default function ProviderDashboard() {
           <div
             style={{
               background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
               border: '1px solid var(--border-color)',
-              boxShadow: 'var(--shadow-sm)',
+              borderRadius: 12,
               overflow: 'hidden',
             }}
           >
             <div
               style={{
-                padding: '16px 20px',
+                padding: '14px 16px',
                 borderBottom: '1px solid var(--border-color)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
               }}
             >
-              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                🕐 Recent Bookings
-              </h3>
-              <button
-                type="button"
-                onClick={() => setActiveTab('bookings')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--accent)',
-                  fontWeight: 600,
-                  fontSize: '0.82rem',
-                }}
-              >
-                View All →
-              </button>
+              Recent Bookings
             </div>
-            {recent_bookings.length === 0 ? (
-              <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                No bookings yet. Add your services to start receiving bookings!
-              </div>
-            ) : (
+            {recent_bookings?.length ? (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg-secondary)' }}>
-                      {['Guest', 'Service', 'Dates', 'Amount', 'Status', 'When'].map((h) => (
+                      {['Guest', 'Listing', 'Check-in', 'Check-out', 'Gross', 'Net'].map((h) => (
                         <th
                           key={h}
                           style={{
-                            padding: '10px 14px',
                             textAlign: 'left',
-                            fontWeight: 700,
-                            color: 'var(--text-muted)',
+                            padding: '9px 12px',
                             fontSize: '0.72rem',
+                            color: 'var(--text-muted)',
                             textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            whiteSpace: 'nowrap',
                           }}
                         >
                           {h}
@@ -613,422 +378,395 @@ export default function ProviderDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recent_bookings.map((booking, i) => (
-                      <tr key={booking.id || i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '12px 14px' }}>
-                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{booking.guest_name}</div>
-                          {booking.group_size > 1 && (
-                            <div style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>
-                              👥 Group of {booking.group_size}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding: '12px 14px' }}>
-                          <div
-                            style={{
-                              display: 'inline-block',
-                              background: `${SERVICE_COLORS[booking.service_type] || '#6b7280'}18`,
-                              color: SERVICE_COLORS[booking.service_type] || '#6b7280',
-                              padding: '2px 8px',
-                              borderRadius: '999px',
-                              fontSize: '0.72rem',
-                              fontWeight: 600,
-                              marginBottom: '3px',
-                            }}
-                          >
-                            {SERVICE_LABELS[booking.service_type] || booking.service_type}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: '0.8rem',
-                              color: 'var(--text-primary)',
-                              maxWidth: '150px',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {booking.listing_title}
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px 14px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                          {formatDate(booking.check_in)}
-                          {booking.check_out && <span> → {formatDate(booking.check_out)}</span>}
-                        </td>
-                        <td style={{ padding: '12px 14px' }}>
-                          <div style={{ fontWeight: 700, color: '#16a34a' }}>{formatPKR(booking.net_amount)}</div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                            gross: {formatPKR(booking.total_price)}
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px 14px' }}>
-                          <span
-                            style={{
-                              background: booking.status === 'active' ? '#dcfce7' : '#fee2e2',
-                              color: booking.status === 'active' ? '#16a34a' : '#dc2626',
-                              padding: '3px 8px',
-                              borderRadius: '999px',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                            }}
-                          >
-                            {booking.status === 'active' ? '✅ Active' : '❌ ' + (booking.status || '')}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                          {timeAgo(booking.created_at)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'bookings' && (
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--border-color)',
-              boxShadow: 'var(--shadow-sm)',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                📅 All Recent Bookings
-                <span style={{ marginLeft: '8px', fontSize: '0.8rem', fontWeight: 400, color: 'var(--text-muted)' }}>
-                  ({recent_bookings.length} shown)
-                </span>
-              </h3>
-            </div>
-            {isMobile ? (
-              <div style={{ padding: '12px' }}>
-                {recent_bookings.map((booking, i) => (
-                  <div
-                    key={booking.id || i}
-                    style={{
-                      background: 'var(--bg-secondary)',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--border-color)',
-                      padding: '14px',
-                      marginBottom: '10px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                        {booking.guest_name}
-                      </div>
-                      <span
-                        style={{
-                          background: booking.status === 'active' ? '#dcfce7' : '#fee2e2',
-                          color: booking.status === 'active' ? '#16a34a' : '#dc2626',
-                          padding: '2px 8px',
-                          borderRadius: '999px',
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {booking.status === 'active' ? '✅' : '❌'} {booking.status}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                      {booking.listing_title}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {formatDate(booking.check_in)} → {formatDate(booking.check_out)}
-                      </div>
-                      <div style={{ fontWeight: 800, color: '#16a34a' }}>{formatPKR(booking.net_amount)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--bg-secondary)' }}>
-                      {['Guest', 'Service', 'Check-In', 'Check-Out', 'Gross', 'Net (90%)', 'Status'].map((h) => (
-                        <th
-                          key={h}
-                          style={{
-                            padding: '10px 14px',
-                            textAlign: 'left',
-                            fontWeight: 700,
-                            color: 'var(--text-muted)',
-                            fontSize: '0.72rem',
-                            textTransform: 'uppercase',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recent_bookings.map((booking, i) => (
-                      <tr key={booking.id || i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {recent_bookings.map((booking) => (
+                      <tr key={booking.id} style={{ borderTop: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 600 }}>
                           {booking.guest_name}
-                          {booking.group_size > 1 && (
-                            <span style={{ marginLeft: '6px', color: 'var(--accent)', fontSize: '0.72rem' }}>
-                              👥{booking.group_size}
-                            </span>
-                          )}
                         </td>
-                        <td
-                          style={{
-                            padding: '11px 14px',
-                            color: 'var(--text-secondary)',
-                            maxWidth: '140px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {booking.listing_title}
-                        </td>
-                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                          {formatDate(booking.check_in)}
-                        </td>
-                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                          {formatDate(booking.check_out)}
-                        </td>
-                        <td style={{ padding: '11px 14px' }}>{formatPKR(booking.total_price)}</td>
-                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#16a34a' }}>
-                          {formatPKR(booking.net_amount)}
-                        </td>
-                        <td style={{ padding: '11px 14px' }}>
-                          <span
-                            style={{
-                              background: booking.status === 'active' ? '#dcfce7' : '#fee2e2',
-                              color: booking.status === 'active' ? '#16a34a' : '#dc2626',
-                              padding: '3px 8px',
-                              borderRadius: '999px',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                            }}
-                          >
-                            {booking.status === 'active' ? '✅ Active' : '❌ ' + (booking.status || '')}
-                          </span>
-                        </td>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{booking.listing_title}</td>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{formatDate(booking.check_in)}</td>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{formatDate(booking.check_out)}</td>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{formatPKR(booking.total_price)}</td>
+                        <td style={{ padding: '10px 12px', color: '#16a34a', fontWeight: 700 }}>{formatPKR(booking.net_amount)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            ) : (
+              <div style={{ padding: 24, color: 'var(--text-secondary)' }}>No recent bookings yet.</div>
             )}
           </div>
         )}
 
         {activeTab === 'listings' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {listing_stats.length === 0 ? (
-              <div
-                style={{
-                  background: 'var(--bg-card)',
-                  borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--border-color)',
-                  padding: '60px 20px',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🏨</div>
-                <h3 style={{ margin: '0 0 8px', color: 'var(--text-primary)' }}>No services yet</h3>
-                <p style={{ color: 'var(--text-secondary)', margin: '0 0 20px' }}>
-                  Add your first service to start earning!
-                </p>
-                <button
-                  type="button"
-                  onClick={() => navigate('/add-listing')}
+          <div style={{ display: 'grid', gap: 10 }}>
+            {listing_stats?.length ? (
+              listing_stats.map((listing) => (
+                <div
+                  key={listing.id}
                   style={{
-                    background: 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '11px 24px',
-                    cursor: 'pointer',
-                    fontWeight: 700,
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 12,
+                    padding: 14,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 12,
+                    alignItems: 'center',
                   }}
                 >
-                  ➕ Add First Service
-                </button>
-              </div>
-            ) : (
-              listing_stats.map((listing, i) => {
-                const color = SERVICE_COLORS[listing.service_type] || '#0ea5e9'
-                return (
-                  <div
-                    key={listing.id}
-                    style={{
-                      background: 'var(--bg-card)',
-                      borderRadius: 'var(--radius-lg)',
-                      border: '1px solid var(--border-color)',
-                      boxShadow: 'var(--shadow-sm)',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      alignItems: 'stretch',
-                    }}
-                  >
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     <div
                       style={{
-                        width: isMobile ? 80 : 100,
-                        flexShrink: 0,
-                        background: `${color}18`,
+                        width: 54,
+                        height: 54,
+                        borderRadius: 10,
+                        background: 'var(--bg-secondary)',
+                        overflow: 'hidden',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '2rem',
-                        overflow: 'hidden',
                       }}
                     >
                       {listing.image_url ? (
                         <img
                           src={getImageUrl(listing.image_url)}
                           alt={listing.title}
-                          onError={(e) => {
-                            e.target.style.display = 'none'
-                          }}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', minHeight: 80 }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       ) : (
-                        <span>{SERVICE_LABELS[listing.service_type]?.split(' ')[0] || '🏢'}</span>
+                        '🏨'
                       )}
                     </div>
-                    <div
-                      style={{
-                        flex: 1,
-                        padding: '14px 18px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: '12px',
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontWeight: 700,
-                            fontSize: '0.95rem',
-                            color: 'var(--text-primary)',
-                            marginBottom: '3px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {i === 0 && <span style={{ marginRight: '6px', fontSize: '0.9rem' }}>🏆</span>}
-                          {listing.title}
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                          📍 {listing.location} · PKR {listing.price_per_night?.toLocaleString('en-PK')}/night
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          <span
-                            style={{
-                              background: `${color}18`,
-                              color,
-                              padding: '2px 8px',
-                              borderRadius: '999px',
-                              fontSize: '0.72rem',
-                              fontWeight: 600,
-                            }}
-                          >
-                            {SERVICE_LABELS[listing.service_type] || listing.service_type}
-                          </span>
-                          {listing.avg_rating > 0 && (
-                            <span
-                              style={{
-                                background: '#fef3c7',
-                                color: '#d97706',
-                                padding: '2px 8px',
-                                borderRadius: '999px',
-                                fontSize: '0.72rem',
-                                fontWeight: 600,
-                              }}
-                            >
-                              ⭐ {listing.avg_rating} ({listing.review_count})
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '16px', flexShrink: 0 }}>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#2563eb' }}>
-                            {listing.bookings_count}
-                          </div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>bookings</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#16a34a' }}>
-                            {formatPKR(listing.net_earnings)}
-                          </div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>net earned</div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/listing/${listing.id}`)}
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '7px',
-                            border: '1px solid var(--border-color)',
-                            background: 'var(--bg-secondary)',
-                            color: 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                          }}
-                        >
-                          👁️ View
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/edit-listing/${listing.id}`)}
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '7px',
-                            border: '1px solid var(--accent)',
-                            background: 'var(--accent-light)',
-                            color: 'var(--accent)',
-                            cursor: 'pointer',
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                          }}
-                        >
-                          ✏️ Edit
-                        </button>
-                        {listing.service_type === 'hotel' && (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/hotel/${listing.id}/rooms`)}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: '7px',
-                              border: '1px solid #7c3aed',
-                              background: '#ede9fe',
-                              color: '#7c3aed',
-                              cursor: 'pointer',
-                              fontSize: '0.78rem',
-                              fontWeight: 600,
-                            }}
-                          >
-                            🛏️ Rooms
-                          </button>
-                        )}
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{listing.title}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        {listing.location} • {listing.bookings_count} bookings
                       </div>
                     </div>
                   </div>
-                )
-              })
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                    <div style={{ color: '#16a34a', fontWeight: 700 }}>{formatPKR(listing.net_earnings)}</div>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/edit-listing/${listing.id}`)}
+                      style={{
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 8,
+                        padding: '7px 12px',
+                        background: 'var(--bg-secondary)',
+                        cursor: 'pointer',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ color: 'var(--text-secondary)' }}>No listings yet.</div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'calendar' && (
+          <div
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 12,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '14px 16px',
+                borderBottom: '1px solid var(--border-color)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 8,
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>📅 All Bookings Calendar (Monthly)</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Grouped by each day in {toMonthLabel(selectedYear, selectedMonth)}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={prevMonth}
+                  style={{
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    borderRadius: 8,
+                    padding: '7px 10px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ← Prev
+                </button>
+                <button
+                  type="button"
+                  onClick={nextMonth}
+                  style={{
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    borderRadius: 8,
+                    padding: '7px 10px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+
+            {calendarLoading ? (
+              <div style={{ padding: 20, color: 'var(--text-secondary)' }}>Loading monthly bookings...</div>
+            ) : calendarError ? (
+              <div style={{ padding: 20, color: 'var(--danger)' }}>{calendarError}</div>
+            ) : groupedByDay.length === 0 ? (
+              <div style={{ padding: 20, color: 'var(--text-secondary)' }}>No bookings found for this month.</div>
+            ) : (
+              groupedByDay.map(([day, bookings]) => (
+                <div key={day} style={{ borderTop: '1px solid var(--border-color)' }}>
+                  <div
+                    style={{
+                      background: 'var(--bg-secondary)',
+                      padding: '9px 12px',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      fontSize: '0.86rem',
+                    }}
+                  >
+                    {formatDate(day)} • {bookings.length} booking{bookings.length > 1 ? 's' : ''}
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                      <thead>
+                        <tr>
+                          {['Listing', 'Guest', 'Stay', 'Status', 'Total', 'Provider'].map((h) => (
+                            <th
+                              key={h}
+                              style={{
+                                textAlign: 'left',
+                                padding: '8px 12px',
+                                color: 'var(--text-muted)',
+                                fontSize: '0.72rem',
+                                textTransform: 'uppercase',
+                              }}
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bookings.map((booking) => (
+                          <tr key={`${day}-${booking.id}`} style={{ borderTop: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '9px 12px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                              {booking.listing_title}
+                            </td>
+                            <td style={{ padding: '9px 12px', color: 'var(--text-secondary)' }}>{booking.guest_name}</td>
+                            <td style={{ padding: '9px 12px', color: 'var(--text-secondary)' }}>
+                              {formatDate(booking.check_in)} → {formatDate(booking.check_out)}
+                            </td>
+                            <td style={{ padding: '9px 12px' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '2px 8px',
+                                  borderRadius: 999,
+                                  background: booking.status === 'confirmed' ? '#dcfce7' : '#e0f2fe',
+                                  color: booking.status === 'confirmed' ? '#166534' : '#0369a1',
+                                  fontWeight: 700,
+                                  fontSize: '0.72rem',
+                                }}
+                              >
+                                {booking.status}
+                              </span>
+                            </td>
+                            <td style={{ padding: '9px 12px', color: 'var(--text-secondary)' }}>
+                              {formatPKR(booking.total_price)}
+                            </td>
+                            <td style={{ padding: '9px 12px', color: '#16a34a', fontWeight: 700 }}>
+                              {formatPKR(booking.provider_amount)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'payouts' && (
+          <div style={{ display: 'grid', gap: 14 }}>
+            <div
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 12,
+                padding: 16,
+              }}
+            >
+              <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>💸 Request Payout</div>
+              <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>
+                Available balance: <strong>{formatPKR(availableBalance)}</strong>
+              </div>
+              <div style={{ display: 'grid', gap: 10, marginTop: 12, maxWidth: 420 }}>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={payoutAmount}
+                  onChange={(e) => setPayoutAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  style={{
+                    borderRadius: 8,
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    padding: '10px 12px',
+                  }}
+                />
+                <textarea
+                  value={payoutNotes}
+                  onChange={(e) => setPayoutNotes(e.target.value)}
+                  placeholder="Optional note (e.g. bank details reference)"
+                  rows={3}
+                  style={{
+                    borderRadius: 8,
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    padding: '10px 12px',
+                    resize: 'vertical',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={requestPayout}
+                  disabled={payoutLoading}
+                  style={{
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '10px 12px',
+                    background: payoutLoading ? '#94a3b8' : 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                    color: 'white',
+                    cursor: payoutLoading ? 'not-allowed' : 'pointer',
+                    fontWeight: 700,
+                  }}
+                >
+                  {payoutLoading ? 'Submitting...' : 'Request Payout'}
+                </button>
+              </div>
+              {payoutError ? <div style={{ marginTop: 10, color: 'var(--danger)' }}>{payoutError}</div> : null}
+              {payoutSuccess ? <div style={{ marginTop: 10, color: '#16a34a' }}>{payoutSuccess}</div> : null}
+            </div>
+
+            <div
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 12,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  padding: '12px 16px',
+                  borderBottom: '1px solid var(--border-color)',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Payout Request History
+              </div>
+              {payoutRequests.length === 0 ? (
+                <div style={{ padding: 16, color: 'var(--text-secondary)' }}>No payout requests yet.</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-secondary)' }}>
+                        {['Requested At', 'Amount', 'Status', 'Processed At', 'Notes'].map((h) => (
+                          <th
+                            key={h}
+                            style={{
+                              textAlign: 'left',
+                              padding: '9px 12px',
+                              color: 'var(--text-muted)',
+                              fontSize: '0.72rem',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payoutRequests.map((row) => (
+                        <tr key={row.id} style={{ borderTop: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>
+                            {formatDate(row.requested_at)}
+                          </td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 700 }}>
+                            {formatPKR(row.amount)}
+                          </td>
+                          <td style={{ padding: '10px 12px' }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '2px 8px',
+                                borderRadius: 999,
+                                background:
+                                  row.status === 'pending'
+                                    ? '#fef3c7'
+                                    : row.status === 'approved'
+                                      ? '#dbeafe'
+                                      : row.status === 'paid'
+                                        ? '#dcfce7'
+                                        : '#fee2e2',
+                                color:
+                                  row.status === 'pending'
+                                    ? '#92400e'
+                                    : row.status === 'approved'
+                                      ? '#1e40af'
+                                      : row.status === 'paid'
+                                        ? '#166534'
+                                        : '#991b1b',
+                                fontWeight: 700,
+                                fontSize: '0.72rem',
+                              }}
+                            >
+                              {row.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>
+                            {row.processed_at ? formatDate(row.processed_at) : '—'}
+                          </td>
+                          <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{row.notes || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

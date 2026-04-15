@@ -308,6 +308,8 @@ function AdminDashboard() {
   const [eventsLoading, setEventsLoading] = useState(false)
   const [adminCoupons, setAdminCoupons] = useState([])
   const [couponsLoading, setCouponsLoading] = useState(false)
+  const [payoutRequests, setPayoutRequests] = useState([])
+  const [payoutsLoading, setPayoutsLoading] = useState(false)
 
   useEffect(() => {
     const loadAll = async () => {
@@ -348,6 +350,9 @@ function AdminDashboard() {
     }
     if (activeSection === 'coupons') {
       fetchAdminCoupons()
+    }
+    if (activeSection === 'payouts') {
+      fetchPayoutRequests()
     }
   }, [activeSection])
 
@@ -396,6 +401,54 @@ function AdminDashboard() {
       console.error(e)
     } finally {
       setCouponsLoading(false)
+    }
+  }
+
+  async function fetchPayoutRequests() {
+    setPayoutsLoading(true)
+    try {
+      const res = await api.get('/admin/payout-requests?status=all')
+      const rows = Array.isArray(res.data) ? res.data : []
+      setPayoutRequests(
+        rows.filter((item) =>
+          ['pending', 'approved'].includes(String(item.status || '').toLowerCase()),
+        ),
+      )
+    } catch (e) {
+      console.error('Failed to load payout requests', e)
+    } finally {
+      setPayoutsLoading(false)
+    }
+  }
+
+  const approvePayout = async (requestId) => {
+    try {
+      await api.post(`/admin/payout-requests/${requestId}/approve`, {})
+      fetchPayoutRequests()
+    } catch (e) {
+      console.error(e)
+      alert(e.response?.data?.detail || 'Failed to approve payout request')
+    }
+  }
+
+  const markPayoutPaid = async (requestId) => {
+    try {
+      await api.post(`/admin/payout-requests/${requestId}/pay`, {})
+      fetchPayoutRequests()
+    } catch (e) {
+      console.error(e)
+      alert(e.response?.data?.detail || 'Failed to mark payout as paid')
+    }
+  }
+
+  const rejectPayout = async (requestId) => {
+    if (!window.confirm('Reject this payout request?')) return
+    try {
+      await api.post(`/admin/payout-requests/${requestId}/reject`, {})
+      fetchPayoutRequests()
+    } catch (e) {
+      console.error(e)
+      alert(e.response?.data?.detail || 'Failed to reject payout request')
     }
   }
 
@@ -658,6 +711,22 @@ function AdminDashboard() {
             }}
           >
             💳 Payments
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('payouts')}
+            style={{
+              textAlign: 'left',
+              padding: '8px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor:
+                activeSection === 'payouts' ? '#1f2937' : 'transparent',
+              color: '#e5e7eb',
+            }}
+          >
+            💸 Payout Requests
           </button>
           <button
             type="button"
@@ -2377,6 +2446,142 @@ function AdminDashboard() {
                 )}
               </div>
             ) : null}
+          </div>
+        )}
+
+        {activeSection === 'payouts' && (
+          <div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px',
+                flexWrap: 'wrap',
+                gap: '10px',
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: '1.35rem',
+                  color: 'var(--text-primary)',
+                  fontWeight: 800,
+                }}
+              >
+                💸 Payout Requests
+              </h2>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                {payoutRequests.length} pending request(s)
+              </span>
+            </div>
+
+            {payoutsLoading ? (
+              <div style={{ color: 'var(--text-secondary)' }}>Loading payout requests...</div>
+            ) : payoutRequests.length === 0 ? (
+              <div
+                style={{
+                  padding: '30px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-secondary)',
+                  textAlign: 'center',
+                }}
+              >
+                No pending payout requests.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '10px' }}>
+                {payoutRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    style={{
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '12px',
+                      background: 'var(--bg-card)',
+                      padding: '14px 16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                    }}
+                  >
+                    <div>
+                      <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                        {request.provider_name}
+                        <span style={{ marginLeft: 8, color: 'var(--text-muted)', fontWeight: 500 }}>
+                          ({request.provider_email})
+                        </span>
+                      </div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: 3 }}>
+                        Requested: {new Date(request.requested_at).toLocaleString('en-PK')} • Amount:{' '}
+                        <strong style={{ color: '#16a34a' }}>
+                          PKR {Number(request.amount || 0).toLocaleString('en-PK')}
+                        </strong>
+                      </div>
+                      {request.notes ? (
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: 4 }}>
+                          Notes: {request.notes}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {request.status === 'pending' ? (
+                        <button
+                          type="button"
+                          onClick={() => approvePayout(request.id)}
+                          style={{
+                            border: '1px solid #2563eb',
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            borderRadius: 8,
+                            padding: '7px 11px',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                          }}
+                        >
+                          Approve
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => markPayoutPaid(request.id)}
+                          style={{
+                            border: '1px solid #16a34a',
+                            background: '#dcfce7',
+                            color: '#166534',
+                            borderRadius: 8,
+                            padding: '7px 11px',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                          }}
+                        >
+                          Mark Paid
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => rejectPayout(request.id)}
+                        style={{
+                          border: '1px solid #dc2626',
+                          background: '#fee2e2',
+                          color: '#991b1b',
+                          borderRadius: 8,
+                          padding: '7px 11px',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

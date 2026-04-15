@@ -26,3 +26,4 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    payout_requests = relationship("PayoutRequest", back_populates="provider")

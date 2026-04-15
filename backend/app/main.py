@@ -22,6 +22,7 @@ from app.models import listing_image as _li_model  # noqa
 from app.models import room_type as _rt_model  # noqa
 from app.models import notification as _notif_model  # noqa
 from app.models import payment as _pay_model  # noqa
+from app.models import payout_request as _payout_request_model  # noqa
 from app.models import trip_plan as _tp_model  # noqa
 from app.models import dining_package as _dp_model  # noqa
 from app.models import table_reservation as _tr_model  # noqa
@@ -63,6 +64,7 @@ from app.routers import listings
 from app.routers import loyalty
 from app.routers import notifications
 from app.routers import payments
+from app.routers import payouts
 from app.routers import xpay_payments
 from app.routers import mock_payment
 from app.routers import recommendations
@@ -137,6 +139,7 @@ def create_app() -> FastAPI:
     app.include_router(room_types.router)
     app.include_router(notifications.router)
     app.include_router(payments.router)
+    app.include_router(payouts.router)
     app.include_router(stripe_payments.router)  # Stripe checkout flow
     app.include_router(xpay_payments.router)    # XPay Global checkout flow
     app.include_router(mock_payment.router)     # Mock payment (prototype)

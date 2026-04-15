@@ -3,6 +3,7 @@ Bookings router - create, list, and cancel bookings.
 """
 from datetime import date as date_type, timedelta
 from datetime import datetime, time
+from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import func
@@ -769,6 +770,82 @@ def get_provider_dashboard(
         "listing_stats": listing_stats,
         "monthly_trend": monthly,
     }
+
+
+@router.get("/provider/calendar")
+def get_provider_calendar(
+    year: int,
+    month: int,
+    provider_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role not in ["provider", "admin"]:
+        raise HTTPException(status_code=403, detail="Providers only")
+    if month < 1 or month > 12:
+        raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
+
+    start_date = date_type(year, month, 1)
+    end_date = date_type(year + 1, 1, 1) if month == 12 else date_type(year, month + 1, 1)
+
+    listings_query = db.query(Listing.id, Listing.title)
+    if current_user.role == "provider":
+        listings_query = listings_query.filter(Listing.owner_id == current_user.id)
+    elif provider_id:
+        listings_query = listings_query.filter(Listing.owner_id == provider_id)
+
+    listings = listings_query.all()
+    if not listings:
+        return {"year": year, "month": month, "bookings": []}
+
+    listing_ids = [l.id for l in listings]
+    listing_title_map = {l.id: l.title for l in listings}
+
+    payment_subquery = (
+        db.query(
+            Payment.booking_id.label("booking_id"),
+            func.coalesce(func.sum(Payment.provider_amount), 0.0).label("provider_amount"),
+        )
+        .filter(Payment.status == "completed")
+        .group_by(Payment.booking_id)
+        .subquery()
+    )
+
+    rows = (
+        db.query(Booking, User.full_name, payment_subquery.c.provider_amount)
+        .join(User, User.id == Booking.user_id)
+        .outerjoin(payment_subquery, payment_subquery.c.booking_id == Booking.id)
+        .filter(
+            Booking.listing_id.in_(listing_ids),
+            Booking.status.in_(["active", "confirmed"]),
+            Booking.check_in < end_date,
+            Booking.check_out >= start_date,
+        )
+        .order_by(Booking.check_in.asc(), Booking.id.asc())
+        .all()
+    )
+
+    bookings = []
+    for booking, guest_name, provider_amount in rows:
+        computed_provider_amount = provider_amount
+        if computed_provider_amount is None:
+            computed_provider_amount = round((booking.total_price or 0) * 0.90, 2)
+
+        bookings.append(
+            {
+                "id": booking.id,
+                "listing_id": booking.listing_id,
+                "listing_title": listing_title_map.get(booking.listing_id, f"Listing #{booking.listing_id}"),
+                "guest_name": guest_name or "Unknown",
+                "check_in": booking.check_in.isoformat() if booking.check_in else None,
+                "check_out": booking.check_out.isoformat() if booking.check_out else None,
+                "status": booking.status,
+                "total_price": booking.total_price or 0.0,
+                "provider_amount": round(float(computed_provider_amount), 2),
+            }
+        )
+
+    return {"year": year, "month": month, "bookings": bookings}
 
 
 @router.get("/provider/earnings-breakdown")
