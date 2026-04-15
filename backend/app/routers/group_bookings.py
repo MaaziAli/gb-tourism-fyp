@@ -75,6 +75,10 @@ def _parse_dates(
     except ValueError as e:
         raise HTTPException(400, "Invalid date format") from e
 
+    # Single-date services (tour/activity/horse_riding/guide):
+    # - check_out may be omitted
+    # - if provided, it must match check_in
+    # - nights is always forced to 1
     if service_type in SINGLE_DATE_TYPES:
         if check_out:
             try:
@@ -173,6 +177,9 @@ def calculate_price_for_group(
     room_capacity_val: int | None = None
     base_price = 0.0
 
+    # Single-date group pricing:
+    # listing.price_per_night is interpreted as per-person price here.
+    # We do NOT multiply by nights for tours/activities.
     if service_type in SINGLE_DATE_TYPES:
         nights = 1
         units_needed = group_size
@@ -180,12 +187,14 @@ def calculate_price_for_group(
         unit_label = "person"
         base_price = price_unit * group_size
 
+    # Other per-person services that still depend on nights.
     elif service_type in PER_PERSON_TYPES:
         units_needed = group_size
         price_label = "person"
         unit_label = "person"
         base_price = price_unit * group_size * nights
 
+    # Hotel/camping pricing remains room-based and night-based.
     elif service_type in PER_ROOM_TYPES:
         room_capacity = 2
         if room is not None and getattr(room, "capacity", None) is not None:
@@ -197,6 +206,7 @@ def calculate_price_for_group(
         unit_label = "room"
         base_price = price_unit * rooms_needed * nights
 
+    # Transport/general fallback pricing remains unchanged.
     else:
         units_needed = 1
         price_label = "trip"
@@ -266,6 +276,7 @@ def calculate_group_price(
     body: GroupBookingRequest,
     db: Session = Depends(get_db),
 ):
+    """Return a pricing preview for group bookings."""
     listing = db.query(Listing).filter(
         Listing.id == body.listing_id
     ).first()
@@ -333,6 +344,7 @@ def create_group_booking(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """Create and persist a group booking."""
     listing = db.query(Listing).filter(
         Listing.id == body.listing_id
     ).first()
@@ -370,6 +382,7 @@ def create_group_booking(
     if ci < today:
         raise HTTPException(400, "Check-in date cannot be in the past")
 
+    # Conflict check for single-date services only needs same-day collisions.
     if service_type in SINGLE_DATE_TYPES:
         overlapping = (
             db.query(Booking)
