@@ -11,6 +11,7 @@ class BookingCreate(BaseModel):
     guests: int = 1
     coupon_code: str | None = None
     loyalty_points_used: int = 0
+    rental_details: dict | None = None
 
 
 class BookingResponse(BaseModel):

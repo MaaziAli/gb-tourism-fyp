@@ -837,6 +837,13 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
         ),
         "rooms_available": rooms_left,
         "max_capacity_per_day": getattr(listing, "max_capacity_per_day", None),
+        "pickup_location": getattr(listing, "pickup_location", None),
+        "dropoff_location": getattr(listing, "dropoff_location", None),
+        "pickup_time": getattr(listing, "pickup_time", None),
+        "dropoff_time": getattr(listing, "dropoff_time", None),
+        "insurance_options": getattr(listing, "insurance_options", None) or [],
+        "fuel_policy": getattr(listing, "fuel_policy", None) or "full_to_full",
+        "mileage_limit": getattr(listing, "mileage_limit", None),
         "urgency": (
             f"Only {rooms_left} rooms left!"
             if rooms_left is not None and rooms_left <= 5
@@ -946,6 +953,13 @@ def update_listing(
     cancellation_hours_free: int | None = Form(None),
     rooms_available: int | None = Form(None),
     max_capacity_per_day: int | None = Form(None),
+    pickup_location: str | None = Form(None),
+    dropoff_location: str | None = Form(None),
+    pickup_time: str | None = Form(None),
+    dropoff_time: str | None = Form(None),
+    insurance_options: str | None = Form(None),
+    fuel_policy: str | None = Form(None),
+    mileage_limit: int | None = Form(None),
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -974,6 +988,17 @@ def update_listing(
     if rooms_available is not None:
         listing.rooms_available = rooms_available
     listing.max_capacity_per_day = max_capacity_per_day  # None = unlimited
+    listing.pickup_location = pickup_location
+    listing.dropoff_location = dropoff_location
+    listing.pickup_time = pickup_time
+    listing.dropoff_time = dropoff_time
+    if insurance_options is not None:
+        try:
+            listing.insurance_options = json.loads(insurance_options)
+        except (ValueError, TypeError):
+            listing.insurance_options = []
+    listing.fuel_policy = fuel_policy
+    listing.mileage_limit = mileage_limit
 
     # When a new image is uploaded, replace the old file on disk and update image_url.
     if image is not None:

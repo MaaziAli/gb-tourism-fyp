@@ -60,6 +60,16 @@ function EditListing() {
   const [roomsAvailable, setRoomsAvailable] = useState(10)
   const [maxCapacityPerDay, setMaxCapacityPerDay] = useState('')
   const [amenities, setAmenities] = useState([])
+  // Car rental fields
+  const [pickupLocationDefault, setPickupLocationDefault] = useState('')
+  const [dropoffLocationDefault, setDropoffLocationDefault] = useState('')
+  const [pickupTimeDefault, setPickupTimeDefault] = useState('09:00')
+  const [dropoffTimeDefault, setDropoffTimeDefault] = useState('18:00')
+  const [fuelPolicyDefault, setFuelPolicyDefault] = useState('full_to_full')
+  const [mileageLimitDefault, setMileageLimitDefault] = useState('')
+  const [insuranceOptionsState, setInsuranceOptionsState] = useState([])
+  const [newInsuranceName, setNewInsuranceName] = useState('')
+  const [newInsurancePrice, setNewInsurancePrice] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -92,6 +102,13 @@ function EditListing() {
         setMaxCapacityPerDay(
           data.max_capacity_per_day != null ? String(data.max_capacity_per_day) : '',
         )
+        setPickupLocationDefault(data.pickup_location || '')
+        setDropoffLocationDefault(data.dropoff_location || '')
+        setPickupTimeDefault(data.pickup_time || '09:00')
+        setDropoffTimeDefault(data.dropoff_time || '18:00')
+        setFuelPolicyDefault(data.fuel_policy || 'full_to_full')
+        setMileageLimitDefault(data.mileage_limit != null ? String(data.mileage_limit) : '')
+        setInsuranceOptionsState(data.insurance_options || [])
 
         // Amenities
         if (Array.isArray(data.amenities_list)) {
@@ -309,6 +326,17 @@ function EditListing() {
       formData.append('rooms_available', String(roomsAvailable))
       if (maxCapacityPerDay !== '') {
         formData.append('max_capacity_per_day', String(maxCapacityPerDay))
+      }
+      if (serviceType === 'car_rental') {
+        formData.append('pickup_location', pickupLocationDefault)
+        formData.append('dropoff_location', dropoffLocationDefault)
+        formData.append('pickup_time', pickupTimeDefault)
+        formData.append('dropoff_time', dropoffTimeDefault)
+        formData.append('fuel_policy', fuelPolicyDefault)
+        if (mileageLimitDefault !== '') {
+          formData.append('mileage_limit', mileageLimitDefault)
+        }
+        formData.append('insurance_options', JSON.stringify(insuranceOptionsState))
       }
       formData.append(
         'amenities',
@@ -1424,6 +1452,125 @@ function EditListing() {
             <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
               Max bookings allowed per day. Blank = unlimited.
             </p>
+          </div>
+          )}
+
+          {/* ── Car Rental Settings ───────────────────────────────── */}
+          {serviceType === 'car_rental' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '4px' }}>
+              🚗 Car Rental Settings
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              {[
+                { label: 'Default Pickup Location', val: pickupLocationDefault, set: setPickupLocationDefault, type: 'text' },
+                { label: 'Default Dropoff Location', val: dropoffLocationDefault, set: setDropoffLocationDefault, type: 'text' },
+                { label: 'Default Pickup Time', val: pickupTimeDefault, set: setPickupTimeDefault, type: 'time' },
+                { label: 'Default Dropoff Time', val: dropoffTimeDefault, set: setDropoffTimeDefault, type: 'time' },
+              ].map(({ label, val, set, type }) => (
+                <div key={label}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    {label}
+                  </label>
+                  <input
+                    type={type}
+                    value={val}
+                    onChange={e => set(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.88rem', boxSizing: 'border-box', outline: 'none' }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  Fuel Policy
+                </label>
+                <select
+                  value={fuelPolicyDefault}
+                  onChange={e => setFuelPolicyDefault(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.88rem', outline: 'none' }}
+                >
+                  <option value="full_to_full">Full to Full</option>
+                  <option value="full_to_empty">Full to Empty</option>
+                  <option value="prepaid">Prepaid</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  Mileage Limit (km/day, blank = unlimited)
+                </label>
+                <input
+                  type="number"
+                  value={mileageLimitDefault}
+                  onChange={e => setMileageLimitDefault(e.target.value)}
+                  min={0}
+                  placeholder="e.g. 200"
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.88rem', boxSizing: 'border-box', outline: 'none' }}
+                />
+              </div>
+            </div>
+
+            {/* Insurance options */}
+            <div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                🛡️ Insurance Options
+              </div>
+              {insuranceOptionsState.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+                  {insuranceOptionsState.map((opt, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-card)', borderRadius: '7px', border: '1px solid var(--border-color)' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>{opt.name}</span>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>PKR {Number(opt.price_per_day).toLocaleString('en-PK')}/day</span>
+                      <button
+                        type="button"
+                        onClick={() => setInsuranceOptionsState(prev => prev.filter((_, i) => i !== idx))}
+                        style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '5px', padding: '3px 8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px auto', gap: '8px', alignItems: 'end' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Name</label>
+                  <input
+                    type="text"
+                    value={newInsuranceName}
+                    onChange={e => setNewInsuranceName(e.target.value)}
+                    placeholder="Collision Damage Waiver"
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>PKR/day</label>
+                  <input
+                    type="number"
+                    value={newInsurancePrice}
+                    onChange={e => setNewInsurancePrice(e.target.value)}
+                    placeholder="500"
+                    min={0}
+                    style={{ width: '100%', padding: '7px 10px', borderRadius: '7px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: '0.85rem', boxSizing: 'border-box', outline: 'none' }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newInsuranceName.trim() || !newInsurancePrice) return
+                    setInsuranceOptionsState(prev => [...prev, { name: newInsuranceName.trim(), price_per_day: parseFloat(newInsurancePrice) }])
+                    setNewInsuranceName('')
+                    setNewInsurancePrice('')
+                  }}
+                  style={{ padding: '7px 14px', borderRadius: '7px', border: 'none', background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
           </div>
           )}
 

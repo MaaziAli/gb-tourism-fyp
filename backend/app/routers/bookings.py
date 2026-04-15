@@ -188,6 +188,37 @@ def create_booking(
         room_type.price_per_night if room_type else listing.price_per_night
     )
     nights = 1 if is_single_date else (effective_check_out - body.check_in).days
+
+    # ── Car rental: merge defaults and compute insurance ──────────────────
+    rental_details_final = None
+    insurance_total = 0.0
+    if listing.service_type == "car_rental":
+        rd = body.rental_details or {}
+        lpu = getattr(listing, "pickup_location", None) or listing.location
+        rental_details_final = {
+            "pickup_location": rd.get("pickup_location") or lpu,
+            "dropoff_location": rd.get("dropoff_location") or getattr(listing, "dropoff_location", None) or rd.get("pickup_location") or lpu,
+            "pickup_time": rd.get("pickup_time") or getattr(listing, "pickup_time", None) or "09:00",
+            "dropoff_time": rd.get("dropoff_time") or getattr(listing, "dropoff_time", None) or "18:00",
+            "selected_insurance": rd.get("selected_insurance") or [],
+            "fuel_policy": rd.get("fuel_policy") or getattr(listing, "fuel_policy", None) or "full_to_full",
+            "extra_requests": rd.get("extra_requests") or "",
+        }
+        ins_opts = {
+            opt["name"]: opt["price_per_day"]
+            for opt in (getattr(listing, "insurance_options", None) or [])
+        }
+        ins_breakdown = []
+        for ins_name in rental_details_final["selected_insurance"]:
+            ppd = ins_opts.get(ins_name, 0)
+            if ppd:
+                cost = round(float(ppd) * nights, 2)
+                insurance_total += cost
+                ins_breakdown.append({"name": ins_name, "price_per_day": ppd, "total": cost})
+        insurance_total = round(insurance_total, 2)
+        rental_details_final["insurance_breakdown"] = ins_breakdown
+        rental_details_final["insurance_total"] = insurance_total
+
     subtotal = nights * price_per_night
     total_price = subtotal
     coupon_discount = 0.0
@@ -236,6 +267,10 @@ def create_booking(
         loyalty_discount = round(loyalty_discount, 2)
         total_price = max(0, round(subtotal - coupon_discount - loyalty_discount, 2))
 
+    # Insurance is added after discounts (coupon/loyalty apply to base price only)
+    if insurance_total > 0:
+        total_price = round(total_price + insurance_total, 2)
+
     booking = Booking(
         listing_id=body.listing_id,
         user_id=current_user.id,
@@ -248,6 +283,7 @@ def create_booking(
         group_size=max(1, body.guests or 1),
         loyalty_points_used=loyalty_points_used,
         loyalty_discount_applied=loyalty_discount,
+        rental_details=rental_details_final,
     )
     db.add(booking)
     db.flush()  # assign booking.id without committing
@@ -438,6 +474,7 @@ def get_my_bookings(
             "special_requirements": getattr(
                 b, "special_requirements", None
             ),
+            "rental_details": getattr(b, "rental_details", None),
             "points_earned": points_earned,
         })
     return result

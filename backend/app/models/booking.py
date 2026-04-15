@@ -36,6 +36,7 @@ class Booking(Base):
     hold_expires_at = Column(DateTime, nullable=True)
     payment_intent_id = Column(String(255), nullable=True)
     addons = Column(JSON, nullable=True, default=list)
+    rental_details = Column(JSON, nullable=True)
 
     group_size = Column(Integer, default=1)
     is_group_booking = Column(Boolean, default=False)

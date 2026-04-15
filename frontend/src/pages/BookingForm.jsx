@@ -91,8 +91,25 @@ export default function BookingForm() {
   const [availableDates, setAvailableDates] = useState([])
   const [availableDatesMonth, setAvailableDatesMonth] = useState('')
 
+  // Car rental state
+  const [pickupLocation, setPickupLocation] = useState('')
+  const [dropoffLocation, setDropoffLocation] = useState('')
+  const [pickupTime, setPickupTime] = useState('09:00')
+  const [dropoffTime, setDropoffTime] = useState('18:00')
+  const [selectedInsurances, setSelectedInsurances] = useState([])
+  const [fuelPolicy, setFuelPolicy] = useState('full_to_full')
+  const [extraRequests, setExtraRequests] = useState('')
+
   const SINGLE_DATE_TYPES_CONST = ['tour', 'activity', 'horse_riding', 'guide']
   const isSingleDate = SINGLE_DATE_TYPES_CONST.includes(listing?.service_type)
+  const isCarRental = listing?.service_type === 'car_rental'
+  const insuranceOptions = listing?.insurance_options || []
+  const insuranceTotal = isCarRental
+    ? selectedInsurances.reduce((sum, name) => {
+        const opt = insuranceOptions.find(o => o.name === name)
+        return sum + (opt ? Number(opt.price_per_day) * Math.max(1, nights) : 0)
+      }, 0)
+    : 0
 
   const today = new Date().toISOString().split('T')[0]
   const todayDate = new Date()
@@ -194,8 +211,18 @@ export default function BookingForm() {
     fetchAvailableDatesByMonth(monthKey).catch(() => {})
   }, [isSingleDate, listingId])
 
+  useEffect(() => {
+    if (!listing || listing.service_type !== 'car_rental') return
+    const lpu = listing.pickup_location || listing.location || ''
+    setPickupLocation(lpu)
+    setDropoffLocation(listing.dropoff_location || lpu)
+    setPickupTime(listing.pickup_time || '09:00')
+    setDropoffTime(listing.dropoff_time || '18:00')
+    setFuelPolicy(listing.fuel_policy || 'full_to_full')
+  }, [listing])
+
   const subtotal = totalPrice
-  const discountedTotal = Math.max(0, subtotal - couponDiscount - loyaltyDiscount)
+  const discountedTotal = Math.max(0, subtotal - couponDiscount - loyaltyDiscount) + insuranceTotal
 
   async function fetchAvailableDatesByMonth(monthKey) {
     if (!monthKey || !listingId) return []
@@ -263,6 +290,17 @@ export default function BookingForm() {
         }),
         coupon_code: appliedCoupon?.code || null,
         loyalty_points_used: loyaltyPointsUsed || 0,
+        ...(isCarRental && {
+          rental_details: {
+            pickup_location: pickupLocation,
+            dropoff_location: dropoffLocation,
+            pickup_time: pickupTime,
+            dropoff_time: dropoffTime,
+            selected_insurance: selectedInsurances,
+            fuel_policy: fuelPolicy,
+            extra_requests: extraRequests,
+          },
+        }),
       }
       const res = await api.post('/bookings/', bookingPayload)
       const tp = res.data.total_price ?? 0
@@ -1010,6 +1048,136 @@ export default function BookingForm() {
             </div>
           )}
 
+          {/* Car Rental Details card */}
+          {isCarRental && (
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-md)',
+            padding: '24px', marginBottom: '16px',
+          }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              🚗 Rental Details
+            </h3>
+
+            {/* Pickup / Dropoff locations */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+              {[
+                { label: 'Pickup Location', val: pickupLocation, set: setPickupLocation },
+                { label: 'Dropoff Location', val: dropoffLocation, set: setDropoffLocation },
+              ].map(({ label, val, set }) => (
+                <div key={label}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {label}
+                  </label>
+                  <input
+                    type="text"
+                    value={val}
+                    onChange={e => set(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '0.9rem', boxSizing: 'border-box', outline: 'none' }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Pickup / Dropoff times */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+              {[
+                { label: 'Pickup Time', val: pickupTime, set: setPickupTime },
+                { label: 'Dropoff Time', val: dropoffTime, set: setDropoffTime },
+              ].map(({ label, val, set }) => (
+                <div key={label}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {label}
+                  </label>
+                  <input
+                    type="time"
+                    value={val}
+                    onChange={e => set(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '0.9rem', boxSizing: 'border-box', outline: 'none' }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Fuel policy */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Fuel Policy
+              </label>
+              <select
+                value={fuelPolicy}
+                onChange={e => setFuelPolicy(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none' }}
+              >
+                <option value="full_to_full">Full to Full — return with full tank</option>
+                <option value="full_to_empty">Full to Empty — return any level</option>
+                <option value="prepaid">Prepaid — fuel included in price</option>
+              </select>
+            </div>
+
+            {/* Mileage info */}
+            {listing?.mileage_limit && (
+              <div style={{ marginBottom: '14px', padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                ⚡ <strong>{listing.mileage_limit} km/day</strong> included — extra charges apply beyond limit
+              </div>
+            )}
+
+            {/* Insurance options */}
+            {insuranceOptions.length > 0 && (
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  🛡️ Insurance Options
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {insuranceOptions.map(opt => {
+                    const checked = selectedInsurances.includes(opt.name)
+                    const lineTotal = Number(opt.price_per_day) * Math.max(1, nights)
+                    return (
+                      <div
+                        key={opt.name}
+                        onClick={() => setSelectedInsurances(prev =>
+                          prev.includes(opt.name) ? prev.filter(n => n !== opt.name) : [...prev, opt.name]
+                        )}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          padding: '10px 14px', borderRadius: '8px', cursor: 'pointer',
+                          border: checked ? '2px solid var(--accent)' : '1px solid var(--border-color)',
+                          background: checked ? 'var(--accent-light)' : 'var(--bg-secondary)',
+                        }}
+                      >
+                        <input type="checkbox" checked={checked} onChange={() => {}} style={{ width: 16, height: 16 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{opt.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PKR {Number(opt.price_per_day).toLocaleString('en-PK')}/day</div>
+                        </div>
+                        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: checked ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                          PKR {lineTotal.toLocaleString('en-PK')}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Extra requests */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Extra Requests (optional)
+              </label>
+              <textarea
+                value={extraRequests}
+                onChange={e => setExtraRequests(e.target.value)}
+                rows={2}
+                placeholder="Child seat, GPS, roof rack..."
+                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '0.9rem', resize: 'vertical', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }}
+              />
+            </div>
+          </div>
+          )}
+
           {/* Policies card */}
           <div style={{
             background: 'var(--bg-card)',
@@ -1178,6 +1346,14 @@ export default function BookingForm() {
                       loyaltyDiscount={loyaltyDiscount}
                       compact={false}
                     />
+                    {isCarRental && insuranceTotal > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.85rem' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>🛡️ Insurance</span>
+                        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                          PKR {insuranceTotal.toLocaleString('en-PK')}
+                        </span>
+                      </div>
+                    )}
                     <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {/* Loyalty points — sits above coupon so user applies
                           the bigger discount (points) first */}

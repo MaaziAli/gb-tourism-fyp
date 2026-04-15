@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, JSON, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -21,6 +21,15 @@ class Listing(Base):
     cancellation_hours_free = Column(Integer, default=48)
     rooms_available = Column(Integer, default=10)
     max_capacity_per_day = Column(Integer, nullable=True)
+
+    # Car-rental-specific fields
+    pickup_location = Column(String, nullable=True)
+    dropoff_location = Column(String, nullable=True)
+    pickup_time = Column(String, nullable=True)
+    dropoff_time = Column(String, nullable=True)
+    insurance_options = Column(JSON, nullable=True)
+    fuel_policy = Column(String, nullable=True, default="full_to_full")
+    mileage_limit = Column(Integer, nullable=True)
 
     owner = relationship("User", back_populates="owned_listings")
     bookings = relationship("Booking", back_populates="listing")
