@@ -36,6 +36,7 @@ from app.models import loyalty as _loyalty_model  # noqa
 from app.models import refund as _refund_model  # noqa
 from app.models import listing_addon as _addon_model  # noqa
 from app.models import seasonal_price as _sp_model  # noqa
+from app.models import tour_date_capacity as _tdc_model  # noqa
 from app.models import webhook_event as _we_model  # noqa
 
 try:
@@ -74,6 +75,7 @@ from app.routers import rooms
 from app.routers import stripe_payments
 from app.routers import ticket_bookings
 from app.routers import trip_planner
+from app.routers import tour_capacities
 from app.routers import users
 from app.routers import wishlist
 from app.routers import seasonal_prices
@@ -153,6 +155,7 @@ def create_app() -> FastAPI:
     app.include_router(coupons.router)
     app.include_router(loyalty.router)
     app.include_router(seasonal_prices.router)
+    app.include_router(tour_capacities.router)
 
     if messages_router:
         app.include_router(messages_router)

@@ -16,6 +16,7 @@ from app.dependencies.auth import get_current_user
 from app.database import get_db
 from app.models.booking import Booking
 from app.models.listing import Listing
+from app.models.tour_date_capacity import TourDateCapacity
 from app.models.user import User
 from app.schemas.listing import ListingResponse, ListingUpdate
 
@@ -930,12 +931,23 @@ def get_available_dates(
     )
     booked_by_date = {row.check_in: row.cnt for row in bookings_in_month}
 
+    custom_capacities = (
+        db.query(TourDateCapacity)
+        .filter(
+            TourDateCapacity.listing_id == listing_id,
+            TourDateCapacity.tour_date >= first_day,
+            TourDateCapacity.tour_date <= last_day,
+        )
+        .all()
+    )
+    capacity_by_date = {row.tour_date: row.capacity for row in custom_capacities}
+
     dates = []
     current = first_day
     while current <= last_day:
         booked = booked_by_date.get(current, 0)
-        capacity = getattr(listing, "max_capacity_per_day", None)
-        if capacity:
+        capacity = capacity_by_date.get(current, getattr(listing, "max_capacity_per_day", None))
+        if capacity is not None:
             remaining = max(0, capacity - booked)
             is_available = remaining > 0 and current >= today
         else:

@@ -59,6 +59,10 @@ class Listing(Base):
         back_populates="listing",
         cascade="all, delete-orphan",
     )
+    tour_date_capacities = relationship(
+        "TourDateCapacity",
+        cascade="all, delete-orphan",
+    )
 
     @property
     def price_per_night(self) -> float:

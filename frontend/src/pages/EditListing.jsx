@@ -12,6 +12,8 @@ import AmenitiesSelector from '../components/AmenitiesSelector'
 import ListingAddonManager from '../components/ListingAddonManager'
 import { seasonalPricesApi } from '../api/seasonalPrices'
 
+const SINGLE_DATE_SERVICE_TYPES = ['tour', 'activity', 'horse_riding', 'guide']
+
 function EditListing() {
   const { listingId } = useParams()
   const navigate = useNavigate()
@@ -85,6 +87,15 @@ function EditListing() {
     fixed_surcharge: '0',
     is_active: true,
   })
+  const [tourCapacities, setTourCapacities] = useState([])
+  const [tourCapacityMsg, setTourCapacityMsg] = useState('')
+  const [showTourCapacitySection, setShowTourCapacitySection] = useState(false)
+  const [showTourCapacityModal, setShowTourCapacityModal] = useState(false)
+  const [editingTourCapacityId, setEditingTourCapacityId] = useState(null)
+  const [tourCapacityDate, setTourCapacityDate] = useState('')
+  const [tourCapacityValue, setTourCapacityValue] = useState('')
+
+  const isSingleDateService = SINGLE_DATE_SERVICE_TYPES.includes(serviceType)
 
   useEffect(() => {
     let isMounted = true
@@ -206,6 +217,15 @@ function EditListing() {
       .then((data) => setSeasonalPrices(data))
       .catch(() => setSeasonalPrices([]))
   }, [listingId])
+
+  useEffect(() => {
+    if (!listingId || !isSingleDateService) {
+      setTourCapacities([])
+      setTourCapacityMsg('')
+      return
+    }
+    fetchTourCapacities()
+  }, [listingId, isSingleDateService])
 
   async function uploadExtraImage(file) {
     if (!file || !listingId) return
@@ -467,6 +487,83 @@ function EditListing() {
       setSeasonalPrices((prev) => prev.map((p) => (p.id === sp.id ? updated : p)))
     } catch {
       setSeasonalMsg('Failed to toggle.')
+    }
+  }
+
+  async function fetchTourCapacities() {
+    if (!listingId) return
+    try {
+      const res = await api.get(`/listings/${listingId}/tour-capacities`)
+      const sorted = [...(res.data || [])].sort((a, b) =>
+        a.tour_date.localeCompare(b.tour_date),
+      )
+      setTourCapacities(sorted)
+    } catch (e) {
+      setTourCapacities([])
+      setTourCapacityMsg(
+        e.response?.data?.detail || 'Failed to load date-specific capacities.',
+      )
+    }
+  }
+
+  function openNewTourCapacityModal() {
+    setEditingTourCapacityId(null)
+    setTourCapacityDate('')
+    setTourCapacityValue('')
+    setTourCapacityMsg('')
+    setShowTourCapacityModal(true)
+  }
+
+  function openEditTourCapacityModal(row) {
+    setEditingTourCapacityId(row.id)
+    setTourCapacityDate(row.tour_date)
+    setTourCapacityValue(String(row.capacity))
+    setTourCapacityMsg('')
+    setShowTourCapacityModal(true)
+  }
+
+  async function saveTourCapacity() {
+    if (!listingId) return
+    if (!tourCapacityDate || tourCapacityValue === '') {
+      setTourCapacityMsg('Date and capacity are required.')
+      return
+    }
+
+    const payload = {
+      tour_date: tourCapacityDate,
+      capacity: parseInt(tourCapacityValue, 10),
+    }
+    if (Number.isNaN(payload.capacity) || payload.capacity < 0) {
+      setTourCapacityMsg('Capacity must be 0 or greater.')
+      return
+    }
+
+    try {
+      if (editingTourCapacityId) {
+        await api.put(`/tour-capacities/${editingTourCapacityId}`, {
+          capacity: payload.capacity,
+        })
+      } else {
+        await api.post(`/listings/${listingId}/tour-capacities`, payload)
+      }
+      await fetchTourCapacities()
+      setShowTourCapacityModal(false)
+      setTourCapacityMsg('')
+    } catch (e) {
+      setTourCapacityMsg(
+        e.response?.data?.detail || 'Failed to save date capacity.',
+      )
+    }
+  }
+
+  async function deleteTourCapacity(id) {
+    if (!window.confirm('Delete this date-specific capacity override?')) return
+    try {
+      await api.delete(`/tour-capacities/${id}`)
+      await fetchTourCapacities()
+      setTourCapacityMsg('')
+    } catch (e) {
+      setTourCapacityMsg(e.response?.data?.detail || 'Failed to delete override.')
     }
   }
 
@@ -1532,7 +1629,7 @@ function EditListing() {
             </p>
           </div>
 
-          {['tour', 'activity', 'horse_riding', 'guide'].includes(serviceType) && (
+          {isSingleDateService && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={{
               color: 'var(--text-secondary)', fontSize: '0.9rem',
@@ -1561,6 +1658,217 @@ function EditListing() {
               Max bookings allowed per day. Blank = unlimited.
             </p>
           </div>
+          )}
+          {isSingleDateService && (
+            <div
+              style={{
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '12px',
+                background: 'var(--bg-secondary)',
+                marginBottom: '6px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    📆 Date-specific capacities
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.78rem',
+                      color: 'var(--text-muted)',
+                      marginTop: '2px',
+                    }}
+                  >
+                    Override max capacity per day for selected dates.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTourCapacitySection((v) => !v)}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {showTourCapacitySection ? 'Hide' : 'Manage'}
+                </button>
+              </div>
+
+              {showTourCapacitySection && (
+                <div style={{ marginTop: '12px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '10px',
+                      marginBottom: '10px',
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: '0.78rem',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      Overrides fallback to default daily capacity when deleted.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={openNewTourCapacityModal}
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--accent)',
+                        background: 'var(--accent-light, #e0f2fe)',
+                        color: 'var(--accent)',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      + Add Date
+                    </button>
+                  </div>
+
+                  {tourCapacityMsg && (
+                    <p
+                      style={{
+                        margin: '0 0 10px',
+                        fontSize: '0.8rem',
+                        color: '#dc2626',
+                      }}
+                    >
+                      {tourCapacityMsg}
+                    </p>
+                  )}
+
+                  {tourCapacities.length === 0 ? (
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: '0.8rem',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      No date-specific capacities yet.
+                    </p>
+                  ) : (
+                    <div
+                      style={{
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        background: 'var(--bg-card)',
+                      }}
+                    >
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--bg-secondary)' }}>
+                            <th
+                              style={{
+                                textAlign: 'left',
+                                fontSize: '0.75rem',
+                                padding: '8px 10px',
+                                color: 'var(--text-secondary)',
+                              }}
+                            >
+                              Date
+                            </th>
+                            <th
+                              style={{
+                                textAlign: 'left',
+                                fontSize: '0.75rem',
+                                padding: '8px 10px',
+                                color: 'var(--text-secondary)',
+                              }}
+                            >
+                              Capacity
+                            </th>
+                            <th
+                              style={{
+                                textAlign: 'right',
+                                fontSize: '0.75rem',
+                                padding: '8px 10px',
+                                color: 'var(--text-secondary)',
+                              }}
+                            >
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tourCapacities.map((row) => (
+                            <tr key={row.id} style={{ borderTop: '1px solid var(--border-color)' }}>
+                              <td style={{ padding: '8px 10px', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                                {row.tour_date}
+                              </td>
+                              <td style={{ padding: '8px 10px', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                                {row.capacity}
+                              </td>
+                              <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditTourCapacityModal(row)}
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)',
+                                    background: 'var(--bg-card)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.72rem',
+                                    marginRight: '6px',
+                                  }}
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteTourCapacity(row.id)}
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #fca5a5',
+                                    background: '#fee2e2',
+                                    color: '#dc2626',
+                                    cursor: 'pointer',
+                                    fontSize: '0.72rem',
+                                  }}
+                                >
+                                  🗑
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {/* ── Car Rental Settings ───────────────────────────────── */}
@@ -2173,6 +2481,129 @@ function EditListing() {
               />
             </div>
           </div>
+
+          {showTourCapacityModal && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(15, 23, 42, 0.45)',
+                zIndex: 1000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '16px',
+              }}
+            >
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: '420px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card)',
+                  boxShadow: 'var(--shadow-lg)',
+                  padding: '16px',
+                }}
+              >
+                <h3
+                  style={{
+                    margin: '0 0 12px',
+                    fontSize: '1rem',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {editingTourCapacityId ? 'Edit Date Capacity' : 'Add Date Capacity'}
+                </h3>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={tourCapacityDate}
+                      disabled={!!editingTourCapacityId}
+                      onChange={(e) => setTourCapacityDate(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '7px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      Capacity
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={tourCapacityValue}
+                      onChange={(e) => setTourCapacityValue(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '7px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {tourCapacityMsg && (
+                  <p style={{ margin: '10px 0 0', fontSize: '0.8rem', color: '#dc2626' }}>
+                    {tourCapacityMsg}
+                  </p>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+                  <button
+                    type="button"
+                    onClick={saveTourCapacity}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '7px',
+                      border: 'none',
+                      background: 'var(--accent)',
+                      color: 'white',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    {editingTourCapacityId ? 'Update' : 'Save'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowTourCapacityModal(false)
+                      setTourCapacityMsg('')
+                    }}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '7px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && (
             <p style={{ color: 'red', fontSize: '0.9rem', margin: 0 }}>{error}</p>

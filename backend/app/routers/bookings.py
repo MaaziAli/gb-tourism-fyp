@@ -19,6 +19,7 @@ from app.models.loyalty import LoyaltyTransaction
 from app.models.payment import Payment
 from app.models.refund import Refund
 from app.models.review import Review
+from app.models.tour_date_capacity import TourDateCapacity
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingResponse
 from app.utils.loyalty_utils import (
@@ -218,7 +219,20 @@ def create_booking(
             )
     elif is_single_date:
         # Capacity check for tours/activities
-        if listing.max_capacity_per_day:
+        custom_capacity = (
+            db.query(TourDateCapacity)
+            .filter(
+                TourDateCapacity.listing_id == listing.id,
+                TourDateCapacity.tour_date == body.check_in,
+            )
+            .first()
+        )
+        capacity = (
+            custom_capacity.capacity
+            if custom_capacity is not None
+            else listing.max_capacity_per_day
+        )
+        if capacity is not None:
             booked_count = (
                 db.query(func.count(Booking.id))
                 .filter(
@@ -228,7 +242,7 @@ def create_booking(
                 )
                 .scalar() or 0
             )
-            if booked_count >= listing.max_capacity_per_day:
+            if booked_count >= capacity:
                 raise HTTPException(
                     status_code=400,
                     detail="No spots left on this date",
