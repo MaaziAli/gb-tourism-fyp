@@ -80,6 +80,7 @@ from app.routers import tour_capacities
 from app.routers import users
 from app.routers import wishlist
 from app.routers import seasonal_prices
+from app.routers.availability_ws import router as availability_ws_router
 
 messages_router = None
 recently_viewed_router = None
@@ -157,6 +158,7 @@ def create_app() -> FastAPI:
     app.include_router(loyalty.router)
     app.include_router(seasonal_prices.router)
     app.include_router(tour_capacities.router)
+    app.include_router(availability_ws_router)
 
     if messages_router:
         app.include_router(messages_router)

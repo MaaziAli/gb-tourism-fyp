@@ -23,6 +23,7 @@ from app.models.room_hold import RoomHold
 from app.models.tour_date_capacity import TourDateCapacity
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingResponse, BookingCancellationResponse
+from app.websockets.connection_manager import manager
 from app.utils.loyalty_utils import (
     get_or_create_account as _get_loyalty_account,
     pkr_to_points,
@@ -453,6 +454,24 @@ def create_booking(
 
     db.commit()   # ← one commit: booking + coupon usage + loyalty deduction
     db.refresh(booking)
+
+    # Broadcast real-time availability update to all connected WS clients
+    import asyncio
+    try:
+        asyncio.create_task(
+            manager.broadcast(
+                booking.listing_id,
+                {
+                    "event": "availability_updated",
+                    "listing_id": booking.listing_id,
+                    "booking_id": booking.id,
+                    "message": "Availability has been updated. Please refresh."
+                }
+            )
+        )
+    except RuntimeError:
+        # No running event loop (e.g. during tests or sync endpoint) — skip broadcast silently
+        pass
 
     # Notify the traveler
     savings_note = ""

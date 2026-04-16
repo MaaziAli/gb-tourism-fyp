@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../api/axios'
+import { useAvailabilitySocket } from '../hooks/useAvailabilitySocket'
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We',
                'Th', 'Fr', 'Sa']
@@ -34,6 +35,11 @@ export default function AvailabilityCalendar({
   useEffect(() => {
     loadMonth(currentYear, currentMonth)
   }, [currentYear, currentMonth, listingId])
+
+  // Real-time availability: re-fetch current month when another user books
+  useAvailabilitySocket(listingId, () => {
+    loadMonth(currentYear, currentMonth)
+  })
 
   async function loadMonth(y, m) {
     setLoading(true)
