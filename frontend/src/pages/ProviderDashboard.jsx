@@ -54,6 +54,8 @@ export default function ProviderDashboard() {
   const [activeTab, setActiveTab] = useState('overview')
   const [loadingDashboard, setLoadingDashboard] = useState(true)
   const [dashboardData, setDashboardData] = useState(null)
+  const [checkinError, setCheckinError] = useState('')
+  const [checkinSuccess, setCheckinSuccess] = useState('')
 
   const [calendarLoading, setCalendarLoading] = useState(false)
   const [calendarError, setCalendarError] = useState('')
@@ -78,18 +80,19 @@ export default function ProviderDashboard() {
   })
   const [payoutRequests, setPayoutRequests] = useState([])
 
-  useEffect(() => {
-    const loadDashboard = async () => {
-      setLoadingDashboard(true)
-      try {
-        const res = await api.get('/bookings/provider/dashboard')
-        setDashboardData(res.data)
-      } catch (error) {
-        console.error('Failed to load provider dashboard', error)
-      } finally {
-        setLoadingDashboard(false)
-      }
+  async function loadDashboard() {
+    setLoadingDashboard(true)
+    try {
+      const res = await api.get('/bookings/provider/dashboard')
+      setDashboardData(res.data)
+    } catch (error) {
+      console.error('Failed to load provider dashboard', error)
+    } finally {
+      setLoadingDashboard(false)
     }
+  }
+
+  useEffect(() => {
     loadDashboard()
   }, [])
 
@@ -239,6 +242,42 @@ export default function ProviderDashboard() {
   }
 
   const { summary, recent_bookings, listing_stats } = dashboardData
+
+  const todayStr = new Date().toISOString().split('T')[0]
+  const todaysArrivals = (recent_bookings || []).filter((b) => {
+    const checkInDate = (b.check_in || '').split('T')[0]
+    return checkInDate === todayStr && !b.checked_in_at
+  })
+  const todaysDepartures = (recent_bookings || []).filter((b) => {
+    const checkOutDate = (b.check_out || '').split('T')[0]
+    return checkOutDate === todayStr && b.checked_in_at && !b.checked_out_at
+  })
+
+  async function handleCheckIn(bookingId) {
+    setCheckinError('')
+    setCheckinSuccess('')
+    try {
+      await api.post(`/bookings/${bookingId}/check-in`)
+      setCheckinSuccess('Guest checked in successfully.')
+      await loadDashboard()
+    } catch (error) {
+      console.error(error)
+      setCheckinError(error.response?.data?.detail || 'Failed to check in guest.')
+    }
+  }
+
+  async function handleCheckOut(bookingId) {
+    setCheckinError('')
+    setCheckinSuccess('')
+    try {
+      await api.post(`/bookings/${bookingId}/check-out`)
+      setCheckinSuccess('Guest checked out successfully.')
+      await loadDashboard()
+    } catch (error) {
+      console.error(error)
+      setCheckinError(error.response?.data?.detail || 'Failed to check out guest.')
+    }
+  }
   const topCards = [
     { label: 'Total Revenue', value: formatPKR(summary.total_revenue), icon: '💰' },
     { label: 'Net Earnings', value: formatPKR(summary.net_earnings), icon: '📈' },
@@ -356,64 +395,278 @@ export default function ProviderDashboard() {
         </div>
 
         {activeTab === 'overview' && (
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 12,
-              overflow: 'hidden',
-            }}
-          >
+          <div style={{ display: 'grid', gap: 12 }}>
             <div
               style={{
-                padding: '14px 16px',
-                borderBottom: '1px solid var(--border-color)',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 12,
+                overflow: 'hidden',
               }}
             >
-              Recent Bookings
+              <div
+                style={{
+                  padding: '14px 16px',
+                  borderBottom: '1px solid var(--border-color)',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Recent Bookings
+              </div>
+              {recent_bookings?.length ? (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-secondary)' }}>
+                        {['Guest', 'Listing', 'Check-in', 'Check-out', 'Status', 'Gross', 'Net'].map((h) => (
+                          <th
+                            key={h}
+                            style={{
+                              textAlign: 'left',
+                              padding: '9px 12px',
+                              fontSize: '0.72rem',
+                              color: 'var(--text-muted)',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recent_bookings.map((booking) => {
+                        const isCheckedIn = !!booking.checked_in_at && !booking.checked_out_at
+                        const isCheckedOut = !!booking.checked_out_at
+                        return (
+                          <tr key={booking.id} style={{ borderTop: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                              {booking.guest_name}
+                            </td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{booking.listing_title}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>
+                              {formatDate(booking.check_in)}
+                            </td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>
+                              {formatDate(booking.check_out)}
+                            </td>
+                            <td style={{ padding: '10px 12px' }}>
+                              {isCheckedIn && (
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '2px 8px',
+                                    borderRadius: 999,
+                                    background: '#dcfce7',
+                                    color: '#166534',
+                                    fontWeight: 700,
+                                    fontSize: '0.72rem',
+                                  }}
+                                >
+                                  Checked In
+                                </span>
+                              )}
+                              {isCheckedOut && (
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '2px 8px',
+                                    borderRadius: 999,
+                                    background: '#e5e7eb',
+                                    color: '#4b5563',
+                                    fontWeight: 700,
+                                    fontSize: '0.72rem',
+                                  }}
+                                >
+                                  Checked Out
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>
+                              {formatPKR(booking.total_price)}
+                            </td>
+                            <td style={{ padding: '10px 12px', color: '#16a34a', fontWeight: 700 }}>
+                              {formatPKR(booking.net_amount)}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ padding: 24, color: 'var(--text-secondary)' }}>No recent bookings yet.</div>
+              )}
             </div>
-            {recent_bookings?.length ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--bg-secondary)' }}>
-                      {['Guest', 'Listing', 'Check-in', 'Check-out', 'Gross', 'Net'].map((h) => (
-                        <th
-                          key={h}
+
+            <div
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 12,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  padding: '14px 16px',
+                  borderBottom: '1px solid var(--border-color)',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span>Today&apos;s Arrivals &amp; Departures</span>
+                {(checkinError || checkinSuccess) && (
+                  <span style={{ fontSize: '0.8rem', color: checkinError ? 'var(--danger)' : '#16a34a' }}>
+                    {checkinError || checkinSuccess}
+                  </span>
+                )}
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                  gap: 0,
+                }}
+              >
+                <div style={{ borderRight: isMobile ? 'none' : '1px solid var(--border-color)' }}>
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderBottom: '1px solid var(--border-color)',
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    Arrivals Today
+                  </div>
+                  {todaysArrivals.length === 0 ? (
+                    <div style={{ padding: 12, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      No arrivals scheduled for today.
+                    </div>
+                  ) : (
+                    <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                      {todaysArrivals.map((b) => (
+                        <div
+                          key={b.id}
                           style={{
-                            textAlign: 'left',
-                            padding: '9px 12px',
-                            fontSize: '0.72rem',
-                            color: 'var(--text-muted)',
-                            textTransform: 'uppercase',
+                            padding: '10px 14px',
+                            borderBottom: '1px solid var(--border-color)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: 8,
                           }}
                         >
-                          {h}
-                        </th>
+                          <div style={{ minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontWeight: 600,
+                                color: 'var(--text-primary)',
+                                fontSize: '0.88rem',
+                              }}
+                            >
+                              #{b.id} • {b.guest_name || b.guest_email || b.user_id}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                              {b.listing_title} • Check-in {formatDate(b.check_in)}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCheckIn(b.id)}
+                            style={{
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '6px 10px',
+                              background: '#16a34a',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Check In
+                          </button>
+                        </div>
                       ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recent_bookings.map((booking) => (
-                      <tr key={booking.id} style={{ borderTop: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 600 }}>
-                          {booking.guest_name}
-                        </td>
-                        <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{booking.listing_title}</td>
-                        <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{formatDate(booking.check_in)}</td>
-                        <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{formatDate(booking.check_out)}</td>
-                        <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{formatPKR(booking.total_price)}</td>
-                        <td style={{ padding: '10px 12px', color: '#16a34a', fontWeight: 700 }}>{formatPKR(booking.net_amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderBottom: '1px solid var(--border-color)',
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    Departures Today
+                  </div>
+                  {todaysDepartures.length === 0 ? (
+                    <div style={{ padding: 12, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      No departures scheduled for today.
+                    </div>
+                  ) : (
+                    <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                      {todaysDepartures.map((b) => (
+                        <div
+                          key={b.id}
+                          style={{
+                            padding: '10px 14px',
+                            borderBottom: '1px solid var(--border-color)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontWeight: 600,
+                                color: 'var(--text-primary)',
+                                fontSize: '0.88rem',
+                              }}
+                            >
+                              #{b.id} • {b.guest_name || b.guest_email || b.user_id}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                              {b.listing_title} • Check-out {formatDate(b.check_out)}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCheckOut(b.id)}
+                            style={{
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '6px 10px',
+                              background: '#0f172a',
+                              color: 'white',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Check Out
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div style={{ padding: 24, color: 'var(--text-secondary)' }}>No recent bookings yet.</div>
-            )}
+            </div>
           </div>
         )}
 

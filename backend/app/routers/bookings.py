@@ -87,6 +87,35 @@ SINGLE_DATE_TYPES = {"tour", "activity", "horse_riding", "guide"}
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 
+def auto_checkout_overdue(db: Session) -> int:
+    """
+    Marks checked-in bookings as checked-out if check_out date has passed.
+    Returns count of bookings auto-checked-out.
+    Call this from a scheduled job or on-demand.
+    """
+    from datetime import datetime, timezone, date
+
+    today = datetime.now(timezone.utc).date()
+    overdue = (
+        db.query(Booking)
+        .filter(
+            Booking.checked_in_at.isnot(None),
+            Booking.checked_out_at.is_(None),
+            Booking.status != "cancelled",
+            Booking.check_out < today,
+        )
+        .all()
+    )
+    count = 0
+    for b in overdue:
+        b.checked_out_at = datetime.now(timezone.utc)
+        b.status = "completed"
+        count += 1
+    if count:
+        db.commit()
+    return count
+
+
 def _get_seasonal_subtotal(
     db: Session,
     listing_id: int,
@@ -890,6 +919,8 @@ def get_provider_dashboard(
                 "total_price": b.total_price or 0,
                 "net_amount": round((b.total_price or 0) * 0.90, 2),
                 "status": b.status,
+                "checked_in_at": b.checked_in_at.isoformat() if getattr(b, "checked_in_at", None) else None,
+                "checked_out_at": b.checked_out_at.isoformat() if getattr(b, "checked_out_at", None) else None,
                 "payment_status": getattr(b, "payment_status", "unknown"),
                 "group_size": getattr(b, "group_size", 1) or 1,
                 "created_at": b.created_at.isoformat() if b.created_at else None,
@@ -1844,3 +1875,137 @@ async def modify_booking(
     )
 
     return booking
+
+
+@router.post("/{booking_id}/check-in", response_model=BookingResponse)
+async def check_in_guest(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # A) FETCH BOOKING
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    # B) VERIFY PROVIDER OWNERSHIP
+    listing = db.query(Listing).filter(Listing.id == booking.listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.owner_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Only the listing provider can perform check-in",
+        )
+
+    # C) VALIDATE STATE
+    if booking.status == "cancelled":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot check in a cancelled booking",
+        )
+    if booking.checked_in_at is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Guest is already checked in",
+        )
+
+    # D) APPLY CHECK-IN
+    from datetime import datetime, timezone
+
+    booking.checked_in_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(booking)
+
+    # E) NOTIFY GUEST
+    guest_msg = (
+        f"You have been checked in to your booking #{booking_id}. "
+        f"Welcome! Check-in time: {booking.checked_in_at.strftime('%Y-%m-%d %H:%M')} UTC"
+    )
+    create_notification(
+        db,
+        user_id=booking.user_id,
+        title="Checked In",
+        message=guest_msg,
+        type="booking",
+    )
+
+    # F) RETURN booking
+    return booking
+
+
+@router.post("/{booking_id}/check-out", response_model=BookingResponse)
+async def check_out_guest(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # A) FETCH BOOKING
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    # B) VERIFY PROVIDER OWNERSHIP
+    listing = db.query(Listing).filter(Listing.id == booking.listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.owner_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Only the listing provider can perform check-out",
+        )
+
+    # C) VALIDATE STATE
+    if booking.status == "cancelled":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot check out a cancelled booking",
+        )
+    if booking.checked_in_at is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Guest has not checked in yet",
+        )
+    if booking.checked_out_at is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Guest is already checked out",
+        )
+
+    # D) APPLY CHECK-OUT
+    from datetime import datetime, timezone
+
+    booking.checked_out_at = datetime.now(timezone.utc)
+    booking.status = "completed"
+    db.commit()
+    db.refresh(booking)
+
+    # E) NOTIFY GUEST
+    guest_msg = (
+        f"You have been checked out from booking #{booking_id}. "
+        f"Thank you for staying with us! "
+        f"Check-out time: {booking.checked_out_at.strftime('%Y-%m-%d %H:%M')} UTC"
+    )
+    create_notification(
+        db,
+        user_id=booking.user_id,
+        title="Checked Out",
+        message=guest_msg,
+        type="booking",
+    )
+
+    # F) RETURN booking
+    return booking
+
+
+@router.post("/admin/auto-checkout", response_model=dict)
+async def trigger_auto_checkout(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Provider-callable endpoint to sweep overdue check-outs."""
+    if current_user.role not in ["provider", "admin"]:
+        raise HTTPException(status_code=403, detail="Providers only")
+    count = auto_checkout_overdue(db)
+    return {"auto_checked_out": count}
+

@@ -54,6 +54,8 @@ class BookingResponse(BaseModel):
     check_in: date | None = None
     check_out: date | None = None
     created_at: datetime
+    checked_in_at: Optional[datetime] = None
+    checked_out_at: Optional[datetime] = None
     room_type_id: int | None = None
     room_type_name: str | None = None
     loyalty_points_used: int = 0
