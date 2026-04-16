@@ -129,61 +129,64 @@ def get_collaborative_recommendations(
     Returns an empty list when there is not yet enough interaction data
     (< 3 unique users, < 5 unique listings, or < 10 total interactions).
     """
-    import pandas as pd
-    from surprise import Dataset, Reader, SVD
+    try:
+        import pandas as pd
+        from surprise import Dataset, Reader, SVD
 
-    # 1. Accumulate (user_id, listing_id) → weight interactions.
-    interactions: dict[tuple[int, int], float] = {}
+        # 1. Accumulate (user_id, listing_id) → weight interactions.
+        interactions: dict[tuple[int, int], float] = {}
 
-    for uid, lid in (
-        db.query(Booking.user_id, Booking.listing_id)
-        .filter(Booking.status != "cancelled")
-        .all()
-    ):
-        key = (uid, lid)
-        interactions[key] = interactions.get(key, 0.0) + 3.0
+        for uid, lid in (
+            db.query(Booking.user_id, Booking.listing_id)
+            .filter(Booking.status != "cancelled")
+            .all()
+        ):
+            key = (uid, lid)
+            interactions[key] = interactions.get(key, 0.0) + 3.0
 
-    for uid, lid in db.query(RecentlyViewed.user_id, RecentlyViewed.listing_id).all():
-        key = (uid, lid)
-        interactions[key] = interactions.get(key, 0.0) + 1.0
+        for uid, lid in db.query(RecentlyViewed.user_id, RecentlyViewed.listing_id).all():
+            key = (uid, lid)
+            interactions[key] = interactions.get(key, 0.0) + 1.0
 
-    # Cap combined weight at 5.0.
-    interactions = {k: min(v, 5.0) for k, v in interactions.items()}
+        # Cap combined weight at 5.0.
+        interactions = {k: min(v, 5.0) for k, v in interactions.items()}
 
-    # 2. Check minimum thresholds before training.
-    unique_users = len({uid for uid, _ in interactions})
-    unique_listings = len({lid for _, lid in interactions})
-    total_interactions = len(interactions)
+        # 2. Check minimum thresholds before training.
+        unique_users = len({uid for uid, _ in interactions})
+        unique_listings = len({lid for _, lid in interactions})
+        total_interactions = len(interactions)
 
-    if unique_users < 3 or unique_listings < 5 or total_interactions < 10:
+        if unique_users < 3 or unique_listings < 5 or total_interactions < 10:
+            return []
+
+        # 3. Build a surprise Dataset from a DataFrame.
+        df = pd.DataFrame(
+            [(uid, lid, w) for (uid, lid), w in interactions.items()],
+            columns=["user_id", "listing_id", "weight"],
+        )
+        reader = Reader(rating_scale=(0, 5))
+        data = Dataset.load_from_df(df[["user_id", "listing_id", "weight"]], reader)
+
+        # 4. Train SVD on the full dataset (no held-out split needed for serving).
+        algo = SVD(n_factors=50, n_epochs=20, random_state=42)
+        trainset = data.build_full_trainset()
+        algo.fit(trainset)
+
+        # 5. Identify listings this user has NOT yet interacted with.
+        seen: set[int] = {lid for (uid, lid) in interactions if uid == user_id}
+        all_listing_ids: list[int] = [row[0] for row in db.query(Listing.id).all()]
+        unseen = [lid for lid in all_listing_ids if lid not in seen]
+
+        if not unseen:
+            return []
+
+        # 6–7. Predict scores and rank.
+        preds = [(lid, algo.predict(user_id, lid).est) for lid in unseen]
+        preds.sort(key=lambda x: x[1], reverse=True)
+
+        return [lid for lid, _ in preds[:top_n]]
+    except ImportError:
         return []
-
-    # 3. Build a surprise Dataset from a DataFrame.
-    df = pd.DataFrame(
-        [(uid, lid, w) for (uid, lid), w in interactions.items()],
-        columns=["user_id", "listing_id", "weight"],
-    )
-    reader = Reader(rating_scale=(0, 5))
-    data = Dataset.load_from_df(df[["user_id", "listing_id", "weight"]], reader)
-
-    # 4. Train SVD on the full dataset (no held-out split needed for serving).
-    algo = SVD(n_factors=50, n_epochs=20, random_state=42)
-    trainset = data.build_full_trainset()
-    algo.fit(trainset)
-
-    # 5. Identify listings this user has NOT yet interacted with.
-    seen: set[int] = {lid for (uid, lid) in interactions if uid == user_id}
-    all_listing_ids: list[int] = [row[0] for row in db.query(Listing.id).all()]
-    unseen = [lid for lid in all_listing_ids if lid not in seen]
-
-    if not unseen:
-        return []
-
-    # 6–7. Predict scores and rank.
-    preds = [(lid, algo.predict(user_id, lid).est) for lid in unseen]
-    preds.sort(key=lambda x: x[1], reverse=True)
-
-    return [lid for lid, _ in preds[:top_n]]
 
 
 # ---------------------------------------------------------------------------

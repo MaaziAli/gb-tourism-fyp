@@ -252,6 +252,7 @@ def get_hotel(hotel_id: int, db: Session = Depends(get_db)):
 
 @router.post("/")
 def create_hotel(
+    background_tasks: BackgroundTasks,
     name: str = Form(...),
     location: str = Form(...),
     description: str | None = Form(None),
@@ -260,7 +261,6 @@ def create_hotel(
     cancellation_policy: str = Form("moderate"),
     rooms_available: int = Form(10),
     image: UploadFile | None = File(None),
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

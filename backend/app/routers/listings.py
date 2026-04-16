@@ -168,6 +168,7 @@ def get_current_user_optional(
 
 @router.post("/", response_model=ListingResponse)
 def create_listing(
+    background_tasks: BackgroundTasks,
     title: str = Form(...),
     location: str = Form(...),
     price_per_night: float = Form(...),
@@ -184,7 +185,6 @@ def create_listing(
     hearing_loop: bool = Form(False),
     visual_alerts: bool = Form(False),
     image: UploadFile | None = File(None),
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
