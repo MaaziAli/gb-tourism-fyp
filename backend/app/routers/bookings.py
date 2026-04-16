@@ -183,6 +183,8 @@ def create_booking(
             )
         effective_check_out = body.check_out
 
+    room_quantity = max(1, getattr(body, 'room_quantity', 1) or 1)
+
     # Optional room type
     room_type = None
     if body.room_type_id:
@@ -223,10 +225,10 @@ def create_booking(
             .scalar() or 0
         )
         available = (room_type.total_rooms or 1) - booked_count - held_count
-        if available <= 0:
+        if available < room_quantity:
             raise HTTPException(
                 status_code=400,
-                detail="No rooms of this type available for the selected dates",
+                detail=f"Only {available} room(s) available for the selected dates",
             )
     elif is_single_date:
         # Capacity check for tours/activities
@@ -380,7 +382,7 @@ def create_booking(
     if room_type:
         room_hold = RoomHold(
             room_type_id=body.room_type_id,
-            quantity=1,
+            quantity=room_quantity,
             hold_expires_at=datetime.utcnow() + timedelta(minutes=10),
             status="active",
         )

@@ -9,6 +9,7 @@ class BookingCreate(BaseModel):
     check_out: date
     room_type_id: int | None = None
     guests: int = 1
+    room_quantity: int = 1
     coupon_code: str | None = None
     loyalty_points_used: int = 0
     rental_details: dict | None = None
