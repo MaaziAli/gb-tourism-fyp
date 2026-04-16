@@ -21,6 +21,9 @@ from app.models.user import User
 from app.schemas.listing import ListingResponse, ListingUpdate
 
 
+SINGLE_DATE_TYPES = {"tour", "activity", "horse_riding", "guide"}
+
+
 def _calculate_availability(
     listing: Listing,
     check_in: date_type,
@@ -31,6 +34,8 @@ def _calculate_availability(
     Return real-time available slots for a listing over [check_in, check_out).
 
     Hotels: sum (total_rooms - overlapping bookings) per room type.
+    Single-date services (tours, activities, horse_riding, guides): capacity minus
+      active bookings for that exact date, respecting TourDateCapacity overrides.
     Others: rooms_available minus count of overlapping listing-level bookings.
     """
     from app.models.room_type import RoomType
@@ -57,7 +62,40 @@ def _calculate_availability(
                 total_available += max(0, (rt.total_rooms or 1) - booked)
             return total_available
 
-    # Non-hotel or hotel without room types
+    # Single-date services: calculate per-date capacity vs active bookings
+    if listing.service_type in SINGLE_DATE_TYPES and check_in is not None:
+        custom_capacity = (
+            db.query(TourDateCapacity)
+            .filter(
+                TourDateCapacity.listing_id == listing.id,
+                TourDateCapacity.tour_date == check_in,
+            )
+            .first()
+        )
+
+        if custom_capacity is not None:
+            capacity = custom_capacity.capacity
+        else:
+            capacity = listing.max_capacity_per_day
+
+        if capacity is None:
+            total = listing.rooms_available if listing.rooms_available is not None else 9999
+        else:
+            total = capacity
+
+        booked = (
+            db.query(func.count(Booking.id))
+            .filter(
+                Booking.listing_id == listing.id,
+                Booking.status.in_(["active", "confirmed"]),
+                Booking.check_in == check_in,
+            )
+            .scalar() or 0
+        )
+
+        return max(0, total - booked)
+
+    # Non-hotel, non-single-date, or no check_in provided: use rooms_available
     total = listing.rooms_available if listing.rooms_available is not None else 1
     booked = (
         db.query(func.count(Booking.id))
@@ -70,9 +108,6 @@ def _calculate_availability(
         .scalar() or 0
     )
     return max(0, total - booked)
-
-
-SINGLE_DATE_TYPES = {"tour", "activity", "horse_riding", "guide"}
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
 
