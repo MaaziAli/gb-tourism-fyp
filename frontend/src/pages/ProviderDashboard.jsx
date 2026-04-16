@@ -674,68 +674,11 @@ export default function ProviderDashboard() {
           <div style={{ display: 'grid', gap: 10 }}>
             {listing_stats?.length ? (
               listing_stats.map((listing) => (
-                <div
+                <ListingRow
                   key={listing.id}
-                  style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: 12,
-                    padding: 14,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: 12,
-                    alignItems: 'center',
-                  }}
-                >
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div
-                      style={{
-                        width: 54,
-                        height: 54,
-                        borderRadius: 10,
-                        background: 'var(--bg-secondary)',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {listing.image_url ? (
-                        <img
-                          src={getImageUrl(listing.image_url)}
-                          alt={listing.title}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        '🏨'
-                      )}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{listing.title}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        {listing.location} • {listing.bookings_count} bookings
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                    <div style={{ color: '#16a34a', fontWeight: 700 }}>{formatPKR(listing.net_earnings)}</div>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/edit-listing/${listing.id}`)}
-                      style={{
-                        border: '1px solid var(--border-color)',
-                        borderRadius: 8,
-                        padding: '7px 12px',
-                        background: 'var(--bg-secondary)',
-                        cursor: 'pointer',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      Edit
-                    </button>
-                  </div>
-                </div>
+                  listing={listing}
+                  navigate={navigate}
+                />
               ))
             ) : (
               <div style={{ color: 'var(--text-secondary)' }}>No listings yet.</div>
@@ -1070,6 +1013,611 @@ export default function ProviderDashboard() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function ListingRow({ listing, navigate }) {
+  const [showDiscounts, setShowDiscounts] = useState(false)
+  const [rules, setRules] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const [newRule, setNewRule] = useState({
+    rule_type: 'length_of_stay',
+    min_nights: '',
+    max_nights: '',
+    book_within_days: '',
+    book_days_ahead: '',
+    discount_percent: '',
+    label: '',
+    is_active: true,
+  })
+
+  function autoLabel(next = null) {
+    const r = next || newRule
+    const pct = r.discount_percent || ''
+    if (!pct) return ''
+    if (r.rule_type === 'length_of_stay') {
+      if (!r.min_nights) return ''
+      return `Stay ${r.min_nights}+ nights, save ${pct}%`
+    }
+    if (r.rule_type === 'last_minute') {
+      if (!r.book_within_days) return ''
+      return `Last-minute deal: book within ${r.book_within_days} days, save ${pct}%`
+    }
+    if (r.rule_type === 'advance_booking') {
+      if (!r.book_days_ahead) return ''
+      return `Book ${r.book_days_ahead}+ days ahead, save ${pct}%`
+    }
+    return ''
+  }
+
+  async function loadRules() {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await api.get(`/discount-rules/listings/${listing.id}`)
+      setRules(Array.isArray(res.data) ? res.data : [])
+    } catch (e) {
+      console.error(e)
+      setError(e.response?.data?.detail || 'Failed to load discount rules')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function togglePanel() {
+    const next = !showDiscounts
+    setShowDiscounts(next)
+    if (next && rules.length === 0 && !loading) {
+      loadRules()
+    }
+  }
+
+  async function handleToggleActive(rule) {
+    setSaving(true)
+    setError('')
+    try {
+      const res = await api.patch(`/discount-rules/${rule.id}`, {
+        is_active: !rule.is_active,
+      })
+      setRules((prev) => prev.map((r) => (r.id === rule.id ? res.data : r)))
+    } catch (e) {
+      console.error(e)
+      setError(e.response?.data?.detail || 'Failed to update rule')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(rule) {
+    if (!window.confirm('Delete this discount rule?')) return
+    setSaving(true)
+    setError('')
+    try {
+      await api.delete(`/discount-rules/${rule.id}`)
+      setRules((prev) => prev.filter((r) => r.id !== rule.id))
+    } catch (e) {
+      console.error(e)
+      setError(e.response?.data?.detail || 'Failed to delete rule')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleNewRuleChange(field, value) {
+    const next = { ...newRule, [field]: value }
+    if (!next.label) {
+      next.label = autoLabel(next)
+    }
+    setNewRule(next)
+  }
+
+  async function handleCreateRule(e) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const payload = {
+        rule_type: newRule.rule_type,
+        min_nights: newRule.rule_type === 'length_of_stay' && newRule.min_nights ? Number(newRule.min_nights) : null,
+        max_nights:
+          newRule.rule_type === 'length_of_stay' && newRule.max_nights
+            ? Number(newRule.max_nights)
+            : null,
+        book_within_days:
+          newRule.rule_type === 'last_minute' && newRule.book_within_days
+            ? Number(newRule.book_within_days)
+            : null,
+        book_days_ahead:
+          newRule.rule_type === 'advance_booking' && newRule.book_days_ahead
+            ? Number(newRule.book_days_ahead)
+            : null,
+        discount_percent: newRule.discount_percent ? Number(newRule.discount_percent) : 0,
+        label: newRule.label || autoLabel(newRule) || 'Discount',
+        is_active: newRule.is_active,
+      }
+      const res = await api.post(`/discount-rules/listings/${listing.id}`, payload)
+      setRules((prev) => [...prev, res.data])
+      setNewRule({
+        rule_type: 'length_of_stay',
+        min_nights: '',
+        max_nights: '',
+        book_within_days: '',
+        book_days_ahead: '',
+        discount_percent: '',
+        label: '',
+        is_active: true,
+      })
+    } catch (e) {
+      console.error(e)
+      setError(e.response?.data?.detail || 'Failed to create rule')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const activeCount = rules.filter((r) => r.is_active).length
+
+  return (
+    <div
+      style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-color)',
+        borderRadius: 12,
+        padding: 14,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+          alignItems: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 10,
+              background: 'var(--bg-secondary)',
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {listing.image_url ? (
+              <img
+                src={getImageUrl(listing.image_url)}
+                alt={listing.title}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              '🏨'
+            )}
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{listing.title}</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              {listing.location} • {listing.bookings_count} bookings
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ color: '#16a34a', fontWeight: 700 }}>{formatPKR(listing.net_earnings)}</div>
+          <button
+            type="button"
+            onClick={() => navigate(`/edit-listing/${listing.id}`)}
+            style={{
+              border: '1px solid var(--border-color)',
+              borderRadius: 8,
+              padding: '7px 12px',
+              background: 'var(--bg-secondary)',
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={togglePanel}
+            style={{
+              border: '1px solid var(--border-color)',
+              borderRadius: 8,
+              padding: '7px 12px',
+              background: showDiscounts ? '#e8f5e9' : 'var(--bg-secondary)',
+              cursor: 'pointer',
+              color: showDiscounts ? '#2e7d32' : 'var(--text-secondary)',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+            }}
+          >
+            💸 Manage Discounts
+            {activeCount > 0 ? ` (${activeCount} active)` : ''}
+          </button>
+        </div>
+      </div>
+
+      {showDiscounts && (
+        <div
+          style={{
+            marginTop: 6,
+            padding: 12,
+            borderRadius: 10,
+            background: 'var(--bg-secondary)',
+            border: '1px dashed var(--border-color)',
+          }}
+        >
+          {error && (
+            <div style={{ marginBottom: 8, color: 'var(--danger)', fontSize: '0.8rem' }}>
+              {error}
+            </div>
+          )}
+          <div style={{ display: 'grid', gap: 10 }}>
+            <div>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  color: 'var(--text-primary)',
+                  marginBottom: 4,
+                }}
+              >
+                Existing Rules
+              </div>
+              {loading ? (
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Loading discount rules...
+                </div>
+              ) : rules.length === 0 ? (
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  No discount rules yet. Create your first one below.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {rules.map((rule) => (
+                    <div
+                      key={rule.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '6px 8px',
+                        borderRadius: 8,
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-color)',
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
+                            marginBottom: 2,
+                            whiteSpace: 'nowrap',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {rule.label}
+                        </div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                          {rule.rule_type === 'length_of_stay' &&
+                            `Stay ${rule.min_nights || 1}${rule.max_nights ? `-${rule.max_nights}` : '+'} nights`}
+                          {rule.rule_type === 'last_minute' &&
+                            `Book within ${rule.book_within_days} days`}
+                          {rule.rule_type === 'advance_booking' &&
+                            `Book ${rule.book_days_ahead}+ days ahead`}
+                          {' · '}
+                          Save {rule.discount_percent}% 
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActive(rule)}
+                          disabled={saving}
+                          style={{
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 999,
+                            padding: '4px 9px',
+                            background: rule.is_active ? '#e8f5e9' : 'var(--bg-secondary)',
+                            color: rule.is_active ? '#2e7d32' : 'var(--text-secondary)',
+                            fontSize: '0.72rem',
+                            cursor: saving ? 'not-allowed' : 'pointer',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {rule.is_active ? 'Active' : 'Inactive'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(rule)}
+                          disabled={saving}
+                          style={{
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 999,
+                            padding: '4px 9px',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--danger)',
+                            fontSize: '0.72rem',
+                            cursor: saving ? 'not-allowed' : 'pointer',
+                            fontWeight: 700,
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleCreateRule}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  color: 'var(--text-primary)',
+                  marginBottom: 4,
+                }}
+              >
+                Add New Rule
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.75rem', marginBottom: 2, color: 'var(--text-secondary)' }}>
+                    Type
+                  </div>
+                  <select
+                    value={newRule.rule_type}
+                    onChange={(e) =>
+                      handleNewRuleChange('rule_type', e.target.value)
+                    }
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <option value="length_of_stay">Length of stay</option>
+                    <option value="last_minute">Last-minute deal</option>
+                    <option value="advance_booking">Advance booking</option>
+                  </select>
+                </div>
+
+                {newRule.rule_type === 'length_of_stay' && (
+                  <>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          marginBottom: 2,
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        Min nights
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newRule.min_nights}
+                        onChange={(e) =>
+                          handleNewRuleChange('min_nights', e.target.value)
+                        }
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          borderRadius: 6,
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-card)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.8rem',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          marginBottom: 2,
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        Max nights (optional)
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newRule.max_nights}
+                        onChange={(e) =>
+                          handleNewRuleChange('max_nights', e.target.value)
+                        }
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          borderRadius: 6,
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-card)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.8rem',
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {newRule.rule_type === 'last_minute' && (
+                  <div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        marginBottom: 2,
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      Book within (days)
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newRule.book_within_days}
+                      onChange={(e) =>
+                        handleNewRuleChange('book_within_days', e.target.value)
+                      }
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        borderRadius: 6,
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.8rem',
+                      }}
+                    />
+                  </div>
+                )}
+
+                {newRule.rule_type === 'advance_booking' && (
+                  <div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        marginBottom: 2,
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      Book at least (days)
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newRule.book_days_ahead}
+                      onChange={(e) =>
+                        handleNewRuleChange('book_days_ahead', e.target.value)
+                      }
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        borderRadius: 6,
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.8rem',
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      marginBottom: 2,
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    Discount %
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={newRule.discount_percent}
+                    onChange={(e) =>
+                      handleNewRuleChange('discount_percent', e.target.value)
+                    }
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.8rem',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      marginBottom: 2,
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    Label
+                  </div>
+                  <input
+                    type="text"
+                    value={newRule.label}
+                    onChange={(e) =>
+                      handleNewRuleChange('label', e.target.value)
+                    }
+                    placeholder={autoLabel() || 'Auto label'}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.8rem',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Highest matching discount applies automatically on top of seasonal pricing.
+                </div>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    border: 'none',
+                    borderRadius: 999,
+                    padding: '7px 14px',
+                    background: saving ? '#9ca3af' : '#22c55e',
+                    color: 'white',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {saving ? 'Saving...' : 'Add Rule'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

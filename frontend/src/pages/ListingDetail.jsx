@@ -909,10 +909,10 @@ export default function ListingDetail() {
                 {listing.title}
               </h1>
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                flexWrap: 'wrap'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap'
               }}>
                 <span style={{
                   color: 'rgba(255,255,255,0.9)',
@@ -940,6 +940,34 @@ export default function ListingDetail() {
                     </span>
                   </span>
                 ) : null}
+                {Array.isArray(listing.discount_rules) &&
+                 listing.discount_rules.some(r => r.is_active) && (
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px'
+                  }}>
+                    {listing.discount_rules
+                      .filter(r => r.is_active)
+                      .map(rule => (
+                        <span
+                          key={rule.id}
+                          style={{
+                            background: '#e8f5e9',
+                            color: '#2e7d32',
+                            border: '1px solid #a5d6a7',
+                            borderRadius: '6px',
+                            padding: '6px 14px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {rule.label}
+                        </span>
+                      ))}
+                  </div>
+                )}
               </div>
             </div>
           ) : null}

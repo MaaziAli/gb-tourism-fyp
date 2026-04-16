@@ -65,6 +65,11 @@ class Listing(Base):
         "TourDateCapacity",
         cascade="all, delete-orphan",
     )
+    discount_rules = relationship(
+        "DiscountRule",
+        back_populates="listing",
+        cascade="all, delete-orphan",
+    )
 
     @property
     def price_per_night(self) -> float:

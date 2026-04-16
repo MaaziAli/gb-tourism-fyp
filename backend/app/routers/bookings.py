@@ -429,6 +429,23 @@ async def create_booking(
     subtotal = seasonal_subtotal   # already accounts for seasonal multipliers
     total_price = subtotal
 
+    # ── Dynamic discount rules (length-of-stay, last-minute, advance) ──────
+    try:
+        from app.utils.pricing_utils import apply_discount_rules
+
+        total_price, best_discount, best_label = apply_discount_rules(
+            listing_id=listing.id,
+            base_price=total_price,
+            check_in=body.check_in,
+            check_out=effective_check_out,
+            booking_date=today,
+            db=db,
+        )
+        subtotal = total_price
+    except Exception:
+        # Never break booking creation due to discount rule issues
+        pass
+
     # ── Multi-room price override ─────────────────────────────────────────
     # When room_selections are provided, replace the single-room price with
     # the sum across all selected room types.  subtotal is kept in sync so

@@ -16,6 +16,7 @@ from app.dependencies.auth import get_current_user
 from app.database import get_db
 from app.models.booking import Booking
 from app.models.listing import Listing
+from app.models.discount_rule import DiscountRule
 from app.models.tour_date_capacity import TourDateCapacity
 from app.models.user import User
 from typing import Optional
@@ -907,6 +908,17 @@ def get_listing(
     taxes = round(price * 0.10, 2)
     service_fee = round(price * 0.05, 2)
 
+    # Active discount rules for this listing (public)
+    discount_rules = (
+        db.query(DiscountRule)
+        .filter(
+            DiscountRule.listing_id == listing_id,
+            DiscountRule.is_active.is_(True),
+        )
+        .order_by(DiscountRule.id.asc())
+        .all()
+    )
+
     listing_data = {
         "id": listing.id,
         "title": listing.title,
@@ -970,6 +982,21 @@ def get_listing(
             "service_fee_rate": 5,
             "note": "Taxes & fees included in final total",
         },
+        "discount_rules": [
+            {
+                "id": r.id,
+                "listing_id": r.listing_id,
+                "rule_type": r.rule_type,
+                "min_nights": r.min_nights,
+                "max_nights": r.max_nights,
+                "book_within_days": r.book_within_days,
+                "book_days_ahead": r.book_days_ahead,
+                "discount_percent": float(r.discount_percent or 0),
+                "label": r.label,
+                "is_active": r.is_active,
+            }
+            for r in discount_rules
+        ],
         "reviews": [
             {
                 "id": r.id,
