@@ -310,20 +310,33 @@ def create_booking(
             "fuel_policy": rd.get("fuel_policy") or getattr(listing, "fuel_policy", None) or "full_to_full",
             "extra_requests": rd.get("extra_requests") or "",
         }
-        ins_opts = {
-            opt["name"]: opt["price_per_day"]
-            for opt in (getattr(listing, "insurance_options", None) or [])
-        }
+        # Fetch current insurance options from the listing
+        current_insurance_options = getattr(listing, "insurance_options", None) or []
+        ins_opts = {opt["name"]: opt["price_per_day"] for opt in current_insurance_options}
+
+        selected_names = rental_details_final["selected_insurance"]
+        # --- VALIDATION: Ensure all requested insurances exist ---
+        for ins_name in selected_names:
+            if ins_name not in ins_opts:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Insurance option '{ins_name}' is no longer available. Please refresh and try again."
+                )
+
+        # Calculate insurance cost and build breakdown
         ins_breakdown = []
-        for ins_name in rental_details_final["selected_insurance"]:
-            ppd = ins_opts.get(ins_name, 0)
-            if ppd:
-                cost = round(float(ppd) * nights, 2)
-                insurance_total += cost
-                ins_breakdown.append({"name": ins_name, "price_per_day": ppd, "total": cost})
+        for ins_name in selected_names:
+            ppd = ins_opts[ins_name]  # guaranteed to exist after validation
+            cost = round(float(ppd) * nights, 2)
+            insurance_total += cost
+            ins_breakdown.append({"name": ins_name, "price_per_day": ppd, "total": cost})
         insurance_total = round(insurance_total, 2)
+
+        # --- Store snapshot and timestamp ---
         rental_details_final["insurance_breakdown"] = ins_breakdown
         rental_details_final["insurance_total"] = insurance_total
+        rental_details_final["insurance_validated_at"] = datetime.utcnow().isoformat()
+        rental_details_final["insurance_snapshot"] = current_insurance_options
 
     subtotal = seasonal_subtotal   # already accounts for seasonal multipliers
     total_price = subtotal
