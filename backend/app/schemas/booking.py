@@ -31,3 +31,7 @@ class BookingResponse(BaseModel):
     loyalty_discount_applied: float = 0.0
 
     model_config = {"from_attributes": True}
+
+
+class BookingCancellationResponse(BookingResponse):
+    refund_eligible: bool = False
