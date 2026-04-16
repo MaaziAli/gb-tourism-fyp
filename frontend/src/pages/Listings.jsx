@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import { getAmenityInfo } from '../utils/amenities'
+import { useCurrency } from '../context/CurrencyContext'
 
 const SERVICE_TYPES = [
   { value: '', label: 'All Types' },
@@ -83,6 +84,7 @@ export default function Listings() {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
   const { isMobile, isTablet } = useWindowSize()
+  const { formatPrice } = useCurrency()
 
   const [search, setSearch] = useState('')
   const [serviceType, setServiceType] = useState('')
@@ -849,7 +851,7 @@ export default function Listings() {
                         lineHeight: '1',
                         whiteSpace: 'nowrap'
                       }}>
-                        PKR {(listing.price_per_night || 0).toLocaleString('en-PK')}
+                        {formatPrice(listing.price_per_night || 0)}
                         <span style={{
                           fontSize: '0.68rem',
                           fontWeight: '400',

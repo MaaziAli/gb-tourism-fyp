@@ -3,16 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import useWindowSize from '../hooks/useWindowSize'
+import { useCurrency } from '../context/CurrencyContext'
 
 function toMonthLabel(year, month) {
   return new Date(year, month - 1, 1).toLocaleDateString('en-PK', {
     month: 'long',
     year: 'numeric',
   })
-}
-
-function formatPKR(v) {
-  return `PKR ${(Number(v) || 0).toLocaleString('en-PK')}`
 }
 
 function formatDate(date) {
@@ -50,6 +47,7 @@ function expandBookingDays(checkIn, checkOut) {
 export default function ProviderDashboard() {
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
+  const { formatPrice } = useCurrency()
 
   const [activeTab, setActiveTab] = useState('overview')
   const [loadingDashboard, setLoadingDashboard] = useState(true)
@@ -279,8 +277,8 @@ export default function ProviderDashboard() {
     }
   }
   const topCards = [
-    { label: 'Total Revenue', value: formatPKR(summary.total_revenue), icon: '💰' },
-    { label: 'Net Earnings', value: formatPKR(summary.net_earnings), icon: '📈' },
+    { label: 'Total Revenue', value: formatPrice(summary.total_revenue), icon: '💰' },
+    { label: 'Net Earnings', value: formatPrice(summary.net_earnings), icon: '📈' },
     { label: 'Active Listings', value: summary.active_listings || summary.total_listings, icon: '🏨' },
     { label: 'Total Bookings', value: summary.total_bookings, icon: '📅' },
   ]
@@ -484,10 +482,10 @@ export default function ProviderDashboard() {
                               )}
                             </td>
                             <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>
-                              {formatPKR(booking.total_price)}
+                              {formatPrice(booking.total_price)}
                             </td>
                             <td style={{ padding: '10px 12px', color: '#16a34a', fontWeight: 700 }}>
-                              {formatPKR(booking.net_amount)}
+                              {formatPrice(booking.net_amount)}
                             </td>
                           </tr>
                         )
@@ -810,10 +808,10 @@ export default function ProviderDashboard() {
                               </span>
                             </td>
                             <td style={{ padding: '9px 12px', color: 'var(--text-secondary)' }}>
-                              {formatPKR(booking.total_price)}
+                              {formatPrice(booking.total_price)}
                             </td>
                             <td style={{ padding: '9px 12px', color: '#16a34a', fontWeight: 700 }}>
-                              {formatPKR(booking.provider_amount)}
+                              {formatPrice(booking.provider_amount)}
                             </td>
                           </tr>
                         ))}
@@ -838,7 +836,7 @@ export default function ProviderDashboard() {
             >
               <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>💸 Request Payout</div>
               <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)' }}>
-                Available balance: <strong>{formatPKR(availableBalance)}</strong>
+                Available balance: <strong>{formatPrice(availableBalance)}</strong>
               </div>
               <div
                 style={{
@@ -865,7 +863,7 @@ export default function ProviderDashboard() {
                     }}
                   >
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{item.label}</div>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: item.color }}>{formatPKR(item.value)}</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: item.color }}>{formatPrice(item.value)}</div>
                   </div>
                 ))}
               </div>
@@ -968,7 +966,7 @@ export default function ProviderDashboard() {
                             {formatDate(row.requested_at)}
                           </td>
                           <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 700 }}>
-                            {formatPKR(row.amount)}
+                            {formatPrice(row.amount)}
                           </td>
                           <td style={{ padding: '10px 12px' }}>
                             <span
@@ -1212,8 +1210,8 @@ function ListingRow({ listing, navigate }) {
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ color: '#16a34a', fontWeight: 700 }}>{formatPKR(listing.net_earnings)}</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ color: '#16a34a', fontWeight: 700 }}>{formatPrice(listing.net_earnings)}</div>
           <button
             type="button"
             onClick={() => navigate(`/edit-listing/${listing.id}`)}

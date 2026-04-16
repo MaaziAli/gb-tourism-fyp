@@ -14,6 +14,7 @@ import PointsEarnedPopup from '../components/PointsEarnedPopup'
 import Toast from '../components/Toast'
 import PriceBreakdown from '../components/PriceBreakdown'
 import CancellationPolicy from '../components/CancellationPolicy'
+import { useCurrency } from '../context/CurrencyContext'
 
 function getPriceLabel(serviceType) {
   const perDay = [
@@ -35,6 +36,7 @@ export default function BookingForm() {
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
   const [searchParams] = useSearchParams()
+  const { formatPrice } = useCurrency()
 
   // Get room info from URL
   const roomTypeIdFromUrl =
@@ -462,7 +464,7 @@ export default function BookingForm() {
                   fontWeight: 700, color: 'var(--accent)',
                   fontSize: '1rem', marginTop: '4px'
                 }}>
-                  PKR {(confirmedTotal ?? discountedTotal).toLocaleString('en-PK')} total
+                  {formatPrice(confirmedTotal ?? discountedTotal)} total
                 </span>
                 {(couponDiscount > 0 || loyaltyDiscount > 0) && (
                   <div style={{
@@ -482,7 +484,7 @@ export default function BookingForm() {
                           🎟️ Coupon
                         </span>
                         <span style={{ fontWeight: 600, color: '#16a34a' }}>
-                          - PKR {couponDiscount.toLocaleString('en-PK')}
+                          - {formatPrice(couponDiscount)}
                         </span>
                       </div>
                     )}
@@ -495,7 +497,7 @@ export default function BookingForm() {
                           ⭐ {loyaltyPointsUsed.toLocaleString()} points
                         </span>
                         <span style={{ fontWeight: 600, color: '#a16207' }}>
-                          - PKR {loyaltyDiscount.toLocaleString('en-PK')}
+                          - {formatPrice(loyaltyDiscount)}
                         </span>
                       </div>
                     )}
@@ -518,7 +520,7 @@ export default function BookingForm() {
                   fontSize: '1rem', cursor: 'pointer'
                 }}
               >
-                💳 Pay Now — PKR {(confirmedTotal ?? discountedTotal).toLocaleString('en-PK')}
+                💳 Pay Now — {formatPrice(confirmedTotal ?? discountedTotal)}
               </button>
               <button
                 type="button"
@@ -580,7 +582,7 @@ export default function BookingForm() {
       )}
       {loyaltyToast && (
         <Toast
-          title={`You saved PKR ${loyaltyToast.discount.toLocaleString('en-PK')}!`}
+          title={`You saved ${formatPrice(loyaltyToast.discount)}!`}
           message={`${loyaltyToast.points.toLocaleString()} loyalty points redeemed on this booking.`}
           type="success"
           duration={5000}
@@ -881,7 +883,7 @@ export default function BookingForm() {
                   fontWeight: 800, fontSize: '1.1rem',
                   color: 'var(--accent)'
                 }}>
-                  PKR {discountedTotal.toLocaleString('en-PK')}
+                  {formatPrice(discountedTotal)}
                 </span>
               </div>
             ) : (
@@ -978,7 +980,7 @@ export default function BookingForm() {
                               {rt.room_type || rt.name}
                               {rt.available_rooms === 0
                                 ? ' (fully booked)'
-                                : ` — PKR ${(rt.price_per_night || 0).toLocaleString('en-PK')}/night`}
+                                : ` — ${formatPrice(rt.price_per_night || 0)}/night`}
                             </option>
                           ))}
                         </select>
@@ -1043,21 +1045,21 @@ export default function BookingForm() {
 
                   {/* Live price estimate */}
                   {multiRoomEstimate > 0 && (
-                    <div style={{
-                      background: 'var(--accent-light)',
-                      border: '1px solid var(--accent)',
-                      borderRadius: '10px',
-                      padding: '10px 14px',
-                      display: 'flex', justifyContent: 'space-between',
-                      alignItems: 'center', fontSize: '0.875rem',
-                    }}>
-                      <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        🛏️ Estimated total
-                      </span>
-                      <span style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '1rem' }}>
-                        PKR {multiRoomEstimate.toLocaleString('en-PK')}
-                      </span>
-                    </div>
+                  <div style={{
+                    background: 'var(--accent-light)',
+                    border: '1px solid var(--accent)',
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    display: 'flex', justifyContent: 'space-between',
+                    alignItems: 'center', fontSize: '0.875rem',
+                  }}>
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      🛏️ Estimated total
+                    </span>
+                    <span style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '1rem' }}>
+                      {formatPrice(multiRoomEstimate)}
+                    </span>
+                  </div>
                   )}
                 </div>
               )}
@@ -1216,10 +1218,12 @@ export default function BookingForm() {
                         <input type="checkbox" checked={checked} onChange={() => {}} style={{ width: 16, height: 16 }} />
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>{opt.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PKR {Number(opt.price_per_day).toLocaleString('en-PK')}/day</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {formatPrice(Number(opt.price_per_day))}/day
+                          </div>
                         </div>
                         <span style={{ fontWeight: 700, fontSize: '0.88rem', color: checked ? 'var(--accent)' : 'var(--text-secondary)' }}>
-                          PKR {lineTotal.toLocaleString('en-PK')}
+                          {formatPrice(lineTotal)}
                         </span>
                       </div>
                     )
@@ -1372,9 +1376,9 @@ export default function BookingForm() {
                       fontSize: '0.75rem',
                       color: '#0ea5e9'
                     }}>
-                      PKR {parseFloat(
-                        roomPriceFromUrl || basePrice || 0
-                      ).toLocaleString('en-PK')}/night
+                      {formatPrice(
+                        parseFloat(roomPriceFromUrl || basePrice || 0)
+                      )}/night
                     </div>
                   </div>
                   <button
@@ -1416,7 +1420,7 @@ export default function BookingForm() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.85rem' }}>
                         <span style={{ color: 'var(--text-secondary)' }}>🛡️ Insurance</span>
                         <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                          PKR {insuranceTotal.toLocaleString('en-PK')}
+                          {formatPrice(insuranceTotal)}
                         </span>
                       </div>
                     )}
@@ -1495,7 +1499,7 @@ export default function BookingForm() {
                 {submitting
                   ? '⏳ Confirming...'
                   : nights > 0
-                  ? `Confirm Booking — PKR ${discountedTotal.toLocaleString('en-PK')}`
+                  ? `Confirm Booking — ${formatPrice(discountedTotal)}`
                   : 'Select dates to continue'
                 }
               </button>

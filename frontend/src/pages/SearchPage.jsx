@@ -4,6 +4,7 @@ import api from '../api/axios'
 import { getImageUrl } from '../utils/image'
 import useWindowSize from '../hooks/useWindowSize'
 import { ALL_AMENITIES } from '../utils/amenities'
+import { useCurrency } from '../context/CurrencyContext'
 
 const SERVICE_TYPES = [
   { value: 'hotel', label: '🏨 Hotel' },
@@ -74,6 +75,7 @@ export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
+  const { formatPrice } = useCurrency()
   const searchInputRef = useRef(null)
   const suggestionsRef = useRef(null)
 
@@ -1351,7 +1353,7 @@ export default function SearchPage() {
                         </div>
 
                         <div style={{ fontWeight: 800, fontSize: '1rem', color }}>
-                          PKR {item.price_per_night?.toLocaleString('en-PK')}
+                          {formatPrice(item.price_per_night || 0)}
                           <span
                             style={{
                               fontSize: '0.72rem',

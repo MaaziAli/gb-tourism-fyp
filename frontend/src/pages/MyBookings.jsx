@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
+import { useCurrency } from '../context/CurrencyContext'
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([])
@@ -17,6 +18,7 @@ export default function MyBookings() {
   const [filter, setFilter] = useState('all')
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
+  const { formatPrice } = useCurrency()
 
   useEffect(() => { fetchBookings() }, [])
 
@@ -108,9 +110,9 @@ export default function MyBookings() {
       let msg = 'Booking updated successfully'
       const adjustment = Number(res.data?.price_adjustment)
       if (!Number.isNaN(adjustment) && adjustment > 0) {
-        msg += ` Additional charge of PKR ${adjustment} applies`
+        msg += ` Additional charge of ${formatPrice(adjustment)} applies`
       } else if (!Number.isNaN(adjustment) && adjustment < 0) {
-        msg += ` Refund of PKR ${Math.abs(adjustment)} will be processed`
+        msg += ` Refund of ${formatPrice(Math.abs(adjustment))} will be processed`
       }
       alert(msg)
       closeModifyForm()
@@ -658,8 +660,7 @@ export default function MyBookings() {
                                   fontWeight: 400,
                                   color: 'var(--text-secondary)',
                                 }}>
-                                  · PKR {b.price_per_person
-                                    ?.toLocaleString('en-PK')}/person
+                                  · {formatPrice(b.price_per_person)}/person
                                 </span>
                               )}
                             </div>
@@ -672,8 +673,7 @@ export default function MyBookings() {
                                 padding: '2px 8px', borderRadius: '999px',
                                 fontSize: '0.72rem', fontWeight: 600,
                               }}>
-                                🎉 Saved PKR {b.group_discount_applied
-                                  ?.toLocaleString('en-PK')}
+                                🎉 Saved {formatPrice(b.group_discount_applied)}
                               </div>
                             )}
                           </div>
@@ -704,8 +704,7 @@ export default function MyBookings() {
                               fontSize: '1rem',
                             }}
                           >
-                            PKR{' '}
-                            {b.total_price?.toLocaleString('en-PK')}
+                            {formatPrice(b.total_price || 0)}
                             <span
                               style={{
                                 fontSize: '0.72rem',
@@ -1076,25 +1075,24 @@ export default function MyBookings() {
                               alignItems: 'center',
                               marginBottom: '6px',
                             }}>
-                              <div style={{
-                                display: 'inline-flex',
-                                alignItems: 'center', gap: '6px',
-                                background: 'var(--accent-light)',
-                                color: 'var(--accent)',
-                                padding: '3px 10px', borderRadius: '999px',
-                                fontSize: '0.75rem', fontWeight: 700,
-                              }}>
-                                👥 Group of {b.group_size}
-                                {b.price_per_person != null && (
-                                  <span style={{
-                                    fontWeight: 400,
-                                    color: 'var(--text-secondary)',
-                                  }}>
-                                    · PKR {b.price_per_person
-                                      ?.toLocaleString('en-PK')}/person
-                                  </span>
-                                )}
-                              </div>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center', gap: '6px',
+                              background: 'var(--accent-light)',
+                              color: 'var(--accent)',
+                              padding: '3px 10px', borderRadius: '999px',
+                              fontSize: '0.75rem', fontWeight: 700,
+                            }}>
+                              👥 Group of {b.group_size}
+                              {b.price_per_person != null && (
+                                <span style={{
+                                  fontWeight: 400,
+                                  color: 'var(--text-secondary)',
+                                }}>
+                                  · {formatPrice(b.price_per_person)}/person
+                                </span>
+                              )}
+                            </div>
                               {b.group_discount_applied > 0 && (
                                 <div style={{
                                   display: 'inline-flex',
@@ -1104,8 +1102,7 @@ export default function MyBookings() {
                                   padding: '2px 8px', borderRadius: '999px',
                                   fontSize: '0.72rem', fontWeight: 600,
                                 }}>
-                                  🎉 Saved PKR {b.group_discount_applied
-                                    ?.toLocaleString('en-PK')}
+                                  🎉 Saved {formatPrice(b.group_discount_applied)}
                                 </div>
                               )}
                             </div>
@@ -1138,10 +1135,7 @@ export default function MyBookings() {
                               fontSize: '1.05rem',
                             }}
                           >
-                            PKR{' '}
-                            {b.total_price?.toLocaleString(
-                              'en-PK',
-                            )}
+                            {formatPrice(b.total_price || 0)}
                             <span
                               style={{
                                 fontSize: '0.75rem',
@@ -1333,7 +1327,7 @@ export default function MyBookings() {
                           <option value="">Select room type</option>
                           {modifyRoomTypes.map((rt) => (
                             <option key={rt.id} value={rt.id}>
-                              {rt.name} - PKR {Number(rt.price_per_night || 0).toLocaleString('en-PK')}
+                              {rt.name} - {formatPrice(Number(rt.price_per_night || 0))}
                             </option>
                           ))}
                         </select>

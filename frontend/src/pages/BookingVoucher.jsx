@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
+import { useCurrency } from '../context/CurrencyContext'
 
 const SERVICE_LABELS = {
   hotel: '🏨 Hotel', tour: '🏔️ Tour',
@@ -96,6 +97,7 @@ function QRCode({ data, size = 160 }) {
 export default function BookingVoucher() {
   const { bookingId } = useParams()
   const navigate = useNavigate()
+  const { formatPrice } = useCurrency()
   const [voucher, setVoucher] = useState(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
@@ -309,8 +311,7 @@ export default function BookingVoucher() {
   }
 
   function formatPKR(v) {
-    return `PKR ${(v || 0)
-      .toLocaleString('en-PK')}`
+    return formatPrice(v || 0)
   }
 
   if (loading) return (

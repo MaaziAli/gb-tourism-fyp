@@ -2277,7 +2277,7 @@ export default function ListingDetail() {
                     color: '#16a34a',
                     fontWeight: '700'
                   }}>
-                    Coupon applied! Saving PKR {couponDiscount.toLocaleString('en-PK')}
+                    Coupon applied! Saving {formatPrice(couponDiscount)}
                   </div>
                 ) : null}
               </div>
@@ -2344,10 +2344,10 @@ export default function ListingDetail() {
                     )
                   ? 'Select a Room First'
                   : nights > 0
-                  ? 'Book Now — PKR ' + (
+                  ? 'Book Now — ' + formatPrice(
                       (effectivePrice * nights) -
                       (couponDiscount || 0)
-                    ).toLocaleString('en-PK')
+                    )
                   : 'Book Now'
                 }
               </button>
