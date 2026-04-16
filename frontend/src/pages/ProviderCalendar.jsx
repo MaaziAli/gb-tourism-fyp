@@ -222,6 +222,10 @@ export default function ProviderCalendar() {
   const [unblockModal, setUnblockModal] = useState(null) // { date, reason }
   const [saving, setSaving] = useState(false)
 
+  // Seasonal pricing preview: dateStr → { effective_price, applied_rules }
+  const [seasonalPrices, setSeasonalPrices] = useState({})
+  const [loadingSeasonal, setLoadingSeasonal] = useState(false)
+
   // ── Fetch data ──────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -276,6 +280,32 @@ export default function ProviderCalendar() {
   }, [listingId, year, month])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  // ── Fetch seasonal prices ────────────────────────────────────────────────
+  const fetchSeasonalPrices = useCallback(async (y, m) => {
+    setLoadingSeasonal(true)
+    try {
+      const res = await api.get(`/listings/${listingId}/seasonal-prices/calendar`, {
+        params: { year: y, month: m },
+      })
+      const priceMap = {}
+      ;(res.data.dates || []).forEach(d => {
+        priceMap[d.date] = {
+          effective_price: d.effective_price,
+          applied_rules: d.applied_rules,
+        }
+      })
+      setSeasonalPrices(priceMap)
+    } catch (e) {
+      console.error('Failed to fetch seasonal prices', e)
+    } finally {
+      setLoadingSeasonal(false)
+    }
+  }, [listingId])
+
+  useEffect(() => {
+    if (listingId) fetchSeasonalPrices(year, month)
+  }, [year, month, listingId, fetchSeasonalPrices])
 
   // ── Date clicking ────────────────────────────────────────────────────────
   function handleDateClick(dateStr) {
@@ -431,6 +461,10 @@ export default function ProviderCalendar() {
             <LegendDot color="#e5e7eb" label="Blocked (maintenance)" />
             <LegendDot color="#bfdbfe" label="Selected range" />
             <LegendDot color="transparent" label="Available" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              <span style={{ color: '#d97706', fontWeight: 700, fontSize: '0.7rem' }}>PKR</span>
+              Seasonal price applied
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 16, fontSize: '0.82rem' }}>
             <span style={{ color: '#b91c1c', fontWeight: 700 }}>{bookedCount} booked days</span>
@@ -508,14 +542,32 @@ export default function ProviderCalendar() {
                   const isManual = info?.type === 'manual'
                   const isClickable = !isPast || isManual
 
+                  const priceInfo = seasonalPrices[date]
+                  const hasSeasonalRule = priceInfo?.applied_rules?.length > 0
+                  const formattedPrice = priceInfo
+                    ? (priceInfo.effective_price >= 1000
+                        ? `PKR ${(priceInfo.effective_price / 1000).toFixed(1)}K`
+                        : `PKR ${priceInfo.effective_price}`)
+                    : null
+
+                  const seasonalTooltip = priceInfo
+                    ? (hasSeasonalRule
+                        ? priceInfo.applied_rules.map(r =>
+                            `${r.name}: ${r.multiplier}x${r.surcharge ? ` + PKR ${r.surcharge}` : ''}`
+                          ).join('\n')
+                        : 'Base price (no seasonal rules)')
+                    : null
+
+                  const cellTitle = isManual
+                    ? `Blocked: ${info.reason}`
+                    : isBooked
+                    ? info.bookings?.map(b => `${b.guest_name} (${b.check_in} → ${b.check_out})`).join('\n')
+                    : seasonalTooltip || (isPast ? '' : 'Click to start blocking')
+
                   return (
                     <div
                       key={date}
-                      title={
-                        isManual ? `Blocked: ${info.reason}` :
-                        isBooked ? info.bookings?.map(b => `${b.guest_name} (${b.check_in} → ${b.check_out})`).join('\n') :
-                        isPast ? '' : 'Click to start blocking'
-                      }
+                      title={cellTitle}
                       onClick={() => isClickable && handleDateClick(date)}
                       onMouseEnter={() => !selEnd && selStart && setHoverDate(date)}
                       onMouseLeave={() => setHoverDate(null)}
@@ -538,7 +590,19 @@ export default function ProviderCalendar() {
                         position: 'relative',
                       }}
                     >
-                      <span>{cell.day}</span>
+                      <span style={{ fontWeight: 600 }}>{cell.day}</span>
+                      {!loadingSeasonal && formattedPrice && (
+                        <span style={{
+                          fontSize: '0.6rem',
+                          color: hasSeasonalRule ? '#d97706' : 'var(--text-secondary)',
+                          fontWeight: hasSeasonalRule ? 700 : 400,
+                          marginTop: '1px',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.2,
+                        }}>
+                          {formattedPrice}
+                        </span>
+                      )}
                       {isBooked && (
                         <div style={{
                           width: 6, height: 6, borderRadius: '50%',

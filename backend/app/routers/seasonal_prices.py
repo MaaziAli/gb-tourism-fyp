@@ -1,7 +1,7 @@
 """
 Seasonal Prices router – provider-only CRUD for seasonal pricing rules.
 """
-from datetime import date as date_type
+from datetime import date as date_type, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
@@ -157,3 +157,74 @@ def delete_seasonal_price(
     db.delete(sp)
     db.commit()
     return None
+
+
+@router.get("/listings/{listing_id}/seasonal-prices/calendar")
+def get_seasonal_calendar_prices(
+    listing_id: int,
+    year: int,
+    month: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return effective nightly prices for each day in a month,
+    including which seasonal rules apply.
+    Providers only see their own listings (or admin).
+    """
+    listing = db.get(Listing, listing_id)
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.owner_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not your listing")
+
+    # Get all active seasonal rules for this listing
+    rules = (
+        db.query(SeasonalPrice)
+        .filter(
+            SeasonalPrice.listing_id == listing_id,
+            SeasonalPrice.is_active.is_(True),
+        )
+        .all()
+    )
+
+    base_price = listing.price_per_night or 0
+
+    # Generate all dates in the requested month
+    first_day = date_type(year, month, 1)
+    if month == 12:
+        last_day = date_type(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        last_day = date_type(year, month + 1, 1) - timedelta(days=1)
+
+    dates_result = []
+    current = first_day
+    while current <= last_day:
+        date_str = current.isoformat()
+        effective_price = base_price
+        applied_rules = []
+
+        for rule in rules:
+            if rule.start_date <= current <= rule.end_date:
+                applied_rules.append({
+                    "id": rule.id,
+                    "name": rule.name,
+                    "multiplier": rule.price_multiplier,
+                    "surcharge": rule.fixed_surcharge,
+                })
+                effective_price = (effective_price * rule.price_multiplier) + rule.fixed_surcharge
+
+        dates_result.append({
+            "date": date_str,
+            "effective_price": round(effective_price, 2),
+            "applied_rules": applied_rules,
+        })
+        current += timedelta(days=1)
+
+    return {
+        "listing_id": listing_id,
+        "year": year,
+        "month": month,
+        "base_price": base_price,
+        "dates": dates_result,
+    }
