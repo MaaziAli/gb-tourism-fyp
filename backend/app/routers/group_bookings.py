@@ -382,6 +382,55 @@ def create_group_booking(
     if ci < today:
         raise HTTPException(400, "Check-in date cannot be in the past")
 
+    # ── Capacity check for single-date services (tours/activities) ─────────
+    if service_type in SINGLE_DATE_TYPES:
+        from app.models.tour_date_capacity import TourDateCapacity
+        from sqlalchemy import func
+
+        check_date = ci  # check-in date
+
+        # Get custom capacity override if exists
+        custom_capacity = (
+            db.query(TourDateCapacity)
+            .filter(
+                TourDateCapacity.listing_id == listing.id,
+                TourDateCapacity.tour_date == check_date,
+            )
+            .first()
+        )
+
+        max_capacity = (
+            custom_capacity.capacity
+            if custom_capacity is not None
+            else listing.max_capacity_per_day
+        )
+
+        # If capacity is not set (None), treat as unlimited (skip check)
+        if max_capacity is not None:
+            # Count existing active/confirmed bookings for this date
+            booked_count = (
+                db.query(func.count(Booking.id))
+                .filter(
+                    Booking.listing_id == listing.id,
+                    Booking.status.in_(["active", "confirmed"]),
+                    Booking.check_in == check_date,
+                )
+                .scalar() or 0
+            )
+
+            # Calculate available spots
+            available_spots = max_capacity - booked_count
+
+            if body.group_size > available_spots:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Not enough spots available. "
+                        f"Requested: {body.group_size}, "
+                        f"Available: {available_spots}."
+                    ),
+                )
+
     # Conflict check for single-date services only needs same-day collisions.
     if service_type in SINGLE_DATE_TYPES:
         overlapping = (
