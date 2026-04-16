@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import api from '../api/axios'
 
 export default function WishlistButton({
@@ -7,15 +7,20 @@ export default function WishlistButton({
 }) {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
+  const initialFetchDone = useRef(false)
 
   useEffect(() => {
     const raw = localStorage.getItem('user')
     if (!raw) return
-    api.get('/wishlist/ids')
-      .then(r => {
-        setSaved(r.data.includes(listingId))
-      })
-      .catch(() => {})
+
+    if (!initialFetchDone.current) {
+      api.get('/wishlist/ids')
+        .then(r => {
+          setSaved(r.data.includes(listingId))
+          initialFetchDone.current = true
+        })
+        .catch(() => {})
+    }
   }, [listingId])
 
   async function toggle() {
@@ -23,15 +28,16 @@ export default function WishlistButton({
     if (!raw) return
 
     setLoading(true)
+    const previousState = saved
+    setSaved(!saved)
     try {
-      if (saved) {
+      if (previousState) {
         await api.delete(`/wishlist/${listingId}`)
-        setSaved(false)
       } else {
         await api.post(`/wishlist/${listingId}`)
-        setSaved(true)
       }
     } catch (e) {
+      setSaved(previousState)
       console.error(e)
     } finally {
       setLoading(false)
