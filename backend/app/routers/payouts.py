@@ -12,6 +12,7 @@ from app.models.booking import Booking
 from app.models.listing import Listing
 from app.models.payment import Payment
 from app.models.payout_request import PayoutRequest
+from app.models.refund import Refund
 from app.models.user import User
 
 router = APIRouter(tags=["Payouts"])
@@ -72,15 +73,26 @@ def get_provider_balance_breakdown(db: Session, provider_id: int) -> dict:
         or 0.0
     )
 
+    total_refunded = (
+        db.query(func.coalesce(func.sum(Refund.amount_refunded), 0.0))
+        .join(Booking, Booking.id == Refund.booking_id)
+        .join(Listing, Listing.id == Booking.listing_id)
+        .filter(Listing.owner_id == provider_id)
+        .scalar()
+        or 0.0
+    )
+
     total_earned = round(float(total_earned), 2)
+    total_refunded = round(float(total_refunded), 2)
     reserved_pending = round(float(reserved_pending), 2)
     reserved_approved = round(float(reserved_approved), 2)
     already_paid = round(float(already_paid), 2)
     total_reserved = round(reserved_pending + reserved_approved + already_paid, 2)
-    available = round(max(0.0, total_earned - total_reserved), 2)
+    available = round(max(0.0, total_earned - total_reserved - total_refunded), 2)
 
     return {
         "total_earned": total_earned,
+        "total_refunded": total_refunded,
         "reserved_pending": reserved_pending,
         "reserved_approved": reserved_approved,
         "already_paid": already_paid,
