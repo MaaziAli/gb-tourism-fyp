@@ -5,6 +5,7 @@ import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 import NotificationBell from './NotificationBell'
 import LoyaltyBadge from './LoyaltyBadge'
+import { useCurrency } from '../context/CurrencyContext'
 
 // ── Single dropdown group component ──
 function NavDropdown({ label, items, navigate, currentPath }) {
@@ -278,6 +279,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const { currency, setCurrency, supportedCurrencies, ratesLoading } = useCurrency()
 
   const user = getUser()
   const role = getRole()
@@ -510,6 +512,31 @@ export default function Navbar() {
 
             {/* Notifications */}
             {loggedIn && <NotificationBell />}
+
+            {/* Currency selector */}
+            {!isMobile && (
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                disabled={ratesLoading}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.4)',
+                  borderRadius: '6px',
+                  color: 'inherit',
+                  padding: '4px 8px',
+                  fontSize: '13px',
+                  cursor: ratesLoading ? 'default' : 'pointer',
+                  marginLeft: '12px',
+                }}
+              >
+                {supportedCurrencies.map((c) => (
+                  <option key={c} value={c} style={{ color: '#111827' }}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {/* Theme toggle */}
             <button

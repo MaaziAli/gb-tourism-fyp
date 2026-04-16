@@ -10,6 +10,7 @@ import PriceBreakdown from '../components/PriceBreakdown'
 import CancellationPolicy from '../components/CancellationPolicy'
 import UrgencyBanner from '../components/UrgencyBanner'
 import { getAmenityInfo } from '../utils/amenities'
+import { useCurrency } from '../context/CurrencyContext'
 
 const SERVICE_LABELS = {
   hotel: '🏨 Hotel',
@@ -210,6 +211,7 @@ export default function ListingDetail() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { isMobile } = useWindowSize()
+  const { formatPrice } = useCurrency()
 
   const [listing, setListing] = useState(null)
   const [reviews, setReviews] = useState([])
@@ -1441,9 +1443,7 @@ export default function ListingDetail() {
                                       : '#0ea5e9',
                                     lineHeight: 1
                                   }}>
-                                    PKR{' '}
-                                    {room.price_per_night
-                                      ?.toLocaleString('en-PK')}
+                                    {formatPrice(room.price_per_night)}
                                     <span style={{
                                       fontSize: '0.72rem',
                                       fontWeight: 400,
@@ -1458,12 +1458,7 @@ export default function ListingDetail() {
                                       fontSize: '0.72rem',
                                       color: 'var(--text-muted)'
                                     }}>
-                                      PKR{' '}
-                                      {(
-                                        room.price_per_night *
-                                        nights
-                                      ).toLocaleString('en-PK')}
-                                      {' '}total
+                                      {formatPrice(room.price_per_night * nights)}{' '}total
                                     </div>
                                   )}
                                 </div>
@@ -1829,8 +1824,7 @@ export default function ListingDetail() {
                 fontSize: '1.8rem', fontWeight: 900,
                 color: 'white', lineHeight: 1
               }}>
-                PKR {(effectivePrice || 0)
-                  .toLocaleString('en-PK')}
+                {formatPrice(effectivePrice || 0)}
                 <span style={{
                   fontSize: '0.82rem',
                   fontWeight: 400, marginLeft: '4px',
