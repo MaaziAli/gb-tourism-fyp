@@ -19,6 +19,8 @@ class Listing(Base):
     is_featured = Column(Boolean, default=False)
     cancellation_policy = Column(String, default="moderate")
     cancellation_hours_free = Column(Integer, default=48)
+    is_approved = Column(Boolean, default=False, nullable=False)
+    rejection_reason = Column(String, nullable=True, default=None)
     rooms_available = Column(Integer, default=10)
     max_capacity_per_day = Column(Integer, nullable=True)
 

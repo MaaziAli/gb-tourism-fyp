@@ -359,6 +359,51 @@ export default function MyListings() {
                               listing.service_type,
                             ) && listing.service_type?.toUpperCase()}
                           </span>
+                          {listing.is_approved && (
+                            <span
+                              style={{
+                                marginLeft: 6,
+                                background: '#dcfce7',
+                                color: '#166534',
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              Live
+                            </span>
+                          )}
+                          {!listing.is_approved && !listing.rejection_reason && (
+                            <span
+                              style={{
+                                marginLeft: 6,
+                                background: '#fef3c7',
+                                color: '#92400e',
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              Pending Approval
+                            </span>
+                          )}
+                          {!listing.is_approved && listing.rejection_reason && (
+                            <span
+                              style={{
+                                marginLeft: 6,
+                                background: '#fee2e2',
+                                color: '#b91c1c',
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              Rejected
+                            </span>
+                          )}
                         </div>
                         <h3
                           style={{
@@ -386,6 +431,18 @@ export default function MyListings() {
                             'en-PK',
                           )}
                           /night
+                          {!listing.is_approved && listing.rejection_reason && (
+                            <span
+                              style={{
+                                display: 'block',
+                                marginTop: 4,
+                                fontSize: '0.78rem',
+                                color: '#b91c1c',
+                              }}
+                            >
+                              Reason: {listing.rejection_reason}
+                            </span>
+                          )}
                         </p>
                         {listing.average_rating > 0 && (
                           <div

@@ -29,5 +29,7 @@ class ListingResponse(ListingBase):
     cancellation_hours_free: int | None = 48
     rooms_available: int | None = 10
     max_capacity_per_day: int | None = None
+     is_approved: bool = False
+     rejection_reason: str | None = None
 
     model_config = {"from_attributes": True}

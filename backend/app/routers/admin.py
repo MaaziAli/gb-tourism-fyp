@@ -10,6 +10,8 @@ from app.dependencies.auth import get_current_user
 from app.models.booking import Booking
 from app.models.listing import Listing
 from app.models.user import User
+from app.utils.notify import create_notification
+from datetime import datetime
 
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -222,6 +224,122 @@ def admin_delete_listing(listing_id: int, db: Session = Depends(get_db)):
     db.delete(listing)
     db.commit()
     return
+
+
+@router.patch("/listings/{listing_id}/approve", dependencies=[Depends(require_admin)])
+def approve_listing(
+    listing_id: int,
+    db: Session = Depends(get_db),
+):
+    listing = db.query(Listing).filter(Listing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if getattr(listing, "is_approved", False):
+        raise HTTPException(status_code=400, detail="Listing is already approved")
+
+    listing.is_approved = True
+    listing.rejection_reason = None
+    db.commit()
+    db.refresh(listing)
+
+    provider_msg = (
+        f"Your listing '{listing.title}' has been approved and is now live!"
+    )
+    create_notification(
+        db,
+        user_id=listing.owner_id,
+        title="Listing Approved",
+        message=provider_msg,
+        type="success",
+    )
+
+    from app.utils.email_utils import send_admin_notification_email
+
+    email_body = f"""
+    <h2>Listing Approved</h2>
+    <p><strong>Listing:</strong> {listing.title} (ID: {listing_id})</p>
+    <p><strong>Provider ID:</strong> {listing.owner_id}</p>
+    <p><strong>Action:</strong> APPROVED — listing is now publicly visible.</p>
+    <p><strong>Time:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}</p>
+    """
+    send_admin_notification_email(
+        subject=f"[GB Tourism] Listing Approved: {listing.title}",
+        body_html=email_body,
+    )
+
+    return {"message": "Listing approved", "listing_id": listing_id}
+
+
+@router.patch("/listings/{listing_id}/reject", dependencies=[Depends(require_admin)])
+def reject_listing(
+    listing_id: int,
+    reason: str = "",
+    db: Session = Depends(get_db),
+):
+    listing = db.query(Listing).filter(Listing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
+    listing.is_approved = False
+    listing.rejection_reason = reason or "No reason provided"
+    db.commit()
+    db.refresh(listing)
+
+    provider_msg = (
+        f"Your listing '{listing.title}' was not approved. "
+        f"Reason: {listing.rejection_reason}. "
+        f"Please update and resubmit."
+    )
+    create_notification(
+        db,
+        user_id=listing.owner_id,
+        title="Listing Rejected",
+        message=provider_msg,
+        type="warning",
+    )
+
+    from app.utils.email_utils import send_admin_notification_email
+
+    email_body = f"""
+    <h2>Listing Rejected</h2>
+    <p><strong>Listing:</strong> {listing.title} (ID: {listing_id})</p>
+    <p><strong>Provider ID:</strong> {listing.owner_id}</p>
+    <p><strong>Reason:</strong> {listing.rejection_reason}</p>
+    <p><strong>Action:</strong> REJECTED — listing remains hidden from public.</p>
+    <p><strong>Time:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}</p>
+    """
+    send_admin_notification_email(
+        subject=f"[GB Tourism] Listing Rejected: {listing.title}",
+        body_html=email_body,
+    )
+
+    return {
+        "message": "Listing rejected",
+        "listing_id": listing_id,
+        "reason": listing.rejection_reason,
+    }
+
+
+@router.get("/listings/pending", dependencies=[Depends(require_admin)])
+def get_pending_listings(
+    db: Session = Depends(get_db),
+):
+    pending = db.query(Listing).filter(Listing.is_approved.is_(False)).all()
+    return [
+        {
+            "id": l.id,
+            "title": l.title,
+            "location": getattr(l, "location", ""),
+            "service_type": getattr(l, "service_type", ""),
+            "owner_id": l.owner_id,
+            "created_at": getattr(l, "created_at", None).isoformat()
+            if getattr(l, "created_at", None)
+            else None,
+            "rejection_reason": getattr(l, "rejection_reason", None),
+            "is_approved": getattr(l, "is_approved", False),
+        }
+        for l in pending
+    ]
 
 
 @router.patch(

@@ -18,6 +18,10 @@ from app.models.booking import Booking
 from app.models.listing import Listing
 from app.models.tour_date_capacity import TourDateCapacity
 from app.models.user import User
+from typing import Optional
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from app.core.jwt import ALGORITHM, SECRET_KEY
 from app.schemas.listing import ListingResponse, ListingUpdate
 
 
@@ -133,6 +137,27 @@ def _save_image(image: UploadFile | None) -> str | None:
 def _parse_amenities(amenities_value: str | None) -> list[str]:
     if not amenities_value:
         return []
+oauth2_scheme_optional = OAuth2PasswordBearer(
+    tokenUrl="/auth/login",
+    auto_error=False,
+)
+
+
+def get_current_user_optional(
+    token: Optional[str] = Depends(oauth2_scheme_optional),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    if token is None:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str | None = payload.get("sub")
+        if not email:
+            return None
+        return db.query(User).filter(User.email == email).first()
+    except JWTError:
+        return None
+
     try:
         parsed = json.loads(amenities_value)
         return parsed if isinstance(parsed, list) else []
@@ -200,7 +225,11 @@ def get_listings(db: Session = Depends(get_db)):
     """Get all listings with average_rating and review_count."""
     from app.models.review import Review
 
-    listings = db.query(Listing).all()
+    listings = (
+        db.query(Listing)
+        .filter(Listing.is_approved.is_(True))
+        .all()
+    )
     result = []
     for listing in listings:
         reviews = (
@@ -227,6 +256,10 @@ def get_listings(db: Session = Depends(get_db)):
             "is_featured": bool(
                 getattr(listing, "is_featured", False)
             ),
+            "is_approved": bool(
+                getattr(listing, "is_approved", False)
+            ),
+            "rejection_reason": getattr(listing, "rejection_reason", None),
         })
     return result
 
@@ -304,6 +337,10 @@ def get_my_listings(
             "is_featured": bool(
                 getattr(listing, "is_featured", False)
             ),
+            "is_approved": bool(
+                getattr(listing, "is_approved", False)
+            ),
+            "rejection_reason": getattr(listing, "rejection_reason", None),
         })
     return result
 
@@ -797,12 +834,21 @@ def compare_listings(
 
 
 @router.get("/{listing_id}")
-def get_listing(listing_id: int, db: Session = Depends(get_db)):
+def get_listing(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
     """Get a single listing by ID with average_rating and review_count."""
     from app.models.review import Review
 
     listing = db.get(Listing, listing_id)
     if listing is None:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
+    # Hide unapproved listings from non-owners
+    is_owner = current_user is not None and listing.owner_id == current_user.id
+    if not listing.is_approved and not is_owner:
         raise HTTPException(status_code=404, detail="Listing not found")
     reviews = db.query(Review).filter(Review.listing_id == listing_id).all()
     review_count = len(reviews)
@@ -880,6 +926,10 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
         "is_featured": bool(
             getattr(listing, "is_featured", False)
         ),
+        "is_approved": bool(
+            getattr(listing, "is_approved", False)
+        ),
+        "rejection_reason": getattr(listing, "rejection_reason", None),
         "cancellation_policy": cancel_policy,
         "cancellation_hours_free": cancel_hours,
         "cancellation_policy_info": policy_map.get(

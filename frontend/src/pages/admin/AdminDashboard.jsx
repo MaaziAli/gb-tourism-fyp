@@ -310,6 +310,10 @@ function AdminDashboard() {
   const [couponsLoading, setCouponsLoading] = useState(false)
   const [payoutRequests, setPayoutRequests] = useState([])
   const [payoutsLoading, setPayoutsLoading] = useState(false)
+  const [pendingListings, setPendingListings] = useState([])
+  const [pendingLoading, setPendingLoading] = useState(false)
+  const [pendingError, setPendingError] = useState('')
+  const [rejectReason, setRejectReason] = useState({})
 
   useEffect(() => {
     const loadAll = async () => {
@@ -353,6 +357,9 @@ function AdminDashboard() {
     }
     if (activeSection === 'payouts') {
       fetchPayoutRequests()
+    }
+    if (activeSection === 'pendingListings') {
+      fetchPendingListings()
     }
   }, [activeSection])
 
@@ -421,6 +428,20 @@ function AdminDashboard() {
     }
   }
 
+  async function fetchPendingListings() {
+    setPendingLoading(true)
+    setPendingError('')
+    try {
+      const res = await api.get('/admin/listings/pending')
+      setPendingListings(Array.isArray(res.data) ? res.data : [])
+    } catch (e) {
+      console.error('Failed to load pending listings', e)
+      setPendingError(e.response?.data?.detail || 'Failed to load pending listings')
+    } finally {
+      setPendingLoading(false)
+    }
+  }
+
   const approvePayout = async (requestId) => {
     try {
       await api.post(`/admin/payout-requests/${requestId}/approve`, {})
@@ -449,6 +470,31 @@ function AdminDashboard() {
     } catch (e) {
       console.error(e)
       alert(e.response?.data?.detail || 'Failed to reject payout request')
+    }
+  }
+
+  const handleApproveListing = async (listingId) => {
+    try {
+      await api.patch(`/admin/listings/${listingId}/approve`)
+      await fetchPendingListings()
+      alert('Listing approved and provider notified')
+    } catch (e) {
+      console.error(e)
+      alert(e.response?.data?.detail || 'Failed to approve listing')
+    }
+  }
+
+  const handleRejectListing = async (listingId) => {
+    try {
+      const reason = rejectReason[listingId] || ''
+      await api.patch(
+        `/admin/listings/${listingId}/reject?reason=${encodeURIComponent(reason)}`,
+      )
+      await fetchPendingListings()
+      alert('Listing rejected and provider notified')
+    } catch (e) {
+      console.error(e)
+      alert(e.response?.data?.detail || 'Failed to reject listing')
     }
   }
 
@@ -727,6 +773,22 @@ function AdminDashboard() {
             }}
           >
             💸 Payout Requests
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('pendingListings')}
+            style={{
+              textAlign: 'left',
+              padding: '8px 10px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor:
+                activeSection === 'pendingListings' ? '#1f2937' : 'transparent',
+              color: '#e5e7eb',
+            }}
+          >
+            🕒 Pending Listings
           </button>
           <button
             type="button"
@@ -1635,6 +1697,209 @@ function AdminDashboard() {
               </div>
             )}
           </>
+        )}
+
+        {!loading && !error && activeSection === 'pendingListings' && (
+          <div>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                marginBottom: '16px',
+              }}
+            >
+              Pending Listings
+            </h1>
+            {pendingLoading && (
+              <p style={{ color: 'var(--text-secondary)' }}>Loading pending listings...</p>
+            )}
+            {pendingError && (
+              <p style={{ color: 'var(--danger)', marginBottom: '12px' }}>{pendingError}</p>
+            )}
+            {!pendingLoading && !pendingError && pendingListings.length === 0 && (
+              <p style={{ color: 'var(--text-secondary)' }}>
+                No pending listings. New provider listings will appear here for review.
+              </p>
+            )}
+            {!pendingLoading && !pendingError && pendingListings.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                {pendingListings.map((l) => (
+                  <div
+                    key={l.id}
+                    style={{
+                      background: 'var(--bg-card)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)',
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '8px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            color: 'var(--text-primary)',
+                            fontSize: '0.95rem',
+                          }}
+                        >
+                          {l.title}{' '}
+                          {!l.is_approved && (
+                            <span
+                              style={{
+                                marginLeft: 6,
+                                padding: '2px 8px',
+                                borderRadius: 999,
+                                background: '#fef3c7',
+                                color: '#92400e',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              Pending Approval
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
+                          📍 {l.location || 'Unknown location'} · {l.service_type || 'Unknown type'}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.78rem',
+                            color: 'var(--text-muted)',
+                            marginTop: 2,
+                          }}
+                        >
+                          Provider ID: <strong>{l.owner_id}</strong>{' '}
+                          {l.created_at && (
+                            <>
+                              · Created:{' '}
+                              {new Date(l.created_at).toLocaleDateString('en-PK', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </>
+                          )}
+                        </div>
+                        {l.rejection_reason && (
+                          <div
+                            style={{
+                              marginTop: 4,
+                              fontSize: '0.8rem',
+                              color: '#b91c1c',
+                              background: '#fee2e2',
+                              borderRadius: 6,
+                              padding: '4px 6px',
+                            }}
+                          >
+                            Last rejection: {l.rejection_reason}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                        marginTop: 4,
+                        alignItems: 'center',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleApproveListing(l.id)}
+                        style={{
+                          padding: '7px 14px',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: '#16a34a',
+                          color: 'white',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                        }}
+                      >
+                        ✅ Approve
+                      </button>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flex: 1,
+                          minWidth: 0,
+                          gap: '6px',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <input
+                          type="text"
+                          placeholder="Reason for rejection (optional)"
+                          value={rejectReason[l.id] || ''}
+                          onChange={(e) =>
+                            setRejectReason((prev) => ({
+                              ...prev,
+                              [l.id]: e.target.value,
+                            }))
+                          }
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            padding: '7px 10px',
+                            borderRadius: 8,
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.82rem',
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRejectListing(l.id)}
+                          style={{
+                            padding: '7px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #b91c1c',
+                            background: '#fee2e2',
+                            color: '#b91c1c',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: '0.82rem',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          ❌ Reject
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {!loading && !error && activeSection === 'featured' && (
