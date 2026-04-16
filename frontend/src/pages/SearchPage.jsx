@@ -1201,9 +1201,15 @@ export default function SearchPage() {
                     key={item.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate(`/listing/${item.id}`)}
+                    onClick={() => {
+                      api.post(`/recently-viewed/${item.id}`).catch(() => {}) // fire-and-forget: record this listing as viewed
+                      navigate(`/listing/${item.id}`)
+                    }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') navigate(`/listing/${item.id}`)
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        api.post(`/recently-viewed/${item.id}`).catch(() => {}) // fire-and-forget: record this listing as viewed
+                        navigate(`/listing/${item.id}`)
+                      }
                     }}
                     style={{
                       background: 'var(--bg-card)',

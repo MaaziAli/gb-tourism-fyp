@@ -640,6 +640,7 @@ export default function Listings() {
                 key={listing.id}
                 onClick={() => {
                   if (dateSearchActive && listing.available_rooms === 0) return
+                  api.post(`/recently-viewed/${listing.id}`).catch(() => {}) // fire-and-forget: record this listing as viewed
                   const params = new URLSearchParams()
                   if (checkIn) params.set('checkIn', checkIn)
                   if (checkOut) params.set('checkOut', checkOut)
@@ -881,6 +882,7 @@ export default function Listings() {
                       <button
                         onClick={e => {
                           e.stopPropagation()
+                          api.post(`/recently-viewed/${listing.id}`).catch(() => {}) // fire-and-forget: record this listing as viewed
                           const params = new URLSearchParams()
                           if (checkIn) params.set('checkIn', checkIn)
                           if (checkOut) params.set('checkOut', checkOut)
