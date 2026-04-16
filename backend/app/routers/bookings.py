@@ -19,6 +19,7 @@ from app.models.loyalty import LoyaltyTransaction
 from app.models.payment import Payment
 from app.models.refund import Refund
 from app.models.review import Review
+from app.models.room_hold import RoomHold
 from app.models.tour_date_capacity import TourDateCapacity
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingResponse
@@ -211,7 +212,17 @@ def create_booking(
             )
             .scalar() or 0
         )
-        available = (room_type.total_rooms or 1) - booked_count
+        # Also subtract active (non-expired) holds to prevent double-booking
+        held_count = (
+            db.query(func.sum(RoomHold.quantity))
+            .filter(
+                RoomHold.room_type_id == body.room_type_id,
+                RoomHold.status == "active",
+                RoomHold.hold_expires_at > datetime.utcnow(),
+            )
+            .scalar() or 0
+        )
+        available = (room_type.total_rooms or 1) - booked_count - held_count
         if available <= 0:
             raise HTTPException(
                 status_code=400,
@@ -364,6 +375,18 @@ def create_booking(
     if insurance_total > 0:
         total_price = round(total_price + insurance_total, 2)
 
+    # Create a room hold before booking to prevent concurrent double-booking
+    room_hold = None
+    if room_type:
+        room_hold = RoomHold(
+            room_type_id=body.room_type_id,
+            quantity=1,
+            hold_expires_at=datetime.utcnow() + timedelta(minutes=10),
+            status="active",
+        )
+        db.add(room_hold)
+        db.flush()  # assign room_hold.id without committing
+
     booking = Booking(
         listing_id=body.listing_id,
         user_id=current_user.id,
@@ -380,6 +403,12 @@ def create_booking(
     )
     db.add(booking)
     db.flush()  # assign booking.id without committing
+
+    # Link hold to booking and mark as converted
+    if room_hold:
+        room_hold.booking_id = booking.id
+        room_hold.status = "converted"
+        db.add(room_hold)
 
     if coupon_obj:
         record_coupon_use(db, coupon_obj, current_user.id, booking.id, coupon_discount)
@@ -1335,6 +1364,20 @@ def cancel_booking(
 
     # ── Mark booking cancelled ───────────────────────────────────────────
     booking.status = "cancelled"
+
+    # ── Release any associated room holds ────────────────────────────────
+    holds = (
+        db.query(RoomHold)
+        .filter(
+            RoomHold.booking_id == booking_id,
+            RoomHold.status == "converted",
+        )
+        .all()
+    )
+    for hold in holds:
+        hold.status = "released"
+    if holds:
+        db.add_all(holds)
 
     # ── Create Refund record if money is owed back ───────────────────────
     if refund_amount > 0:

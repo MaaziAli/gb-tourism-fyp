@@ -38,6 +38,7 @@ from app.models import listing_addon as _addon_model  # noqa
 from app.models import seasonal_price as _sp_model  # noqa
 from app.models import tour_date_capacity as _tdc_model  # noqa
 from app.models import webhook_event as _we_model  # noqa
+from app.models import room_hold as _room_hold_model  # noqa
 
 try:
     from app.models import message as _msg  # noqa
@@ -200,8 +201,32 @@ def create_app() -> FastAPI:
             finally:
                 db.close()
 
+        from app.models.room_hold import RoomHold as _RoomHold
+
+        def _release_expired_room_holds():
+            db = SessionLocal()
+            try:
+                expired = (
+                    db.query(_RoomHold)
+                    .filter(
+                        _RoomHold.status == "active",
+                        _RoomHold.hold_expires_at < datetime.utcnow(),
+                    )
+                    .all()
+                )
+                for hold in expired:
+                    hold.status = "released"
+                if expired:
+                    db.commit()
+                    print(f"[APScheduler] Released {len(expired)} expired room hold(s)")
+            except Exception as exc:
+                print(f"[APScheduler] Error releasing room holds: {exc}")
+            finally:
+                db.close()
+
         _scheduler = BackgroundScheduler()
         _scheduler.add_job(_release_expired_holds, "interval", minutes=1, id="release_holds")
+        _scheduler.add_job(_release_expired_room_holds, "interval", minutes=1, id="release_room_holds")
 
         @app.on_event("startup")
         def start_scheduler():
