@@ -86,6 +86,10 @@ def mock_confirm_payment(
         nights=nights,
         guests=guests,
     )
+    # Add audit timestamp to each add-on
+    snapshot_time = datetime.utcnow().isoformat()
+    for a in addons:
+        a["snapshot_at"] = snapshot_time
     booking.addons = addons
     base_total = round(float(booking.total_price) + addons_total, 2)
 

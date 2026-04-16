@@ -12,6 +12,7 @@ Flow:
        → secondary confirmation via signed webhook event
 """
 import logging
+from datetime import datetime
 
 import stripe
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -106,6 +107,10 @@ def _confirm_booking(
 
     # Apply normalized addons if not already set
     if normalized_addons and not booking.addons:
+        # Add audit timestamp to each add-on
+        snapshot_time = datetime.utcnow().isoformat()
+        for a in normalized_addons:
+            a["snapshot_at"] = snapshot_time
         booking.addons = normalized_addons
 
     # Atomically deduct loyalty points in the same transaction
@@ -307,6 +312,10 @@ def create_checkout_session(
     db.add(pending)
     # Store normalized addons on booking now (before payment completes)
     if normalized_addons and not booking.addons:
+        # Add audit timestamp to each add-on
+        snapshot_time = datetime.utcnow().isoformat()
+        for a in normalized_addons:
+            a["snapshot_at"] = snapshot_time
         booking.addons = normalized_addons
     db.commit()
 
