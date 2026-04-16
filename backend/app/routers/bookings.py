@@ -29,6 +29,7 @@ from app.schemas.booking import (
     BookingModifyRequest,
     BookingResponse,
     RoomSelectionResponse,
+    InvoiceResponse,
 )
 from app.websockets.connection_manager import manager
 from app.utils.loyalty_utils import (
@@ -1996,6 +1997,126 @@ async def check_out_guest(
 
     # F) RETURN booking
     return booking
+
+
+@router.get("/{booking_id}/invoice", response_model=InvoiceResponse)
+async def get_invoice(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # A) FETCH AND AUTHORIZE
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    listing = db.query(Listing).filter(Listing.id == booking.listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
+    provider_id_field = listing.owner_id
+    if (
+        booking.user_id != current_user.id
+        and provider_id_field != current_user.id
+        and current_user.role != "admin"
+    ):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # B) FETCH RELATED DATA
+    from app.models.user import User as _User
+
+    guest = db.query(_User).filter(_User.id == booking.user_id).first()
+    provider = db.query(_User).filter(_User.id == provider_id_field).first()
+
+    room_type_name = None
+    if getattr(booking, "room_type_id", None):
+        from app.models.room_type import RoomType
+
+        rt = db.query(RoomType).filter(RoomType.id == booking.room_type_id).first()
+        room_type_name = rt.name if rt else None
+
+    from app.models.booking_room import BookingRoom
+
+    room_sel_rows = (
+        db.query(BookingRoom)
+        .filter(BookingRoom.booking_id == booking.id)
+        .all()
+    )
+
+    # C) CALCULATE TAX ON THE FLY
+    subtotal = float(booking.total_price)
+    gst_amount = round(subtotal * 0.17, 2)
+    service_fee = round(subtotal * 0.05, 2)
+    grand_total = round(subtotal + gst_amount + service_fee, 2)
+
+    # D) BUILD ROOM SELECTIONS LIST
+    nights = (
+        (booking.check_out - booking.check_in).days
+        if booking.check_in and booking.check_out
+        else 1
+    )
+    room_selections_data = []
+
+    if room_sel_rows:
+        from app.models.room_type import RoomType as _RoomType
+
+        for br in room_sel_rows:
+            rt2 = db.query(_RoomType).filter(_RoomType.id == br.room_type_id).first()
+            room_selections_data.append(
+                {
+                    "room_type_name": rt2.name if rt2 else f"Room #{br.room_type_id}",
+                    "quantity": br.quantity,
+                    "unit_price": float(br.unit_price),
+                    "subtotal": float(br.unit_price) * br.quantity * nights,
+                }
+            )
+
+    # E) BUILD AND RETURN InvoiceResponse
+    invoice_number = f"INV-{booking.created_at.strftime('%Y')}-{booking.id:06d}"
+
+    def user_display_name(u):
+        if not u:
+            return ""
+        return (
+            getattr(u, "full_name", None)
+            or getattr(u, "name", None)
+            or getattr(u, "username", None)
+            or getattr(u, "email", "")
+        )
+
+    check_in_str = (
+        booking.check_in.isoformat()
+        if hasattr(booking.check_in, "isoformat")
+        else str(booking.check_in)
+    )
+    check_out_str = (
+        booking.check_out.isoformat()
+        if hasattr(booking.check_out, "isoformat")
+        else str(booking.check_out)
+    )
+
+    return InvoiceResponse(
+        invoice_number=invoice_number,
+        booking_id=booking.id,
+        booking_date=booking.created_at.strftime("%Y-%m-%d"),
+        guest_name=user_display_name(guest),
+        guest_email=guest.email if guest else "",
+        provider_name=user_display_name(provider),
+        provider_email=provider.email if provider else "",
+        provider_tax_id=getattr(provider, "tax_id", None) if provider else None,
+        listing_name=listing.title,
+        listing_location=getattr(listing, "location", ""),
+        check_in=check_in_str,
+        check_out=check_out_str,
+        nights=nights,
+        room_type_name=room_type_name,
+        room_quantity=getattr(booking, "room_quantity", 1),
+        subtotal=subtotal,
+        gst_amount=gst_amount,
+        service_fee=service_fee,
+        grand_total=grand_total,
+        room_selections=room_selections_data,
+    )
 
 
 @router.post("/admin/auto-checkout", response_model=dict)

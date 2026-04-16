@@ -85,3 +85,43 @@ class BookingResponse(BaseModel):
 
 class BookingCancellationResponse(BookingResponse):
     refund_eligible: bool = False
+
+
+class InvoiceResponse(BaseModel):
+    # Booking identifiers
+    invoice_number: str        # e.g. "INV-2024-000042"
+    booking_id: int
+    booking_date: str          # ISO date string
+
+    # Guest info
+    guest_name: str
+    guest_email: str
+
+    # Provider info
+    provider_name: str
+    provider_email: str
+    provider_tax_id: Optional[str] = None   # NTN/GST number if set
+
+    # Listing info
+    listing_name: str
+    listing_location: str
+
+    # Stay details
+    check_in: str
+    check_out: str
+    nights: int
+    room_type_name: Optional[str] = None
+    room_quantity: int = 1
+
+    # Price breakdown
+    subtotal: float
+    gst_rate: float = 0.17
+    gst_amount: float
+    service_fee_rate: float = 0.05
+    service_fee: float
+    grand_total: float
+
+    # Room selections (from Feature #15 multi-room)
+    room_selections: list = []
+
+    model_config = {"from_attributes": True}

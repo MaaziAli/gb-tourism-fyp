@@ -16,6 +16,9 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     # Supported roles: "user", "provider", "admin"
     role = Column(String, default="user", nullable=False)
+    tax_id = Column(String, nullable=True, default=None)
+    # Stores provider's NTN or GST registration number
+    # Nullable — regular users and providers without tax ID leave this as None
     created_at = Column(DateTime, default=datetime.utcnow)
 
     bookings = relationship("Booking", back_populates="user")

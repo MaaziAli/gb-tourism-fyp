@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef }
-  from 'react'
-import { useParams, useNavigate }
-  from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 
 const SERVICE_LABELS = {
@@ -101,17 +99,171 @@ export default function BookingVoucher() {
   const [voucher, setVoucher] = useState(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
+  const [invoice, setInvoice] = useState(null)
+  const [invoiceLoading, setInvoiceLoading] = useState(false)
   const voucherRef = useRef(null)
+
+  const fetchInvoice = async () => {
+    setInvoiceLoading(true)
+    try {
+      const res = await api.get(`/bookings/${bookingId}/invoice`)
+      setInvoice(res.data)
+    } catch (err) {
+      console.error('Invoice fetch failed:', err)
+    } finally {
+      setInvoiceLoading(false)
+    }
+  }
 
   useEffect(() => {
     api.get(`/bookings/${bookingId}/voucher`)
       .then(r => setVoucher(r.data))
       .catch(console.error)
       .finally(() => setLoading(false))
+
+    fetchInvoice()
   }, [bookingId])
 
   function handlePrint() {
     window.print()
+  }
+
+  const handleDownloadInvoice = async () => {
+    if (!invoice) return
+
+    const formatNumber = (n) =>
+      (n ?? 0).toLocaleString('en-PK', { maximumFractionDigits: 2 })
+
+    const roomRows =
+      invoice.room_selections && invoice.room_selections.length > 0
+        ? invoice.room_selections
+            .map(
+              (sel) => `
+              <tr>
+                <td>${invoice.listing_name} — ${sel.room_type_name}</td>
+                <td style="text-align:center;">${invoice.nights}</td>
+                <td style="text-align:center;">${sel.quantity}</td>
+                <td style="text-align:right;">${formatNumber(sel.subtotal)}</td>
+              </tr>
+            `,
+            )
+            .join('')
+        : `
+          <tr>
+            <td>
+              ${invoice.listing_name}${
+                invoice.room_type_name ? ' — ' + invoice.room_type_name : ''
+              }
+              <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                ${invoice.check_in} to ${invoice.check_out} · ${invoice.listing_location}
+              </div>
+            </td>
+            <td style="text-align:center;">${invoice.nights}</td>
+            <td style="text-align:center;">${invoice.room_quantity}</td>
+            <td style="text-align:right;">${formatNumber(invoice.subtotal)}</td>
+          </tr>
+        `
+
+    const invoiceHtml = `
+      <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 32px; color: #0f172a; max-width: 800px; margin: 0 auto;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid #e2e8f0;padding-bottom:16px;">
+          <div>
+            <div style="font-size:24px;font-weight:800;color:#0f172a;letter-spacing:-0.03em;">GB Tourism Platform</div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px;">Gilgit-Baltistan, Pakistan</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:18px;font-weight:800;color:#0f172a;">TAX INVOICE</div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px;">Invoice #: <strong>${invoice.invoice_number}</strong></div>
+            <div style="font-size:12px;color:#64748b;">Date: <strong>${invoice.booking_date}</strong></div>
+            <div style="font-size:12px;color:#64748b;">Booking ID: <strong>#${invoice.booking_id}</strong></div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;gap:24px;margin-bottom:24px;">
+          <div style="flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;">
+            <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Billed To</div>
+            <div style="font-size:14px;font-weight:600;color:#0f172a;">${invoice.guest_name}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">${invoice.guest_email}</div>
+          </div>
+          <div style="flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;">
+            <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Service Provider</div>
+            <div style="font-size:14px;font-weight:600;color:#0f172a;">${invoice.provider_name}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">${invoice.provider_email}</div>
+            ${
+              invoice.provider_tax_id
+                ? `<div style="font-size:12px;color:#64748b;margin-top:4px;">NTN/GST: <strong>${invoice.provider_tax_id}</strong></div>`
+                : ''
+            }
+          </div>
+        </div>
+
+        <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr style="background:#f8fafc;color:#475569;">
+                <th style="text-align:left;padding:8px 10px;">Description</th>
+                <th style="text-align:center;padding:8px 10px;width:70px;">Nights</th>
+                <th style="text-align:center;padding:8px 10px;width:60px;">Qty</th>
+                <th style="text-align:right;padding:8px 10px;width:120px;">Amount (PKR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${roomRows}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-bottom:32px;">
+          <div style="width:260px;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span>Subtotal</span>
+              <span><strong>PKR ${formatNumber(invoice.subtotal)}</strong></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span>GST (${(invoice.gst_rate * 100).toFixed(0)}%)</span>
+              <span><strong>PKR ${formatNumber(invoice.gst_amount)}</strong></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span>Service Fee (${(invoice.service_fee_rate * 100).toFixed(0)}%)</span>
+              <span><strong>PKR ${formatNumber(invoice.service_fee)}</strong></span>
+            </div>
+            <div style="border-top:1px dashed #cbd5e1;margin-top:6px;padding-top:8px;display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#0f172a;">
+              <span>Grand Total</span>
+              <span>PKR ${formatNumber(invoice.grand_total)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px;text-align:center;">
+          This is a computer-generated invoice. No signature or stamp is required.
+          <br />
+          GB Tourism Platform · Gilgit-Baltistan, Pakistan
+        </div>
+      </div>
+    `
+
+    try {
+      const html2pdf = (await import('html2pdf.js')).default
+      const element = document.createElement('div')
+      element.innerHTML = invoiceHtml
+      document.body.appendChild(element)
+
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename: `invoice-${invoice.invoice_number}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        })
+        .from(element)
+        .save()
+
+      document.body.removeChild(element)
+    } catch (err) {
+      console.error('Invoice PDF generation failed:', err)
+      alert('Failed to generate invoice PDF. Please try again.')
+    }
   }
 
   async function handleDownloadPDF() {
@@ -272,6 +424,28 @@ export default function BookingVoucher() {
             {downloading
               ? '⏳ Generating PDF…'
               : '📄 Download PDF'}
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadInvoice}
+            disabled={invoiceLoading || !invoice}
+            style={{
+              background: invoiceLoading || !invoice
+                ? '#64748b' : '#0f766e',
+              border: 'none', color: 'white',
+              borderRadius: '8px',
+              padding: '8px 20px',
+              cursor: invoiceLoading || !invoice
+                ? 'not-allowed' : 'pointer',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              display: 'flex', alignItems: 'center',
+              gap: '6px', opacity: invoiceLoading || !invoice ? 0.85 : 1
+            }}
+          >
+            {invoiceLoading
+              ? 'Loading...'
+              : 'Download Invoice (PDF)'}
           </button>
           <button
             type="button"

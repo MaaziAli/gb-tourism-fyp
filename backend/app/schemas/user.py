@@ -21,5 +21,6 @@ class UserResponse(UserBase):
     is_active: bool
     role: str
     created_at: datetime
+    tax_id: Optional[str] = None
 
     model_config = {"from_attributes": True}
