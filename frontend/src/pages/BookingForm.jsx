@@ -88,8 +88,7 @@ export default function BookingForm() {
   const [roomTypes, setRoomTypes] = useState([])
   const [roomsLoading, setRoomsLoading] = useState(false)
   const [capacityInfo, setCapacityInfo] = useState(null)
-  const [availableDates, setAvailableDates] = useState([])
-  const [availableDatesMonth, setAvailableDatesMonth] = useState('')
+  const [availabilityMap, setAvailabilityMap] = useState({})
 
   // Car rental state
   const [pickupLocation, setPickupLocation] = useState('')
@@ -196,8 +195,6 @@ export default function BookingForm() {
     const monthKey = `${year}-${mon}`
     fetchAvailableDatesByMonth(monthKey)
       .then(dates => {
-        setAvailableDates(dates)
-        setAvailableDatesMonth(monthKey)
         const found = dates.find(d => d.date === checkIn)
         setCapacityInfo(found || null)
       })
@@ -206,9 +203,15 @@ export default function BookingForm() {
 
   useEffect(() => {
     if (!isSingleDate || !listingId) return
-    const now = new Date()
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    fetchAvailableDatesByMonth(monthKey).catch(() => {})
+    const today = new Date()
+    const monthsToFetch = []
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() + i, 1)
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      monthsToFetch.push(monthKey)
+    }
+    Promise.all(monthsToFetch.map(mk => fetchAvailableDatesByMonth(mk)))
+      .catch(console.error)
   }, [isSingleDate, listingId])
 
   useEffect(() => {
@@ -224,28 +227,28 @@ export default function BookingForm() {
   const subtotal = totalPrice
   const discountedTotal = Math.max(0, subtotal - couponDiscount - loyaltyDiscount) + insuranceTotal
 
+  const getMonthKey = (date) => {
+    if (typeof date === 'string') {
+      const parts = date.split('-')
+      return `${parts[0]}-${parts[1]}`
+    }
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+  }
+
   async function fetchAvailableDatesByMonth(monthKey) {
     if (!monthKey || !listingId) return []
-    if (monthKey === availableDatesMonth && availableDates.length > 0) {
-      return availableDates
+    if (availabilityMap[monthKey]) {
+      return availabilityMap[monthKey]
     }
-    const res = await api.get(`/listings/${listingId}/available-dates?month=${monthKey}`)
-    const dates = res.data.dates || []
-    setAvailableDates(dates)
-    setAvailableDatesMonth(monthKey)
-    return dates
-  }
-
-  function isDateAvailable(dateStr, dates = availableDates) {
-    const selectedDate = dates.find(d => d.date === dateStr)
-    return !!selectedDate && selectedDate.remaining > 0
-  }
-
-  async function fetchAvailableDatesForDate(dateStr) {
-    if (!dateStr || !listingId) return []
-    const [year, mon] = dateStr.split('-')
-    const monthKey = `${year}-${mon}`
-    return fetchAvailableDatesByMonth(monthKey)
+    try {
+      const res = await api.get(`/listings/${listingId}/available-dates?month=${monthKey}`)
+      const dates = res.data.dates || []
+      setAvailabilityMap(prev => ({ ...prev, [monthKey]: dates }))
+      return dates
+    } catch (error) {
+      console.error('Failed to fetch availability for', monthKey, error)
+      return []
+    }
   }
 
   async function handleSubmit(e) {
@@ -256,9 +259,11 @@ export default function BookingForm() {
         return
       }
       try {
-        const dates = await fetchAvailableDatesForDate(checkIn)
-        if (!isDateAvailable(checkIn, dates)) {
-          setError('Date fully booked')
+        const monthKey = getMonthKey(checkIn)
+        const datesForMonth = availabilityMap[monthKey] || await fetchAvailableDatesByMonth(monthKey)
+        const isAvailable = datesForMonth.some(d => d.date === checkIn && d.remaining > 0)
+        if (!isAvailable) {
+          setError('This date is fully booked. Please choose another date.')
           return
         }
       } catch {
@@ -696,13 +701,16 @@ export default function BookingForm() {
                   }}
                   minDate={todayDate}
                   onMonthChange={date => {
-                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+                    const monthKey = getMonthKey(date)
                     fetchAvailableDatesByMonth(monthKey).catch(() => {})
                   }}
                   filterDate={date => {
+                    const monthKey = getMonthKey(date)
+                    const datesForMonth = availabilityMap[monthKey] || []
                     const dateStr = date.toISOString().slice(0, 10)
-                    const avail = availableDates.find(d => d.date === dateStr)
-                    return avail ? avail.remaining > 0 : true
+                    const avail = datesForMonth.find(d => d.date === dateStr)
+                    if (!avail) return true
+                    return avail.remaining > 0
                   }}
                   dateFormat="yyyy-MM-dd"
                   placeholderText="Select date"
