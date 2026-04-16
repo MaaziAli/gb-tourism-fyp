@@ -51,3 +51,8 @@ class Booking(Base):
 
     user = relationship("User", back_populates="bookings")
     listing = relationship("Listing", back_populates="bookings")
+    room_selections = relationship(
+        "BookingRoom",
+        back_populates="booking",
+        cascade="all, delete-orphan",
+    )

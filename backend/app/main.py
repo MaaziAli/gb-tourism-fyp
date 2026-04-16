@@ -39,6 +39,7 @@ from app.models import seasonal_price as _sp_model  # noqa
 from app.models import tour_date_capacity as _tdc_model  # noqa
 from app.models import webhook_event as _we_model  # noqa
 from app.models import room_hold as _room_hold_model  # noqa
+from app.models import booking_room as _booking_room_model  # noqa
 
 try:
     from app.models import message as _msg  # noqa

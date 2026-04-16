@@ -22,7 +22,7 @@ from app.models.review import Review
 from app.models.room_hold import RoomHold
 from app.models.tour_date_capacity import TourDateCapacity
 from app.models.user import User
-from app.schemas.booking import BookingCreate, BookingResponse, BookingCancellationResponse
+from app.schemas.booking import BookingCreate, BookingResponse, BookingCancellationResponse, RoomSelectionResponse
 from app.websockets.connection_manager import manager
 from app.utils.loyalty_utils import (
     get_or_create_account as _get_loyalty_account,
@@ -202,6 +202,9 @@ async def create_booking(
         if not room_type:
             raise HTTPException(status_code=404, detail="Room type not found")
 
+    # Lookup table for multi-room availability check and price calculation
+    rt_lookup: dict[int, object] = {}
+
     # Availability check
     if room_type:
         # Per-room-type real-time availability: count overlapping active bookings
@@ -279,6 +282,53 @@ async def create_booking(
                 detail="Booking conflict: dates overlap with existing booking",
             )
 
+    # ── Multi-room availability check ────────────────────────────────────
+    if body.room_selections:
+        from app.models.room_type import RoomType as _RoomType
+        for sel in body.room_selections:
+            rt = (
+                db.query(_RoomType)
+                .filter(
+                    _RoomType.id == sel.room_type_id,
+                    _RoomType.listing_id == listing.id,
+                )
+                .first()
+            )
+            if not rt:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Room type {sel.room_type_id} not found for this listing",
+                )
+            mr_booked = (
+                db.query(func.count(Booking.id))
+                .filter(
+                    Booking.room_type_id == sel.room_type_id,
+                    Booking.status.in_(["active", "confirmed"]),
+                    Booking.check_in < effective_check_out,
+                    Booking.check_out > body.check_in,
+                )
+                .scalar() or 0
+            )
+            mr_held = (
+                db.query(func.sum(RoomHold.quantity))
+                .filter(
+                    RoomHold.room_type_id == sel.room_type_id,
+                    RoomHold.status == "active",
+                    RoomHold.hold_expires_at > datetime.utcnow(),
+                )
+                .scalar() or 0
+            )
+            mr_available = (rt.total_rooms or 1) - mr_booked - mr_held
+            if mr_available < sel.quantity:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Only {mr_available} room(s) available for "
+                        f"room type '{rt.name}' on the selected dates"
+                    ),
+                )
+            rt_lookup[sel.room_type_id] = rt
+
     price_per_night = (
         room_type.price_per_night if room_type else listing.price_per_night
     )
@@ -341,6 +391,19 @@ async def create_booking(
 
     subtotal = seasonal_subtotal   # already accounts for seasonal multipliers
     total_price = subtotal
+
+    # ── Multi-room price override ─────────────────────────────────────────
+    # When room_selections are provided, replace the single-room price with
+    # the sum across all selected room types.  subtotal is kept in sync so
+    # coupon / loyalty discount logic operates on the correct base.
+    if body.room_selections:
+        mr_nights = (effective_check_out - body.check_in).days or 1
+        total_price = sum(
+            float(rt_lookup[sel.room_type_id].price_per_night) * sel.quantity * mr_nights
+            for sel in body.room_selections
+        )
+        subtotal = total_price
+
     coupon_discount = 0.0
     coupon_obj = None
     if body.coupon_code and body.coupon_code.strip():
@@ -454,6 +517,20 @@ async def create_booking(
 
     db.commit()   # ← one commit: booking + coupon usage + loyalty deduction
     db.refresh(booking)
+
+    # ── Persist multi-room breakdown rows ────────────────────────────────
+    if body.room_selections:
+        from app.models.booking_room import BookingRoom as _BookingRoom
+        for sel in body.room_selections:
+            rt = rt_lookup[sel.room_type_id]
+            db.add(_BookingRoom(
+                booking_id=booking.id,
+                room_type_id=sel.room_type_id,
+                quantity=sel.quantity,
+                unit_price=rt.price_per_night,
+            ))
+        db.commit()
+        db.refresh(booking)   # reload so room_selections relationship is populated
 
     # Broadcast real-time availability update to all connected WS clients
     import asyncio
@@ -594,7 +671,40 @@ async def create_booking(
     except Exception:
         pass
 
-    return booking
+    # ── Build response with room breakdown ───────────────────────────────
+    # Eagerly load room_selections relationship before the session closes
+    _ = booking.room_selections
+
+    room_sel_responses = []
+    if booking.room_selections:
+        bk_nights = (booking.check_out - booking.check_in).days or 1
+        for br in booking.room_selections:
+            room_sel_responses.append(
+                RoomSelectionResponse(
+                    room_type_id=br.room_type_id,
+                    room_type_name=br.room_type.name,
+                    quantity=br.quantity,
+                    unit_price=float(br.unit_price),
+                    subtotal=float(br.unit_price) * br.quantity * bk_nights,
+                )
+            )
+
+    return {
+        "id": booking.id,
+        "listing_id": booking.listing_id,
+        "user_id": booking.user_id,
+        "total_price": booking.total_price,
+        "status": booking.status,
+        "payment_status": booking.payment_status,
+        "check_in": booking.check_in,
+        "check_out": booking.check_out,
+        "created_at": booking.created_at,
+        "room_type_id": booking.room_type_id,
+        "room_type_name": booking.room_type_name,
+        "loyalty_points_used": booking.loyalty_points_used,
+        "loyalty_discount_applied": booking.loyalty_discount_applied,
+        "room_selections": room_sel_responses,
+    }
 
 
 @router.get("/me")
@@ -1334,6 +1444,15 @@ def get_booking_voucher(
             "nights": nights,
         },
         "room_type": room_name,
+        "room_selections": [
+            {
+                "room_type_name": (br.room_type.name if br.room_type else ""),
+                "quantity": br.quantity,
+                "unit_price": float(br.unit_price),
+                "subtotal": float(br.unit_price) * br.quantity * nights,
+            }
+            for br in (booking.room_selections or [])
+        ],
         "group_size": getattr(booking, "group_size", 1) or 1,
         "total_price": booking.total_price or 0,
         "group_lead_name": getattr(booking, "group_lead_name", None),

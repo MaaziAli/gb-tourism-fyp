@@ -639,6 +639,54 @@ export default function BookingVoucher() {
                   ))}
                 </div>
 
+                {/* Room breakdown — shown only for multi-room bookings */}
+                {voucher.room_selections?.length > 0 && (
+                  <div style={{
+                    background: '#f0f9ff',
+                    border: '1px solid #bae6fd',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    marginBottom: '14px',
+                  }}>
+                    <div style={{
+                      fontSize: '0.72rem', fontWeight: 800,
+                      color: '#0369a1', textTransform: 'uppercase',
+                      letterSpacing: '0.08em', marginBottom: '10px'
+                    }}>
+                      🛏️ Room Breakdown
+                    </div>
+                    {voucher.room_selections.map((sel, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '6px 0',
+                          borderBottom: i < voucher.room_selections.length - 1
+                            ? '1px solid #e0f2fe' : 'none',
+                          fontSize: '0.82rem',
+                        }}
+                      >
+                        <div>
+                          <span style={{ fontWeight: 700, color: '#0369a1' }}>
+                            {sel.room_type_name}
+                          </span>
+                          <span style={{ color: '#64748b', marginLeft: '6px' }}>
+                            ×{sel.quantity}
+                          </span>
+                          <span style={{ color: '#94a3b8', marginLeft: '6px', fontSize: '0.75rem' }}>
+                            @ {formatPKR(sel.unit_price)}/night
+                          </span>
+                        </div>
+                        <span style={{ fontWeight: 800, color: '#0369a1' }}>
+                          {formatPKR(sel.subtotal)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div style={{
                   background:
                     'linear-gradient(135deg,' +

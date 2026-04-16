@@ -90,6 +90,11 @@ export default function BookingForm() {
   const [capacityInfo, setCapacityInfo] = useState(null)
   const [availabilityMap, setAvailabilityMap] = useState({})
 
+  // Multi-room selection state
+  const [roomSelections, setRoomSelections] = useState([
+    { room_type_id: '', quantity: 1 }
+  ])
+
   // Car rental state
   const [pickupLocation, setPickupLocation] = useState('')
   const [dropoffLocation, setDropoffLocation] = useState('')
@@ -251,6 +256,28 @@ export default function BookingForm() {
     }
   }
 
+  const addRoomRow = () =>
+    setRoomSelections(prev => [...prev, { room_type_id: '', quantity: 1 }])
+
+  const removeRoomRow = (index) =>
+    setRoomSelections(prev => prev.filter((_, i) => i !== index))
+
+  const updateRoomRow = (index, field, value) =>
+    setRoomSelections(prev => prev.map((row, i) =>
+      i === index ? { ...row, [field]: value } : row
+    ))
+
+  // Compute live price estimate from multi-room selections
+  const multiRoomEstimate = (() => {
+    if (!roomTypes.length || nights <= 0) return 0
+    return roomSelections.reduce((sum, sel) => {
+      if (!sel.room_type_id) return sum
+      const rt = roomTypes.find(r => r.id === parseInt(sel.room_type_id))
+      if (!rt) return sum
+      return sum + (rt.price_per_night * parseInt(sel.quantity || 1) * nights)
+    }, 0)
+  })()
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (isSingleDate) {
@@ -295,6 +322,12 @@ export default function BookingForm() {
         }),
         coupon_code: appliedCoupon?.code || null,
         loyalty_points_used: loyaltyPointsUsed || 0,
+        room_selections: roomSelections
+          .filter(r => r.room_type_id !== '')
+          .map(r => ({
+            room_type_id: parseInt(r.room_type_id),
+            quantity: parseInt(r.quantity),
+          })),
         ...(isCarRental && {
           rental_details: {
             pickup_location: pickupLocation,
@@ -905,102 +938,127 @@ export default function BookingForm() {
                   Standard room — price shown in summary
                 </div>
               ) : (
-                <div style={{
-                  display: 'flex', flexDirection: 'column', gap: '10px'
-                }}>
-                  {roomTypes.map(room => {
-                    const isSelected = selectedRoomTypeId === room.id
-                    const noAvail = room.available_rooms === 0
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {roomSelections.map((sel, idx) => {
+                    const selectedRt = roomTypes.find(r => r.id === parseInt(sel.room_type_id))
                     return (
                       <div
-                        key={room.id}
-                        onClick={() => {
-                          if (noAvail) return
-                          setSelectedRoomTypeId(room.id)
-                          setSelectedRoomName(room.room_type || room.name)
-                          setBasePrice(room.price_per_night)
-                        }}
+                        key={idx}
                         style={{
-                          border: isSelected
-                            ? '2px solid var(--accent)'
-                            : '1px solid var(--border-color)',
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 80px auto',
+                          gap: '8px', alignItems: 'center',
+                          background: 'var(--bg-secondary)',
                           borderRadius: '10px',
-                          padding: '12px 16px',
-                          cursor: noAvail ? 'not-allowed' : 'pointer',
-                          opacity: noAvail ? 0.5 : 1,
-                          background: isSelected ? 'var(--accent-light)' : 'var(--bg-secondary)',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          gap: '12px',
-                          transition: 'all 0.15s',
+                          border: '1px solid var(--border-color)',
+                          padding: '10px 14px',
                         }}
                       >
-                        <div style={{ flex: 1 }}>
-                          <div style={{
-                            fontWeight: 700, fontSize: '0.9rem',
-                            color: isSelected ? 'var(--accent)' : 'var(--text-primary)',
-                            marginBottom: '3px'
-                          }}>
-                            {room.room_type || room.name}
-                            {room.bed_type && (
-                              <span style={{
-                                marginLeft: '8px', fontSize: '0.72rem',
-                                fontWeight: 400,
-                                color: 'var(--text-muted)'
-                              }}>
-                                · {room.bed_type}
-                              </span>
-                            )}
-                          </div>
-                          <div style={{
-                            fontSize: '0.75rem', color: 'var(--text-secondary)',
-                            display: 'flex', gap: '8px', flexWrap: 'wrap'
-                          }}>
-                            {room.capacity && (
-                              <span>👥 {room.capacity} guests</span>
-                            )}
-                            <span style={{
-                              color: noAvail ? '#dc2626' : '#16a34a',
-                              fontWeight: 600
-                            }}>
-                              {noAvail
-                                ? 'Fully booked'
-                                : `${room.available_rooms} room${room.available_rooms !== 1 ? 's' : ''} left`
-                              }
-                            </span>
-                          </div>
-                        </div>
-                        <div style={{
-                          textAlign: 'right', flexShrink: 0
-                        }}>
-                          <div style={{
-                            fontWeight: 800, fontSize: '1rem',
-                            color: isSelected ? 'var(--accent)' : 'var(--text-primary)'
-                          }}>
-                            PKR {(room.price_per_night || 0).toLocaleString('en-PK')}
-                          </div>
-                          <div style={{
-                            fontSize: '0.68rem',
-                            color: 'var(--text-muted)'
-                          }}>
-                            /night
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <div style={{
-                            width: 22, height: 22, borderRadius: '50%',
-                            background: 'var(--accent)', color: 'white',
+                        {/* Room type selector */}
+                        <select
+                          value={sel.room_type_id}
+                          onChange={e => updateRoomRow(idx, 'room_type_id', e.target.value)}
+                          style={{
+                            padding: '8px 10px', borderRadius: '8px',
+                            border: sel.room_type_id
+                              ? '2px solid var(--accent)'
+                              : '1px solid var(--border-color)',
+                            background: 'var(--bg-card)',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.875rem', outline: 'none',
+                          }}
+                        >
+                          <option value="">Select room type…</option>
+                          {roomTypes.map(rt => (
+                            <option
+                              key={rt.id}
+                              value={rt.id}
+                              disabled={rt.available_rooms === 0}
+                            >
+                              {rt.room_type || rt.name}
+                              {rt.available_rooms === 0
+                                ? ' (fully booked)'
+                                : ` — PKR ${(rt.price_per_night || 0).toLocaleString('en-PK')}/night`}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Quantity */}
+                        <input
+                          type="number"
+                          min={1}
+                          max={selectedRt ? (selectedRt.available_rooms || 10) : 10}
+                          value={sel.quantity}
+                          onChange={e => updateRoomRow(idx, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                          style={{
+                            padding: '8px 10px', borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-card)',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.875rem', outline: 'none',
+                            width: '100%', textAlign: 'center',
+                          }}
+                        />
+
+                        {/* Remove button — hidden when only 1 row */}
+                        <button
+                          type="button"
+                          onClick={() => removeRoomRow(idx)}
+                          disabled={roomSelections.length === 1}
+                          title="Remove this room"
+                          style={{
+                            width: 30, height: 30, borderRadius: '50%',
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-card)',
+                            color: roomSelections.length === 1
+                              ? 'var(--text-muted)' : '#dc2626',
+                            cursor: roomSelections.length === 1
+                              ? 'not-allowed' : 'pointer',
+                            fontWeight: 700, fontSize: '1rem',
                             display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', fontSize: '0.75rem',
-                            fontWeight: 800, flexShrink: 0
-                          }}>
-                            ✓
-                          </div>
-                        )}
+                            justifyContent: 'center', flexShrink: 0,
+                          }}
+                        >
+                          ×
+                        </button>
                       </div>
                     )
                   })}
+
+                  {/* Add another room row */}
+                  <button
+                    type="button"
+                    onClick={addRoomRow}
+                    style={{
+                      padding: '9px 16px', borderRadius: '8px',
+                      border: '1px dashed var(--accent)',
+                      background: 'var(--accent-light)',
+                      color: 'var(--accent)',
+                      fontWeight: 700, fontSize: '0.85rem',
+                      cursor: 'pointer', alignSelf: 'flex-start',
+                    }}
+                  >
+                    + Add Another Room Type
+                  </button>
+
+                  {/* Live price estimate */}
+                  {multiRoomEstimate > 0 && (
+                    <div style={{
+                      background: 'var(--accent-light)',
+                      border: '1px solid var(--accent)',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      display: 'flex', justifyContent: 'space-between',
+                      alignItems: 'center', fontSize: '0.875rem',
+                    }}>
+                      <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        🛏️ Estimated total
+                      </span>
+                      <span style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '1rem' }}>
+                        PKR {multiRoomEstimate.toLocaleString('en-PK')}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
