@@ -13,6 +13,7 @@ class RecommendationResponse(BaseModel):
     owner_id: int
     recommendation_reason: str
     match_score: float
+    recommendation_source: str = "rule_based"
 
     model_config = {"from_attributes": True}
 

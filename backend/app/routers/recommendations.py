@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.jwt import ALGORITHM, SECRET_KEY
 from app.database import get_db
+from app.ml.recommender import get_ml_recommendations
 from app.models.booking import Booking
 from app.models.listing import Listing
 from app.models.user import User
@@ -58,6 +59,7 @@ def _build_recommendation(
     listing: Listing,
     score: float,
     reason: str,
+    source: str = "rule_based",
 ) -> RecommendationResponse:
     return RecommendationResponse(
         id=listing.id,
@@ -69,6 +71,7 @@ def _build_recommendation(
         owner_id=listing.owner_id,
         recommendation_reason=reason,
         match_score=score,
+        recommendation_source=source,
     )
 
 
@@ -104,6 +107,36 @@ def get_recommendations(
           )
         scored.sort(key=lambda r: r.match_score, reverse=True)
         return scored[: max(limit, 0)]
+
+    # Logged-in user: try ML recommendations first.
+    ml_ids, ml_source = get_ml_recommendations(current_user.id, db, top_n=10)
+    if len(ml_ids) >= 3:
+        # Preserve the ML ranking order — fetch listings by id then reorder.
+        id_to_listing = {
+            lst.id: lst
+            for lst in db.query(Listing).filter(Listing.id.in_(ml_ids)).all()
+        }
+        ml_results: list[RecommendationResponse] = []
+        reason_label = (
+            "Personalised pick based on your travel history"
+            if ml_source == "collaborative"
+            else "Recommended based on places you've explored"
+        )
+        for lid in ml_ids:
+            lst = id_to_listing.get(lid)
+            if lst is None:
+                continue
+            ml_results.append(
+                _build_recommendation(
+                    listing=lst,
+                    score=1.0,
+                    reason=reason_label,
+                    source=ml_source,
+                )
+            )
+        return ml_results[:limit]
+
+    # ML had insufficient data — fall through to rule-based scoring below.
 
     # Logged-in user: build preference profile from past bookings.
     user_bookings = (
