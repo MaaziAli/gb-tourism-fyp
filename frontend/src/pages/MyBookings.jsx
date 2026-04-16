@@ -33,10 +33,19 @@ export default function MyBookings() {
     )) return
     setCancellingId(id)
     try {
-      await api.patch(`/bookings/${id}/cancel`)
+      const res = await api.patch(`/bookings/${id}/cancel`)
+      const refundEligible = res.data.refund_eligible
+
       setBookings(prev => prev.map(b =>
         b.id === id ? { ...b, status: 'cancelled' } : b
       ))
+
+      // Show appropriate message
+      if (refundEligible) {
+        alert('✅ Booking cancelled. A refund has been initiated per the cancellation policy.')
+      } else {
+        alert('✅ Booking cancelled. No refund is applicable because the booking was unpaid or outside the refund window.')
+      }
     } catch(e) {
       alert(e.response?.data?.detail || 'Cancel failed')
     } finally {

@@ -76,7 +76,7 @@
         </div>
       </div>
 
-      {% if refund_amount and refund_amount != "0" %}
+      {% if refund_eligible %}
       <div class="refund-card has-refund">
         <div class="refund-title">Refund Approved</div>
         <div class="refund-amount">PKR {{ refund_amount }}</div>
@@ -90,8 +90,12 @@
       <div class="refund-card no-refund">
         <div class="refund-title">No Refund Applicable</div>
         <div class="refund-note">
+          {% if total_price and total_price != "0" %}
           Unfortunately, no refund is applicable for this cancellation per our
           <strong>{{ cancellation_policy }}</strong> cancellation policy.
+          {% else %}
+          This booking was unpaid, so no refund is necessary.
+          {% endif %}
           If you believe this is an error, please contact our support team.
         </div>
       </div>

@@ -1332,7 +1332,7 @@ def get_booking_voucher(
     }
 
 
-@router.patch("/{booking_id}/cancel", response_model=BookingResponse)
+@router.patch("/{booking_id}/cancel")
 def cancel_booking(
     booking_id: int,
     background_tasks: BackgroundTasks,
@@ -1425,6 +1425,14 @@ def cancel_booking(
 
     cancellation_policy = listing.cancellation_policy if listing else "moderate"
 
+    # Determine refund eligibility for response
+    refund_eligible = False
+    if booking.payment_status in ("paid", "refunded", "partially_refunded"):
+        # Check if a refund was actually processed
+        refund_record = db.query(Refund).filter(Refund.booking_id == booking_id).first()
+        if refund_record and refund_record.amount_refunded > 0:
+            refund_eligible = True
+
     # Guest notification
     create_notification(
         db,
@@ -1445,6 +1453,7 @@ def cancel_booking(
             "refund_amount":       f"{refund_amount:,.0f}" if refund_amount > 0 else "0",
             "cancellation_policy": cancellation_policy,
             "cancellation_date":   str(_date.today()),
+            "refund_eligible":     refund_eligible,   # NEW
         },
         background_tasks=background_tasks,
     )
@@ -1462,4 +1471,21 @@ def cancel_booking(
             type="warning",
         )
 
-    return booking
+    # Build response with extra field
+    response_data = {
+        "id": booking.id,
+        "listing_id": booking.listing_id,
+        "user_id": booking.user_id,
+        "total_price": booking.total_price,
+        "status": booking.status,
+        "payment_status": booking.payment_status,
+        "check_in": booking.check_in,
+        "check_out": booking.check_out,
+        "created_at": booking.created_at,
+        "room_type_id": booking.room_type_id,
+        "room_type_name": booking.room_type_name,
+        "loyalty_points_used": booking.loyalty_points_used,
+        "loyalty_discount_applied": booking.loyalty_discount_applied,
+        "refund_eligible": refund_eligible,   # NEW FIELD
+    }
+    return response_data
