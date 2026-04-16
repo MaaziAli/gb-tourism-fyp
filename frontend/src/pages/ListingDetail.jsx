@@ -261,6 +261,15 @@ export default function ListingDetail() {
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponApplied, setCouponApplied] = useState(false)
 
+  const ACCESSIBILITY_FEATURES = [
+    { key: 'wheelchair_accessible', label: 'Wheelchair Accessible', icon: '♿' },
+    { key: 'accessible_bathroom', label: 'Accessible Bathroom', icon: '🚿' },
+    { key: 'elevator_access', label: 'Elevator Access', icon: '🛗' },
+    { key: 'braille_signage', label: 'Braille Signage', icon: '⠿' },
+    { key: 'hearing_loop', label: 'Hearing Loop', icon: '🔊' },
+    { key: 'visual_alerts', label: 'Visual Alerts', icon: '🚨' },
+  ]
+
   // ── Availability polling state ──
   const [checkingAvailability, setCheckingAvailability] = useState(false)
   const [availabilityWarning, setAvailabilityWarning] = useState(null)
@@ -1111,6 +1120,59 @@ export default function ListingDetail() {
                 </div>
               </div>
             )}
+
+            {(() => {
+              if (!listing) return null
+              const activeAccessibilityFeatures = ACCESSIBILITY_FEATURES.filter(
+                f => listing[f.key] === true
+              )
+              if (activeAccessibilityFeatures.length === 0) return null
+              return (
+                <div style={{ marginTop: '24px' }}>
+                  <div
+                    style={{
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      marginBottom: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    ♿ Accessibility
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                    }}
+                  >
+                    {activeAccessibilityFeatures.map((feature) => (
+                      <div
+                        key={feature.key}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '6px 10px',
+                          borderRadius: '999px',
+                          background: '#ecfdf5',
+                          border: '1px solid #bbf7d0',
+                          color: '#15803d',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span style={{ fontSize: '0.95rem' }}>{feature.icon}</span>
+                        <span>{feature.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
 
             <div style={{
               display: 'grid',

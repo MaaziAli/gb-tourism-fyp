@@ -177,6 +177,12 @@ def create_listing(
     cancellation_policy: str = Form("moderate"),
     cancellation_hours_free: int = Form(48),
     rooms_available: int = Form(10),
+    wheelchair_accessible: bool = Form(False),
+    accessible_bathroom: bool = Form(False),
+    elevator_access: bool = Form(False),
+    braille_signage: bool = Form(False),
+    hearing_loop: bool = Form(False),
+    visual_alerts: bool = Form(False),
     image: UploadFile | None = File(None),
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
@@ -201,6 +207,12 @@ def create_listing(
         cancellation_policy=cancellation_policy or "moderate",
         cancellation_hours_free=cancellation_hours_free or 48,
         rooms_available=rooms_available if rooms_available is not None else 10,
+        wheelchair_accessible=wheelchair_accessible,
+        accessible_bathroom=accessible_bathroom,
+        elevator_access=elevator_access,
+        braille_signage=braille_signage,
+        hearing_loop=hearing_loop,
+        visual_alerts=visual_alerts,
     )
     db.add(listing)
     db.commit()
@@ -222,15 +234,34 @@ def create_listing(
 
 
 @router.get("/")
-def get_listings(db: Session = Depends(get_db)):
+def get_listings(
+    db: Session = Depends(get_db),
+    wheelchair_accessible: Optional[bool] = Query(None),
+    accessible_bathroom: Optional[bool] = Query(None),
+    elevator_access: Optional[bool] = Query(None),
+    braille_signage: Optional[bool] = Query(None),
+    hearing_loop: Optional[bool] = Query(None),
+    visual_alerts: Optional[bool] = Query(None),
+):
     """Get all listings with average_rating and review_count."""
     from app.models.review import Review
 
-    listings = (
-        db.query(Listing)
-        .filter(Listing.is_approved.is_(True))
-        .all()
-    )
+    query = db.query(Listing).filter(Listing.is_approved.is_(True))
+
+    if wheelchair_accessible is not None:
+        query = query.filter(Listing.wheelchair_accessible == wheelchair_accessible)
+    if accessible_bathroom is not None:
+        query = query.filter(Listing.accessible_bathroom == accessible_bathroom)
+    if elevator_access is not None:
+        query = query.filter(Listing.elevator_access == elevator_access)
+    if braille_signage is not None:
+        query = query.filter(Listing.braille_signage == braille_signage)
+    if hearing_loop is not None:
+        query = query.filter(Listing.hearing_loop == hearing_loop)
+    if visual_alerts is not None:
+        query = query.filter(Listing.visual_alerts == visual_alerts)
+
+    listings = query.all()
     result = []
     for listing in listings:
         reviews = (
@@ -261,6 +292,12 @@ def get_listings(db: Session = Depends(get_db)):
                 getattr(listing, "is_approved", False)
             ),
             "rejection_reason": getattr(listing, "rejection_reason", None),
+            "wheelchair_accessible": bool(getattr(listing, "wheelchair_accessible", False)),
+            "accessible_bathroom": bool(getattr(listing, "accessible_bathroom", False)),
+            "elevator_access": bool(getattr(listing, "elevator_access", False)),
+            "braille_signage": bool(getattr(listing, "braille_signage", False)),
+            "hearing_loop": bool(getattr(listing, "hearing_loop", False)),
+            "visual_alerts": bool(getattr(listing, "visual_alerts", False)),
         })
     return result
 
@@ -441,6 +478,12 @@ def smart_search(
     max_price: float | None = None,
     min_rating: float | None = None,
     amenities: str | None = None,
+    wheelchair_accessible: Optional[bool] = Query(None),
+    accessible_bathroom: Optional[bool] = Query(None),
+    elevator_access: Optional[bool] = Query(None),
+    braille_signage: Optional[bool] = Query(None),
+    hearing_loop: Optional[bool] = Query(None),
+    visual_alerts: Optional[bool] = Query(None),
     sort_by: str = "relevance",
     limit: int = 20,
     check_in: date_type | None = Query(None),
@@ -484,6 +527,19 @@ def smart_search(
 
     if max_price is not None:
         query = query.filter(Listing.price <= max_price)
+
+    if wheelchair_accessible is not None:
+        query = query.filter(Listing.wheelchair_accessible == wheelchair_accessible)
+    if accessible_bathroom is not None:
+        query = query.filter(Listing.accessible_bathroom == accessible_bathroom)
+    if elevator_access is not None:
+        query = query.filter(Listing.elevator_access == elevator_access)
+    if braille_signage is not None:
+        query = query.filter(Listing.braille_signage == braille_signage)
+    if hearing_loop is not None:
+        query = query.filter(Listing.hearing_loop == hearing_loop)
+    if visual_alerts is not None:
+        query = query.filter(Listing.visual_alerts == visual_alerts)
 
     listings = query.all()
 
@@ -584,6 +640,12 @@ def smart_search(
             "max_price": max_price,
             "min_rating": min_rating,
             "amenities": amenities,
+            "wheelchair_accessible": wheelchair_accessible,
+            "accessible_bathroom": accessible_bathroom,
+            "elevator_access": elevator_access,
+            "braille_signage": braille_signage,
+            "hearing_loop": hearing_loop,
+            "visual_alerts": visual_alerts,
             "sort_by": sort_by,
             "check_in": check_in.isoformat() if check_in else None,
             "check_out": check_out.isoformat() if check_out else None,
@@ -1019,6 +1081,12 @@ def get_listing(
             }
             for r in reviews
         ],
+        "wheelchair_accessible": bool(getattr(listing, "wheelchair_accessible", False)),
+        "accessible_bathroom": bool(getattr(listing, "accessible_bathroom", False)),
+        "elevator_access": bool(getattr(listing, "elevator_access", False)),
+        "braille_signage": bool(getattr(listing, "braille_signage", False)),
+        "hearing_loop": bool(getattr(listing, "hearing_loop", False)),
+        "visual_alerts": bool(getattr(listing, "visual_alerts", False)),
     }
     return listing_data
 
@@ -1110,6 +1178,12 @@ def update_listing(
     insurance_options: str | None = Form(None),
     fuel_policy: str | None = Form(None),
     mileage_limit: int | None = Form(None),
+    wheelchair_accessible: bool | None = Form(None),
+    accessible_bathroom: bool | None = Form(None),
+    elevator_access: bool | None = Form(None),
+    braille_signage: bool | None = Form(None),
+    hearing_loop: bool | None = Form(None),
+    visual_alerts: bool | None = Form(None),
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -1149,6 +1223,19 @@ def update_listing(
             listing.insurance_options = []
     listing.fuel_policy = fuel_policy
     listing.mileage_limit = mileage_limit
+
+    if wheelchair_accessible is not None:
+        listing.wheelchair_accessible = wheelchair_accessible
+    if accessible_bathroom is not None:
+        listing.accessible_bathroom = accessible_bathroom
+    if elevator_access is not None:
+        listing.elevator_access = elevator_access
+    if braille_signage is not None:
+        listing.braille_signage = braille_signage
+    if hearing_loop is not None:
+        listing.hearing_loop = hearing_loop
+    if visual_alerts is not None:
+        listing.visual_alerts = visual_alerts
 
     # When a new image is uploaded, replace the old file on disk and update image_url.
     if image is not None:
