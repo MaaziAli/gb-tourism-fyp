@@ -2,7 +2,7 @@
 Bookings router - create, list, and cancel bookings.
 """
 from datetime import date as date_type, timedelta
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -1416,6 +1416,52 @@ def cancel_booking(
 
     db.commit()
     db.refresh(booking)
+
+    # ── Loyalty points reversal (non-blocking) ───────────────────────────
+    try:
+        delta = datetime.now(timezone.utc) - booking.created_at.replace(tzinfo=timezone.utc)
+        if delta.total_seconds() <= 86400:
+            earn_txn = (
+                db.query(LoyaltyTransaction)
+                .filter(
+                    LoyaltyTransaction.user_id == booking.user_id,
+                    LoyaltyTransaction.reference_id == booking.id,
+                    LoyaltyTransaction.transaction_type == "booking_earn",
+                )
+                .first()
+            )
+            if earn_txn:
+                user_loyalty = _get_loyalty_account(db, booking.user_id)
+                new_balance = max(0, user_loyalty.total_points - earn_txn.points)
+
+                reversal_txn = LoyaltyTransaction(
+                    user_id=booking.user_id,
+                    points=-earn_txn.points,
+                    transaction_type="booking_cancel_reversal",
+                    reference_id=booking.id,
+                    description=f"Points reversed due to booking #{booking.id} cancellation",
+                    balance_after=new_balance,
+                    created_at=datetime.now(timezone.utc),
+                )
+                db.add(reversal_txn)
+                db.flush()
+
+                user_loyalty.total_points = new_balance
+                db.add(user_loyalty)
+                db.commit()
+
+                create_notification(
+                    db,
+                    user_id=booking.user_id,
+                    title="Loyalty Points Reversed",
+                    message=(
+                        f"Due to cancellation of booking #{booking.id}, "
+                        f"{earn_txn.points} loyalty points have been deducted from your account."
+                    ),
+                    type="warning",
+                )
+    except Exception as e:
+        print(f"[loyalty_reversal] Failed for booking {booking.id}: {e}")
 
     # ── Notifications ────────────────────────────────────────────────────
     listing_title = listing.title if listing else f"Booking #{booking_id}"
