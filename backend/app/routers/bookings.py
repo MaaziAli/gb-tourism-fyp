@@ -146,7 +146,7 @@ def _get_seasonal_subtotal(
 
 
 @router.post("/", response_model=BookingResponse)
-def create_booking(
+async def create_booking(
     body: BookingCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
