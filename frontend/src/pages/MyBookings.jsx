@@ -8,6 +8,12 @@ export default function MyBookings() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [cancellingId, setCancellingId] = useState(null)
+  const [modifyingBookingId, setModifyingBookingId] = useState(null)
+  const [modifyForm, setModifyForm] = useState({
+    check_in: '', check_out: '', room_type_id: ''
+  })
+  const [modifyRoomTypes, setModifyRoomTypes] = useState([])
+  const [savingModify, setSavingModify] = useState(false)
   const [filter, setFilter] = useState('all')
   const navigate = useNavigate()
   const { isMobile } = useWindowSize()
@@ -50,6 +56,69 @@ export default function MyBookings() {
       alert(e.response?.data?.detail || 'Cancel failed')
     } finally {
       setCancellingId(null)
+    }
+  }
+
+  function toInputDate(value) {
+    if (!value) return ''
+    if (typeof value === 'string') return value.slice(0, 10)
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toISOString().slice(0, 10)
+  }
+
+  async function openModifyForm(booking) {
+    setModifyingBookingId(booking.id)
+    setModifyForm({
+      check_in: toInputDate(booking.check_in),
+      check_out: toInputDate(booking.check_out),
+      room_type_id: booking.room_type_id ? String(booking.room_type_id) : '',
+    })
+
+    try {
+      const res = await api.get(`/room-types/${booking.listing_id}`)
+      setModifyRoomTypes(Array.isArray(res.data) ? res.data : [])
+    } catch (e) {
+      setModifyRoomTypes([])
+      alert(
+        e.response?.data?.detail ||
+          'Failed to load room types for this listing'
+      )
+    }
+  }
+
+  function closeModifyForm() {
+    setModifyingBookingId(null)
+    setModifyForm({ check_in: '', check_out: '', room_type_id: '' })
+    setModifyRoomTypes([])
+    setSavingModify(false)
+  }
+
+  async function saveBookingChanges(bookingId) {
+    setSavingModify(true)
+    try {
+      const res = await api.patch(`/bookings/${bookingId}/modify`, {
+        check_in: modifyForm.check_in || undefined,
+        check_out: modifyForm.check_out || undefined,
+        room_type_id: modifyForm.room_type_id
+          ? parseInt(modifyForm.room_type_id, 10)
+          : undefined,
+      })
+
+      let msg = 'Booking updated successfully'
+      const adjustment = Number(res.data?.price_adjustment)
+      if (!Number.isNaN(adjustment) && adjustment > 0) {
+        msg += ` Additional charge of PKR ${adjustment} applies`
+      } else if (!Number.isNaN(adjustment) && adjustment < 0) {
+        msg += ` Refund of PKR ${Math.abs(adjustment)} will be processed`
+      }
+      alert(msg)
+      closeModifyForm()
+      await fetchBookings()
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Failed to update booking')
+    } finally {
+      setSavingModify(false)
     }
   }
 
@@ -316,6 +385,10 @@ export default function MyBookings() {
               const upcoming = isUpcoming(b.check_in)
               const isActive = isActiveStatus(b.status)
               const isCancelling = cancellingId === b.id
+              const canModify =
+                b.status !== 'cancelled' &&
+                (b.payment_status === 'unpaid' ||
+                  new Date(b.check_in) > new Date())
 
               return (
                 <div
@@ -728,6 +801,24 @@ export default function MyBookings() {
                                 }}
                               >
                                 {isCancelling ? '...' : 'Cancel'}
+                              </button>
+                            )}
+                            {canModify && (
+                              <button
+                                type="button"
+                                onClick={() => openModifyForm(b)}
+                                style={{
+                                  padding: '7px 14px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #6366f1',
+                                  background: '#eef2ff',
+                                  color: '#4338ca',
+                                  fontWeight: 600,
+                                  fontSize: '0.8rem',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Modify
                               </button>
                             )}
                           </div>
@@ -1150,8 +1241,143 @@ export default function MyBookings() {
                                   : 'Cancel Booking'}
                               </button>
                             )}
+                            {canModify && (
+                              <button
+                                type="button"
+                                onClick={() => openModifyForm(b)}
+                                style={{
+                                  padding: '7px 16px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #6366f1',
+                                  background: '#eef2ff',
+                                  color: '#4338ca',
+                                  fontWeight: 600,
+                                  fontSize: '0.82rem',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Modify Booking
+                              </button>
+                            )}
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  )}
+                  {modifyingBookingId === b.id && (
+                    <div
+                      style={{
+                        borderTop: '1px solid var(--border-color)',
+                        padding: '14px 16px',
+                        background: 'var(--bg-secondary)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr',
+                          gap: '10px',
+                          marginBottom: '12px',
+                        }}
+                      >
+                        <input
+                          type="date"
+                          value={modifyForm.check_in}
+                          onChange={(e) =>
+                            setModifyForm((prev) => ({
+                              ...prev,
+                              check_in: e.target.value,
+                            }))
+                          }
+                          style={{
+                            padding: '10px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-card)',
+                            color: 'var(--text-primary)',
+                          }}
+                        />
+                        <input
+                          type="date"
+                          value={modifyForm.check_out}
+                          onChange={(e) =>
+                            setModifyForm((prev) => ({
+                              ...prev,
+                              check_out: e.target.value,
+                            }))
+                          }
+                          style={{
+                            padding: '10px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-card)',
+                            color: 'var(--text-primary)',
+                          }}
+                        />
+                        <select
+                          value={modifyForm.room_type_id}
+                          onChange={(e) =>
+                            setModifyForm((prev) => ({
+                              ...prev,
+                              room_type_id: e.target.value,
+                            }))
+                          }
+                          style={{
+                            padding: '10px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-card)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          <option value="">Select room type</option>
+                          {modifyRoomTypes.map((rt) => (
+                            <option key={rt.id} value={rt.id}>
+                              {rt.name} - PKR {Number(rt.price_per_night || 0).toLocaleString('en-PK')}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => saveBookingChanges(b.id)}
+                          disabled={savingModify}
+                          style={{
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                            color: 'white',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            opacity: savingModify ? 0.7 : 1,
+                          }}
+                        >
+                          {savingModify ? 'Saving...' : 'Save Changes'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={closeModifyForm}
+                          disabled={savingModify}
+                          style={{
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            background: 'var(--bg-card)',
+                            color: 'var(--text-secondary)',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Cancel
+                        </button>
                       </div>
                     </div>
                   )}

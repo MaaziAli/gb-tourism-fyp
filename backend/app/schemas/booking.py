@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Optional
 
 from pydantic import BaseModel, field_validator, validator
 
@@ -22,6 +23,12 @@ class RoomSelectionResponse(BaseModel):
     subtotal: float  # unit_price * quantity * nights
 
     model_config = {"from_attributes": True}
+
+
+class BookingModifyRequest(BaseModel):
+    check_in: Optional[date] = None
+    check_out: Optional[date] = None
+    room_type_id: Optional[int] = None
 
 
 class BookingCreate(BaseModel):
@@ -51,6 +58,7 @@ class BookingResponse(BaseModel):
     room_type_name: str | None = None
     loyalty_points_used: int = 0
     loyalty_discount_applied: float = 0.0
+    price_adjustment: Optional[float] = None
     room_selections: list[RoomSelectionResponse] = []
 
     model_config = {"from_attributes": True}

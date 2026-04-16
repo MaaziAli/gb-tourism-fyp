@@ -20,9 +20,16 @@ from app.models.payment import Payment
 from app.models.refund import Refund
 from app.models.review import Review
 from app.models.room_hold import RoomHold
+from app.models.room_type import RoomType
 from app.models.tour_date_capacity import TourDateCapacity
 from app.models.user import User
-from app.schemas.booking import BookingCreate, BookingResponse, BookingCancellationResponse, RoomSelectionResponse
+from app.schemas.booking import (
+    BookingCancellationResponse,
+    BookingCreate,
+    BookingModifyRequest,
+    BookingResponse,
+    RoomSelectionResponse,
+)
 from app.websockets.connection_manager import manager
 from app.utils.loyalty_utils import (
     get_or_create_account as _get_loyalty_account,
@@ -1656,4 +1663,184 @@ def cancel_booking(
         )
 
     booking.refund_eligible = refund_eligible
+    return booking
+
+
+@router.patch("/{booking_id}/modify", response_model=BookingResponse)
+async def modify_booking(
+    booking_id: int,
+    body: BookingModifyRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    booking = (
+        db.query(Booking)
+        .filter(
+            Booking.id == booking_id,
+            Booking.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.status == "cancelled":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot modify a cancelled booking",
+        )
+
+    now = datetime.now(timezone.utc).date()
+    unpaid = booking.payment_status == "unpaid"
+    check_in_date = booking.check_in
+    if hasattr(check_in_date, "date"):
+        check_in_date = check_in_date.date()
+    free_window = check_in_date > now
+
+    if not unpaid and not free_window:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Booking can only be modified before payment "
+                "or more than 24 hours before check-in"
+            ),
+        )
+
+    if not any([body.check_in, body.check_out, body.room_type_id]):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "At least one of check_in, check_out, room_type_id "
+                "must be provided"
+            ),
+        )
+
+    new_check_in = body.check_in or booking.check_in
+    new_check_out = body.check_out or booking.check_out
+    new_room_type_id = body.room_type_id or booking.room_type_id
+
+    if hasattr(new_check_in, "date"):
+        new_check_in = new_check_in.date()
+    if hasattr(new_check_out, "date"):
+        new_check_out = new_check_out.date()
+
+    if new_check_in >= new_check_out:
+        raise HTTPException(
+            status_code=422,
+            detail="check_out must be after check_in",
+        )
+    if new_check_in < now:
+        raise HTTPException(
+            status_code=422,
+            detail="check_in cannot be in the past",
+        )
+
+    if new_room_type_id != booking.room_type_id:
+        new_rt = (
+            db.query(RoomType)
+            .filter(
+                RoomType.id == new_room_type_id,
+                RoomType.listing_id == booking.listing_id,
+            )
+            .first()
+        )
+        if not new_rt:
+            raise HTTPException(
+                status_code=404,
+                detail="Room type not found for this listing",
+            )
+    else:
+        new_rt = (
+            db.query(RoomType)
+            .filter(
+                RoomType.id == new_room_type_id,
+            )
+            .first()
+        )
+        if not new_rt:
+            raise HTTPException(
+                status_code=404,
+                detail="Room type not found for this listing",
+            )
+
+    overlapping_count = (
+        db.query(func.count(Booking.id))
+        .filter(
+            Booking.id != booking_id,
+            Booking.room_type_id == new_room_type_id,
+            Booking.status.in_(["active", "confirmed"]),
+            Booking.check_in < new_check_out,
+            Booking.check_out > new_check_in,
+        )
+        .scalar()
+        or 0
+    )
+    available = (new_rt.total_rooms or 1) - overlapping_count
+    if available < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Room not available for the new dates",
+        )
+
+    nights = (new_check_out - new_check_in).days
+    old_price = float(booking.total_price)
+    new_price = (
+        float(new_rt.price_per_night)
+        * nights
+        * getattr(booking, "room_quantity", 1)
+    )
+    price_diff = round(new_price - old_price, 2)
+
+    booking.check_in = new_check_in
+    booking.check_out = new_check_out
+    booking.room_type_id = new_room_type_id
+    booking.room_type_name = new_rt.name
+    booking.total_price = new_price
+    booking.price_adjustment = price_diff if price_diff != 0 else None
+    db.commit()
+    db.refresh(booking)
+
+    listing = (
+        db.query(Listing)
+        .filter(Listing.id == booking.listing_id)
+        .first()
+    )
+    provider_id = listing.owner_id if listing else None
+
+    if provider_id:
+        provider_msg = (
+            f"Booking #{booking_id} has been modified by the guest. "
+            f"New dates: {new_check_in} to {new_check_out}."
+        )
+        if price_diff > 0:
+            provider_msg += f" Additional charge of PKR {price_diff} applies."
+        elif price_diff < 0:
+            provider_msg += f" Refund of PKR {abs(price_diff)} is due."
+
+        create_notification(
+            db,
+            user_id=provider_id,
+            title="Booking Modified",
+            message=provider_msg,
+            type="booking",
+        )
+
+    user_msg = (
+        f"Your booking #{booking_id} has been successfully modified. "
+        f"New dates: {new_check_in} to {new_check_out}."
+    )
+    if price_diff > 0:
+        user_msg += f" An additional PKR {price_diff} will be charged."
+    elif price_diff < 0:
+        user_msg += f" A refund of PKR {abs(price_diff)} will be processed."
+    else:
+        user_msg += " Your total price remains unchanged."
+
+    create_notification(
+        db,
+        user_id=current_user.id,
+        title="Booking Modified",
+        message=user_msg,
+        type="booking",
+    )
+
     return booking
