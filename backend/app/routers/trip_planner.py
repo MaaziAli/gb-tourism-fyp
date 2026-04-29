@@ -148,8 +148,6 @@ async def suggest_trip(
         )
     ]
     _has_dest_hotels = len(matched_hotels) > 0
-    if not matched_hotels:
-        matched_hotels = hotels
 
     affordable_hotels = [
         h for h in matched_hotels
@@ -183,9 +181,6 @@ async def suggest_trip(
             if len(word) > 3
         )
     ]
-    if not matched_transport:
-        matched_transport = transports
-
     affordable_transport = [
         t for t in matched_transport
         if (t.price_per_night or 0) <= transport_budget
@@ -217,9 +212,6 @@ async def suggest_trip(
             if len(word) > 3
         )
     ]
-    if not matched_activities:
-        matched_activities = activities_all
-
     affordable_activities = [
         a for a in matched_activities
         if (a.price_per_night or 0) <= activity_budget / 2

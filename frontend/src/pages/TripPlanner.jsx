@@ -225,7 +225,7 @@ function ServiceCard({
   )
 }
 
-function buildItinerary(destination, duration, hotel, transport, activities) {
+function buildItinerary(destination, duration, hotel, transport, activities, hasWebSuggestions) {
   if (duration <= 1) {
     return [{
       day: 1, icon: '🗺️', title: 'Day Trip',
@@ -238,6 +238,7 @@ function buildItinerary(destination, duration, hotel, transport, activities) {
   }
 
   const days = []
+  const fewActivities = activities.length < 2
 
   days.push({
     day: 1, icon: '🚐', title: 'Arrival & Check-in',
@@ -247,12 +248,15 @@ function buildItinerary(destination, duration, hotel, transport, activities) {
         : `Travel to ${destination}`,
       hotel
         ? `Check-in at ${hotel.title}`
-        : 'Check-in at accommodation'
+        : 'Arrival at destination'
     ]
   })
 
   const middleCount = duration - 2
-  for (let i = 0; i < middleCount; i++) {
+  const capMiddle = duration > 3 && fewActivities
+  const displayCount = capMiddle ? Math.min(2, middleCount) : middleCount
+
+  for (let i = 0; i < displayCount; i++) {
     const act = activities[i] || null
     days.push({
       day: i + 2,
@@ -263,10 +267,21 @@ function buildItinerary(destination, duration, hotel, transport, activities) {
             act.location ? `📍 ${act.location}` : null,
             `PKR ${(act.price_per_night || 0).toLocaleString('en-PK')}`
           ].filter(Boolean)
-        : [
-            `Explore ${destination}`,
-            'Local markets, viewpoints & scenic spots'
-          ]
+        : hasWebSuggestions
+          ? ['Explore local attractions (see web suggestions below)']
+          : [`Explore ${destination}`, 'Local markets, viewpoints & scenic spots']
+    })
+  }
+
+  if (capMiddle && middleCount > displayCount) {
+    days.push({
+      day: null,
+      icon: '📝',
+      title: 'Remaining days: free exploration & local discovery',
+      items: hasWebSuggestions
+        ? ['Check web suggestions below for local tours & activities']
+        : ['Explore at your own pace, visit local markets & scenic spots'],
+      isNote: true
     })
   }
 
@@ -1250,9 +1265,12 @@ export default function TripPlanner() {
             {buildItinerary(
               finalDest, duration,
               selectedHotel, selectedTransport,
-              selectedActivities
-            ).map(day => (
-              <div key={day.day} style={{
+              selectedActivities,
+              !!(plan.external_suggestions?.hotels?.length > 0 ||
+                 plan.external_suggestions?.transports?.length > 0 ||
+                 plan.external_suggestions?.activities?.length > 0)
+            ).map((day, idx) => (
+              <div key={day.day ?? `note-${idx}`} style={{
                 display: 'flex', gap: '14px',
                 marginBottom: '14px',
                 position: 'relative'
@@ -1260,45 +1278,63 @@ export default function TripPlanner() {
                 <div style={{
                   width: '40px', height: '40px',
                   borderRadius: '50%',
-                  background:
-                    'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
-                  color: 'white', flexShrink: 0,
+                  background: day.isNote
+                    ? '#e5e7eb'
+                    : 'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                  color: day.isNote ? '#9ca3af' : 'white',
+                  flexShrink: 0,
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   zIndex: 1,
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                  boxShadow: day.isNote
+                    ? 'none'
+                    : '0 2px 6px rgba(0,0,0,0.15)'
                 }}>
-                  <span style={{
-                    fontSize: '0.55rem', fontWeight: 600,
-                    opacity: 0.8, lineHeight: 1
-                  }}>
-                    Day
-                  </span>
-                  <span style={{
-                    fontSize: '0.82rem', fontWeight: 800,
-                    lineHeight: 1
-                  }}>
-                    {day.day}
-                  </span>
+                  {day.isNote ? (
+                    <span style={{ fontSize: '0.9rem' }}>•••</span>
+                  ) : (
+                    <>
+                      <span style={{
+                        fontSize: '0.55rem', fontWeight: 600,
+                        opacity: 0.8, lineHeight: 1
+                      }}>
+                        Day
+                      </span>
+                      <span style={{
+                        fontSize: '0.82rem', fontWeight: 800,
+                        lineHeight: 1
+                      }}>
+                        {day.day}
+                      </span>
+                    </>
+                  )}
                 </div>
                 <div style={{
                   flex: 1,
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
+                  background: day.isNote
+                    ? 'var(--bg-secondary)'
+                    : 'var(--bg-card)',
+                  border: day.isNote
+                    ? '1px dashed var(--border-color)'
+                    : '1px solid var(--border-color)',
                   borderRadius: 'var(--radius-md)',
                   padding: '12px 14px',
-                  boxShadow: 'var(--shadow-sm)'
+                  boxShadow: day.isNote ? 'none' : 'var(--shadow-sm)'
                 }}>
                   <div style={{
-                    fontWeight: 700, fontSize: '0.875rem',
-                    color: 'var(--text-primary)',
+                    fontWeight: day.isNote ? 500 : 700,
+                    fontSize: '0.875rem',
+                    color: day.isNote
+                      ? 'var(--text-muted)'
+                      : 'var(--text-primary)',
+                    fontStyle: day.isNote ? 'italic' : 'normal',
                     marginBottom: '6px'
                   }}>
                     {day.icon} {day.title}
                   </div>
-                  {day.items.map((item, idx) => (
-                    <div key={idx} style={{
+                  {day.items.map((item, itemIdx) => (
+                    <div key={itemIdx} style={{
                       fontSize: '0.78rem',
                       color: 'var(--text-secondary)',
                       marginTop: '3px', paddingLeft: '8px',
