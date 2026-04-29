@@ -3,10 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import useWindowSize from '../hooks/useWindowSize'
 
-const DESTINATIONS = [
-  'Hunza', 'Skardu', 'Gilgit', 'Nagar',
-  'Astore', 'Ghizer', 'Shigar', 'Diamer',
-  'Kharmang', 'Fairy Meadows', 'Deosai', 'Naltar'
+const GB_DESTINATIONS = [
+  { value: "Hunza Valley", label: "🏔️ Hunza Valley" },
+  { value: "Skardu", label: "🏔️ Skardu" },
+  { value: "Gilgit", label: "🏔️ Gilgit" },
+  { value: "Fairy Meadows", label: "🌿 Fairy Meadows" },
+  { value: "Naltar Valley", label: "🌊 Naltar Valley" },
+  { value: "Naran", label: "⛺ Naran" },
+  { value: "Kaghan", label: "🌄 Kaghan" },
+  { value: "Astore", label: "🏕️ Astore" },
+  { value: "Ghizer", label: "🗻 Ghizer" },
+  { value: "Chilas", label: "🌙 Chilas" },
+  { value: "Khaplu", label: "🏯 Khaplu" },
+  { value: "Shigar", label: "🕌 Shigar" },
 ]
 
 const DURATIONS = [
@@ -267,9 +276,7 @@ function buildItinerary(destination, duration, hotel, transport, activities, has
             act.location ? `📍 ${act.location}` : null,
             `PKR ${(act.price_per_night || 0).toLocaleString('en-PK')}`
           ].filter(Boolean)
-        : hasWebSuggestions
-          ? ['Explore local attractions (see web suggestions below)']
-          : [`Explore ${destination}`, 'Local markets, viewpoints & scenic spots']
+        : [`Explore ${destination}`, 'Local markets, viewpoints & scenic spots']
     })
   }
 
@@ -278,9 +285,7 @@ function buildItinerary(destination, duration, hotel, transport, activities, has
       day: null,
       icon: '📝',
       title: 'Remaining days: free exploration & local discovery',
-      items: hasWebSuggestions
-        ? ['Check web suggestions below for local tours & activities']
-        : ['Explore at your own pace, visit local markets & scenic spots'],
+      items: ['Explore at your own pace, visit local markets & scenic spots'],
       isNote: true
     })
   }
@@ -296,73 +301,12 @@ function buildItinerary(destination, duration, hotel, transport, activities, has
   return days
 }
 
-function WebResultCard({ result }) {
-  return (
-    <div style={{
-      background: 'var(--bg-card)',
-      borderRadius: 'var(--radius-md)',
-      border: '2px dashed #d1d5db',
-      padding: '14px',
-      position: 'relative'
-    }}>
-      <div style={{
-        position: 'absolute', top: '8px', right: '8px',
-        background: '#f3f4f6',
-        border: '1px solid #d1d5db',
-        borderRadius: '999px', padding: '2px 8px',
-        fontSize: '0.65rem', fontWeight: 700,
-        color: '#6b7280'
-      }}>
-        🌐 Web Result
-      </div>
-      <div style={{
-        fontWeight: 700, fontSize: '0.875rem',
-        color: 'var(--text-primary)',
-        marginBottom: '6px', paddingRight: '72px'
-      }}>
-        {result.name}
-      </div>
-      <p style={{
-        margin: '0 0 10px', fontSize: '0.78rem',
-        color: 'var(--text-secondary)',
-        display: '-webkit-box',
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden'
-      }}>
-        {result.description || 'No description available.'}
-      </p>
-      {result.url && (
-        <a
-          href={result.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'inline-block',
-            padding: '6px 14px',
-            borderRadius: '8px',
-            border: '1px solid #d1d5db',
-            background: '#f9fafb',
-            color: '#374151',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            textDecoration: 'none'
-          }}
-        >
-          Visit Website →
-        </a>
-      )}
-    </div>
-  )
-}
-
 export default function TripPlanner() {
   const { isMobile } = useWindowSize()
   const navigate = useNavigate()
 
   const [step, setStep] = useState(1)
-  const [destination, setDestination] = useState('')
-  const [customDest, setCustomDest] = useState('')
+  const [destination, setDestination] = useState('Hunza Valley')
   const [duration, setDuration] = useState(null)
   const [budgetTier, setBudgetTier] = useState('')
   const [totalBudget, setTotalBudget] = useState('')
@@ -387,13 +331,7 @@ export default function TripPlanner() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  const finalDest = customDest.trim() || destination
-
   async function generatePlan() {
-    if (!finalDest) {
-      setError('Please select or enter a destination')
-      return
-    }
     if (!duration) {
       setError('Please select trip duration')
       return
@@ -411,7 +349,7 @@ export default function TripPlanner() {
     try {
       const res = await api.post(
         '/trip-planner/suggest', {
-          destination: finalDest,
+          destination: destination,
           duration_days: duration,
           budget_tier: budgetTier,
           total_budget: parseFloat(totalBudget),
@@ -425,7 +363,7 @@ export default function TripPlanner() {
       setSelectedActivities(res.data.activities || [])
       setAlternatives(res.data.alternatives || {})
       setTripTitle(
-        `${finalDest} Trip - ${duration} Days`
+        `${destination} Trip - ${duration} Days`
       )
       setStep(2)
     } catch (e) {
@@ -469,7 +407,7 @@ export default function TripPlanner() {
     try {
       const res = await api.post('/trip-planner/save', {
         title: tripTitle,
-        destination: finalDest,
+        destination: destination,
         duration_days: duration,
         budget_tier: budgetTier,
         total_budget: parseFloat(totalBudget),
@@ -576,50 +514,9 @@ export default function TripPlanner() {
             }}>
               📍 Where do you want to go?
             </label>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns:
-                isMobile
-                  ? 'repeat(3, 1fr)'
-                  : 'repeat(4, 1fr)',
-              gap: '8px', marginBottom: '10px'
-            }}>
-              {DESTINATIONS.map(d => (
-                <button key={d} type="button"
-                  onClick={() => {
-                    setDestination(d)
-                    setCustomDest('')
-                  }}
-                  style={{
-                    padding: '10px 6px',
-                    borderRadius: '10px',
-                    border: destination === d
-                      ? '2px solid var(--accent)'
-                      : '1px solid var(--border-color)',
-                    background: destination === d
-                      ? 'var(--accent-light)'
-                      : 'var(--bg-secondary)',
-                    color: destination === d
-                      ? 'var(--accent)'
-                      : 'var(--text-secondary)',
-                    cursor: 'pointer', fontWeight: 600,
-                    fontSize: isMobile
-                      ? '0.72rem' : '0.82rem',
-                    textAlign: 'center'
-                  }}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-            <input
-              type="text"
-              placeholder="Or type a custom destination..."
-              value={customDest}
-              onChange={e => {
-                setCustomDest(e.target.value)
-                setDestination('')
-              }}
+            <select
+              value={destination}
+              onChange={e => setDestination(e.target.value)}
               style={{
                 width: '100%', padding: '11px 14px',
                 borderRadius: '10px',
@@ -627,9 +524,17 @@ export default function TripPlanner() {
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
                 fontSize: '0.9rem',
-                boxSizing: 'border-box', outline: 'none'
+                boxSizing: 'border-box', outline: 'none',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-primary)'
               }}
-            />
+            >
+              {GB_DESTINATIONS.map(d => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={{marginBottom: '24px'}}>
@@ -927,7 +832,7 @@ export default function TripPlanner() {
             fontSize: isMobile ? '1.4rem' : '1.8rem',
             fontWeight: 800
           }}>
-            ✨ Your {finalDest} Trip Plan
+            ✨ Your {destination} Trip Plan
           </h1>
           <p style={{
             color: 'rgba(255,255,255,0.75)',
@@ -1052,18 +957,141 @@ export default function TripPlanner() {
           ))}
         </div>
 
+        {/* Destination Hero Card */}
+        {plan.destination_info && (
+          <div style={{
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            overflow: 'hidden',
+            marginBottom: '20px',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <div style={{
+              position: 'relative',
+              height: '200px',
+              background: plan.destination_info.image_url
+                ? `url(${plan.destination_info.image_url}) center/cover no-repeat`
+                : 'linear-gradient(135deg, #1e3a5f 0%, #0ea5e9 100%)',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0,
+                background:
+                  'linear-gradient(to top, rgba(0,0,0,0.7), transparent)'
+              }} />
+              <div style={{
+                position: 'absolute',
+                bottom: '16px', left: '16px'
+              }}>
+                <div style={{
+                  fontSize: '1.5rem', fontWeight: 800,
+                  color: 'white', marginBottom: '4px'
+                }}>
+                  {plan.destination_info.title || destination}
+                </div>
+                {plan.destination_info.description && (
+                  <div style={{
+                    fontSize: '0.875rem',
+                    color: 'rgba(255,255,255,0.85)',
+                    fontWeight: 400
+                  }}>
+                    {plan.destination_info.description}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{
+              background: 'var(--bg-card)',
+              padding: '16px 20px'
+            }}>
+              {plan.destination_info.extract && (
+                <p style={{
+                  margin: '0 0 10px', fontSize: '0.875rem',
+                  color: 'var(--text-muted)', lineHeight: 1.6
+                }}>
+                  {plan.destination_info.extract}
+                </p>
+              )}
+              {plan.destination_info.wiki_url && (
+                <a
+                  href={plan.destination_info.wiki_url}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    fontSize: '0.8rem',
+                    color: 'var(--accent)',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    marginBottom: '12px'
+                  }}
+                >
+                  Learn more on Wikipedia →
+                </a>
+              )}
+              <div style={{
+                display: 'flex', gap: '8px',
+                flexWrap: 'wrap'
+              }}>
+                {[
+                  `📅 ${duration} Days`,
+                  `💰 ${tierInfo?.label || budgetTier}`,
+                  `👥 ${parseFloat(totalBudget).toLocaleString('en-PK')} PKR`
+                ].map(pill => (
+                  <span key={pill} style={{
+                    padding: '5px 12px',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '999px',
+                    fontSize: '0.78rem', fontWeight: 600,
+                    color: 'var(--text-secondary)'
+                  }}>
+                    {pill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* No listings found card */}
         {plan.db_results_found === false && (
           <div style={{
-            background: '#fffbeb',
-            border: '1px solid #f59e0b',
-            borderRadius: '8px',
-            padding: '12px 16px',
+            background: 'white',
+            border: '2px solid #f59e0b',
+            borderRadius: 'var(--radius-md)',
+            padding: '24px',
             marginBottom: '20px',
-            fontSize: '0.875rem',
-            color: '#92400e',
-            fontWeight: 500
+            textAlign: 'center'
           }}>
-            ⚠️ We don't have listings for this destination yet. Showing web results to help you plan.
+            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>
+              🔍
+            </div>
+            <div style={{
+              fontWeight: 700, fontSize: '1rem',
+              color: 'var(--text-primary)', marginBottom: '8px'
+            }}>
+              No listings found for {destination} yet
+            </div>
+            <p style={{
+              margin: '0 0 16px', fontSize: '0.875rem',
+              color: 'var(--text-secondary)', lineHeight: 1.6
+            }}>
+              We're growing our listings across GB. Meanwhile, here's what we
+              know about {destination}:{' '}
+              {plan.destination_info?.extract}
+            </p>
+            <button
+              onClick={() => navigate('/listings')}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '10px', border: 'none',
+                background:
+                  'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                color: 'white', fontWeight: 700,
+                cursor: 'pointer', fontSize: '0.875rem'
+              }}
+            >
+              Browse All Listings →
+            </button>
           </div>
         )}
 
@@ -1240,7 +1268,7 @@ export default function TripPlanner() {
               fontSize: '0.875rem'
             }}>
               No tours or activities found for{' '}
-              {finalDest}. Add services to see them here!
+              {destination}. Add services to see them here!
             </div>
           )}
         </div>
@@ -1263,12 +1291,10 @@ export default function TripPlanner() {
               opacity: 0.35
             }} />
             {buildItinerary(
-              finalDest, duration,
+              destination, duration,
               selectedHotel, selectedTransport,
               selectedActivities,
-              !!(plan.external_suggestions?.hotels?.length > 0 ||
-                 plan.external_suggestions?.transports?.length > 0 ||
-                 plan.external_suggestions?.activities?.length > 0)
+              false
             ).map((day, idx) => (
               <div key={day.day ?? `note-${idx}`} style={{
                 display: 'flex', gap: '14px',
@@ -1329,9 +1355,25 @@ export default function TripPlanner() {
                       ? 'var(--text-muted)'
                       : 'var(--text-primary)',
                     fontStyle: day.isNote ? 'italic' : 'normal',
-                    marginBottom: '6px'
+                    marginBottom: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
                   }}>
-                    {day.icon} {day.title}
+                    <span>{day.icon} {day.title}</span>
+                    {day.day === 1 &&
+                      plan.destination_info?.image_url && (
+                      <img
+                        src={plan.destination_info.image_url}
+                        alt={destination}
+                        style={{
+                          width: '60px', height: '60px',
+                          borderRadius: '8px',
+                          objectFit: 'cover',
+                          flexShrink: 0
+                        }}
+                      />
+                    )}
                   </div>
                   {day.items.map((item, itemIdx) => (
                     <div key={itemIdx} style={{
@@ -1349,122 +1391,6 @@ export default function TripPlanner() {
             ))}
           </div>
         </div>
-
-        {/* External Web Suggestions */}
-        {plan.external_suggestions && (
-          plan.external_suggestions.hotels?.length > 0 ||
-          plan.external_suggestions.transports?.length > 0 ||
-          plan.external_suggestions.activities?.length > 0
-        ) && (
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{
-              margin: '0 0 4px', fontWeight: 700,
-              fontSize: '1rem', color: 'var(--text-primary)'
-            }}>
-              🌐 More Options Found on the Web
-            </h3>
-            <p style={{
-              margin: '0 0 12px', fontSize: '0.82rem',
-              color: 'var(--text-secondary)'
-            }}>
-              {plan.external_suggestions.note}
-            </p>
-            <div style={{
-              background: '#fffbeb',
-              border: '1px solid #fbbf24',
-              borderRadius: '8px',
-              padding: '12px 16px',
-              marginBottom: '20px',
-              fontSize: '0.82rem',
-              color: '#92400e'
-            }}>
-              📋 These listings are not on GB Tourism yet.
-              You can view them on their own website.{' '}
-              <strong>
-                Contact us to add your business to
-                GB Tourism.
-              </strong>
-            </div>
-
-            {plan.external_suggestions.hotels?.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <h4 style={{
-                  margin: '0 0 10px', fontWeight: 700,
-                  fontSize: '0.9rem',
-                  color: 'var(--text-primary)'
-                }}>
-                  🏨 Hotels
-                </h4>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile
-                    ? '1fr' : 'repeat(2, 1fr)',
-                  gap: '12px'
-                }}>
-                  {plan.external_suggestions.hotels.map(
-                    (result, idx) => (
-                      <WebResultCard
-                        key={idx} result={result}
-                      />
-                    )
-                  )}
-                </div>
-              </div>
-            )}
-
-            {plan.external_suggestions.transports?.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <h4 style={{
-                  margin: '0 0 10px', fontWeight: 700,
-                  fontSize: '0.9rem',
-                  color: 'var(--text-primary)'
-                }}>
-                  🚐 Transport
-                </h4>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile
-                    ? '1fr' : 'repeat(2, 1fr)',
-                  gap: '12px'
-                }}>
-                  {plan.external_suggestions.transports.map(
-                    (result, idx) => (
-                      <WebResultCard
-                        key={idx} result={result}
-                      />
-                    )
-                  )}
-                </div>
-              </div>
-            )}
-
-            {plan.external_suggestions.activities?.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <h4 style={{
-                  margin: '0 0 10px', fontWeight: 700,
-                  fontSize: '0.9rem',
-                  color: 'var(--text-primary)'
-                }}>
-                  🎯 Tours & Activities
-                </h4>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile
-                    ? '1fr' : 'repeat(2, 1fr)',
-                  gap: '12px'
-                }}>
-                  {plan.external_suggestions.activities.map(
-                    (result, idx) => (
-                      <WebResultCard
-                        key={idx} result={result}
-                      />
-                    )
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         <div style={{
           background: 'var(--bg-card)',
@@ -1693,8 +1619,7 @@ export default function TripPlanner() {
                 setStep(1)
                 setPlan(null)
                 setSaved(null)
-                setDestination('')
-                setCustomDest('')
+                setDestination('Hunza Valley')
                 setDuration(null)
                 setBudgetTier('')
                 setTotalBudget('')

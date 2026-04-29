@@ -5,9 +5,6 @@ from typing import Optional, List
 import json
 import uuid
 import httpx
-import asyncio
-from urllib.parse import quote
-from bs4 import BeautifulSoup
 
 from app.database import get_db
 from app.models.trip_plan import TripPlan
@@ -70,48 +67,29 @@ def get_listing_dict(listing, duration=1):
     }
 
 
-# AI Web Agent Fallback — searches web when local DB results are sparse
-async def search_web_for_destination(destination: str, service_type: str) -> list[dict]:
+async def get_destination_info(destination: str) -> dict:
     try:
-        query = f"{destination} Pakistan {service_type} booking price PKR"
-        encoded_query = quote(query)
-        url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{destination}"
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            response = await client.get(url)
+        if response.status_code != 200:
+            raise Exception("not found")
+        data = response.json()
+        return {
+            "title": data["title"],
+            "description": data.get("description", ""),
+            "extract": data.get("extract", "")[:400],
+            "image_url": data.get("thumbnail", {}).get("source", None),
+            "wiki_url": data.get("content_urls", {}).get("desktop", {}).get("page", "")
         }
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            response = await client.get(
-                url, headers=headers, follow_redirects=True
-            )
-
-        soup = BeautifulSoup(response.text, "html.parser")
-        results = []
-
-        result_divs = soup.find_all("div", class_="result", limit=5)
-        for div in result_divs:
-            title_el = div.find(class_="result__title")
-            snippet_el = div.find(class_="result__snippet")
-            url_el = div.find(class_="result__url")
-
-            name = title_el.get_text(strip=True) if title_el else ""
-            description = snippet_el.get_text(strip=True) if snippet_el else ""
-            link = url_el.get_text(strip=True) if url_el else ""
-
-            if name:
-                if link and not link.startswith("http"):
-                    link = "https://" + link
-                results.append({
-                    "name": name,
-                    "description": description,
-                    "url": link,
-                    "source": "web",
-                    "service_type": service_type,
-                    "location": destination,
-                })
-
-        return results
     except Exception:
-        return []
+        return {
+            "title": destination,
+            "description": "",
+            "extract": "",
+            "image_url": None,
+            "wiki_url": ""
+        }
 
 
 @router.post("/suggest")
@@ -258,25 +236,7 @@ async def suggest_trip(
         ]
     ][:4]
 
-    # AI Web Agent Fallback — searches web when local DB results are sparse
-    web_hotels = []
-    web_transports = []
-    web_activities = []
-
-    if len(matched_hotels) < 2:
-        web_hotels = await search_web_for_destination(
-            body.destination, "hotel"
-        )
-
-    if len(matched_transport) < 1:
-        web_transports = await search_web_for_destination(
-            body.destination, "jeep rental transport"
-        )
-
-    if len(suggested_activities) < 2:
-        web_activities = await search_web_for_destination(
-            body.destination, "tour activity trekking"
-        )
+    dest_info = await get_destination_info(body.destination)
 
     return {
         "destination": body.destination,
@@ -288,6 +248,7 @@ async def suggest_trip(
             body.total_budget - estimated_cost
         ),
         "db_results_found": _has_dest_hotels,
+        "destination_info": dest_info,
         "hotel": get_listing_dict(
             suggested_hotel, body.duration_days
         ),
@@ -317,12 +278,6 @@ async def suggest_trip(
             "transport": transport_cost,
             "activities": activity_cost,
         },
-        "external_suggestions": {
-            "hotels": web_hotels,
-            "transports": web_transports,
-            "activities": web_activities,
-            "note": "These results are from the web and cannot be booked through GB Tourism yet. They are shown to help you plan your trip."
-        }
     }
 
 
