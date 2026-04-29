@@ -225,6 +225,122 @@ function ServiceCard({
   )
 }
 
+function buildItinerary(destination, duration, hotel, transport, activities) {
+  if (duration <= 1) {
+    return [{
+      day: 1, icon: '🗺️', title: 'Day Trip',
+      items: [
+        transport ? `Travel via ${transport.title}` : `Travel to ${destination}`,
+        ...activities.slice(0, 3).map(a => a.title),
+        'Return journey'
+      ]
+    }]
+  }
+
+  const days = []
+
+  days.push({
+    day: 1, icon: '🚐', title: 'Arrival & Check-in',
+    items: [
+      transport
+        ? `${transport.title} to ${destination}`
+        : `Travel to ${destination}`,
+      hotel
+        ? `Check-in at ${hotel.title}`
+        : 'Check-in at accommodation'
+    ]
+  })
+
+  const middleCount = duration - 2
+  for (let i = 0; i < middleCount; i++) {
+    const act = activities[i] || null
+    days.push({
+      day: i + 2,
+      icon: act ? '🎯' : '🗺️',
+      title: act ? act.title : 'Free Exploration',
+      items: act
+        ? [
+            act.location ? `📍 ${act.location}` : null,
+            `PKR ${(act.price_per_night || 0).toLocaleString('en-PK')}`
+          ].filter(Boolean)
+        : [
+            `Explore ${destination}`,
+            'Local markets, viewpoints & scenic spots'
+          ]
+    })
+  }
+
+  days.push({
+    day: duration, icon: '🏁', title: 'Departure',
+    items: [
+      hotel ? `Check-out from ${hotel.title}` : 'Hotel check-out',
+      transport ? `Return via ${transport.title}` : 'Return journey'
+    ]
+  })
+
+  return days
+}
+
+function WebResultCard({ result }) {
+  return (
+    <div style={{
+      background: 'var(--bg-card)',
+      borderRadius: 'var(--radius-md)',
+      border: '2px dashed #d1d5db',
+      padding: '14px',
+      position: 'relative'
+    }}>
+      <div style={{
+        position: 'absolute', top: '8px', right: '8px',
+        background: '#f3f4f6',
+        border: '1px solid #d1d5db',
+        borderRadius: '999px', padding: '2px 8px',
+        fontSize: '0.65rem', fontWeight: 700,
+        color: '#6b7280'
+      }}>
+        🌐 Web Result
+      </div>
+      <div style={{
+        fontWeight: 700, fontSize: '0.875rem',
+        color: 'var(--text-primary)',
+        marginBottom: '6px', paddingRight: '72px'
+      }}>
+        {result.name}
+      </div>
+      <p style={{
+        margin: '0 0 10px', fontSize: '0.78rem',
+        color: 'var(--text-secondary)',
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden'
+      }}>
+        {result.description || 'No description available.'}
+      </p>
+      {result.url && (
+        <a
+          href={result.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'inline-block',
+            padding: '6px 14px',
+            borderRadius: '8px',
+            border: '1px solid #d1d5db',
+            background: '#f9fafb',
+            color: '#374151',
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            textDecoration: 'none'
+          }}
+        >
+          Visit Website →
+        </a>
+      )}
+    </div>
+  )
+}
+
 export default function TripPlanner() {
   const { isMobile } = useWindowSize()
   const navigate = useNavigate()
@@ -921,6 +1037,21 @@ export default function TripPlanner() {
           ))}
         </div>
 
+        {plan.db_results_found === false && (
+          <div style={{
+            background: '#fffbeb',
+            border: '1px solid #f59e0b',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '20px',
+            fontSize: '0.875rem',
+            color: '#92400e',
+            fontWeight: 500
+          }}>
+            ⚠️ We don't have listings for this destination yet. Showing web results to help you plan.
+          </div>
+        )}
+
         <div style={{ marginBottom: '20px' }}>
           <h3 style={{
             margin: '0 0 12px', fontWeight: 700,
@@ -1098,6 +1229,206 @@ export default function TripPlanner() {
             </div>
           )}
         </div>
+
+        {/* Day-by-Day Itinerary */}
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{
+            margin: '0 0 16px', fontWeight: 700,
+            fontSize: '1rem', color: 'var(--text-primary)'
+          }}>
+            📅 Day-by-Day Itinerary
+          </h3>
+          <div style={{ position: 'relative', paddingLeft: '8px' }}>
+            <div style={{
+              position: 'absolute', left: '19px',
+              top: '20px', bottom: '20px',
+              width: '2px',
+              background:
+                'linear-gradient(to bottom, #1e3a5f, #0ea5e9)',
+              opacity: 0.35
+            }} />
+            {buildItinerary(
+              finalDest, duration,
+              selectedHotel, selectedTransport,
+              selectedActivities
+            ).map(day => (
+              <div key={day.day} style={{
+                display: 'flex', gap: '14px',
+                marginBottom: '14px',
+                position: 'relative'
+              }}>
+                <div style={{
+                  width: '40px', height: '40px',
+                  borderRadius: '50%',
+                  background:
+                    'linear-gradient(135deg, #1e3a5f, #0ea5e9)',
+                  color: 'white', flexShrink: 0,
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                }}>
+                  <span style={{
+                    fontSize: '0.55rem', fontWeight: 600,
+                    opacity: 0.8, lineHeight: 1
+                  }}>
+                    Day
+                  </span>
+                  <span style={{
+                    fontSize: '0.82rem', fontWeight: 800,
+                    lineHeight: 1
+                  }}>
+                    {day.day}
+                  </span>
+                </div>
+                <div style={{
+                  flex: 1,
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px 14px',
+                  boxShadow: 'var(--shadow-sm)'
+                }}>
+                  <div style={{
+                    fontWeight: 700, fontSize: '0.875rem',
+                    color: 'var(--text-primary)',
+                    marginBottom: '6px'
+                  }}>
+                    {day.icon} {day.title}
+                  </div>
+                  {day.items.map((item, idx) => (
+                    <div key={idx} style={{
+                      fontSize: '0.78rem',
+                      color: 'var(--text-secondary)',
+                      marginTop: '3px', paddingLeft: '8px',
+                      borderLeft:
+                        '2px solid var(--accent-light)'
+                    }}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* External Web Suggestions */}
+        {plan.external_suggestions && (
+          plan.external_suggestions.hotels?.length > 0 ||
+          plan.external_suggestions.transports?.length > 0 ||
+          plan.external_suggestions.activities?.length > 0
+        ) && (
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{
+              margin: '0 0 4px', fontWeight: 700,
+              fontSize: '1rem', color: 'var(--text-primary)'
+            }}>
+              🌐 More Options Found on the Web
+            </h3>
+            <p style={{
+              margin: '0 0 12px', fontSize: '0.82rem',
+              color: 'var(--text-secondary)'
+            }}>
+              {plan.external_suggestions.note}
+            </p>
+            <div style={{
+              background: '#fffbeb',
+              border: '1px solid #fbbf24',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              fontSize: '0.82rem',
+              color: '#92400e'
+            }}>
+              📋 These listings are not on GB Tourism yet.
+              You can view them on their own website.{' '}
+              <strong>
+                Contact us to add your business to
+                GB Tourism.
+              </strong>
+            </div>
+
+            {plan.external_suggestions.hotels?.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{
+                  margin: '0 0 10px', fontWeight: 700,
+                  fontSize: '0.9rem',
+                  color: 'var(--text-primary)'
+                }}>
+                  🏨 Hotels
+                </h4>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile
+                    ? '1fr' : 'repeat(2, 1fr)',
+                  gap: '12px'
+                }}>
+                  {plan.external_suggestions.hotels.map(
+                    (result, idx) => (
+                      <WebResultCard
+                        key={idx} result={result}
+                      />
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
+            {plan.external_suggestions.transports?.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{
+                  margin: '0 0 10px', fontWeight: 700,
+                  fontSize: '0.9rem',
+                  color: 'var(--text-primary)'
+                }}>
+                  🚐 Transport
+                </h4>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile
+                    ? '1fr' : 'repeat(2, 1fr)',
+                  gap: '12px'
+                }}>
+                  {plan.external_suggestions.transports.map(
+                    (result, idx) => (
+                      <WebResultCard
+                        key={idx} result={result}
+                      />
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
+            {plan.external_suggestions.activities?.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <h4 style={{
+                  margin: '0 0 10px', fontWeight: 700,
+                  fontSize: '0.9rem',
+                  color: 'var(--text-primary)'
+                }}>
+                  🎯 Tours & Activities
+                </h4>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile
+                    ? '1fr' : 'repeat(2, 1fr)',
+                  gap: '12px'
+                }}>
+                  {plan.external_suggestions.activities.map(
+                    (result, idx) => (
+                      <WebResultCard
+                        key={idx} result={result}
+                      />
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{
           background: 'var(--bg-card)',
