@@ -73,7 +73,7 @@ def get_listing_dict(listing, duration=1):
 # AI Web Agent Fallback — searches web when local DB results are sparse
 async def search_web_for_destination(destination: str, service_type: str) -> list[dict]:
     try:
-        query = f"{destination} Gilgit-Baltistan {service_type} booking price PKR"
+        query = f"{destination} Pakistan {service_type} booking price PKR"
         encoded_query = quote(query)
         url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
         headers = {
