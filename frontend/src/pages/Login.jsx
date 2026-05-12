@@ -146,7 +146,7 @@ export default function Login() {
             color: 'rgba(255,255,255,0.8)',
             margin: 0, fontSize: '0.9rem'
           }}>
-            Sign in to GB Tourism
+            Sign in to North Tourism
           </p>
         </div>
 
@@ -284,7 +284,7 @@ export default function Login() {
               fontSize: '0.78rem',
               color: 'var(--text-muted)'
             }}>
-              New to GB Tourism?
+              New to North Tourism?
             </span>
             <div style={{
               flex: 1, height: '1px',

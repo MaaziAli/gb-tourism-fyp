@@ -801,13 +801,13 @@ export default function ListingDetail() {
                   ? (listing.image_url.startsWith('http')
                       ? listing.image_url
                       : 'http://127.0.0.1:8000/uploads/' + listing.image_url)
-                  : 'https://placehold.co/1200x460/1e3a5f/ffffff?text=GB+Tourism')
-              : 'https://placehold.co/1200x460/1e3a5f/ffffff?text=GB+Tourism'
+                  : 'https://placehold.co/1200x460/1e3a5f/ffffff?text=North+Tourism')
+              : 'https://placehold.co/1200x460/1e3a5f/ffffff?text=North+Tourism'
           }
           alt={listing ? listing.title : 'Hotel'}
           onError={e => {
             e.target.onerror = null
-            e.target.src = 'https://placehold.co/1200x460/1e3a5f/ffffff?text=GB+Tourism'
+            e.target.src = 'https://placehold.co/1200x460/1e3a5f/ffffff?text=North+Tourism'
           }}
           style={{
             width: '100%',

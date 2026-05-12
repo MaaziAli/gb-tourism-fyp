@@ -1,5 +1,5 @@
 """
-ML-based recommender module for GB Tourism.
+ML-based recommender module for North Tourism.
 
 Option A — Content-Based Filtering: TF-IDF + cosine similarity (scikit-learn)
 Option B — Collaborative Filtering:  SVD matrix factorisation (scikit-surprise)

@@ -380,7 +380,7 @@ export default function Navbar() {
             }}
           >
             🏔️
-            {!isMobile && <span>GB Tourism</span>}
+            {!isMobile && <span>North Tourism</span>}
           </div>
 
           {/* Desktop Nav Groups */}

@@ -277,7 +277,7 @@ export default function SearchPage() {
                 fontWeight: 800,
               }}
             >
-              🔍 Search GB Tourism
+              🔍 Search North Tourism
             </h1>
           </div>
 

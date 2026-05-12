@@ -170,7 +170,7 @@ export default function BookingVoucher() {
       <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 32px; color: #0f172a; max-width: 800px; margin: 0 auto;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid #e2e8f0;padding-bottom:16px;">
           <div>
-            <div style="font-size:24px;font-weight:800;color:#0f172a;letter-spacing:-0.03em;">GB Tourism Platform</div>
+            <div style="font-size:24px;font-weight:800;color:#0f172a;letter-spacing:-0.03em;">North Tourism Platform</div>
             <div style="font-size:12px;color:#64748b;margin-top:4px;">Gilgit-Baltistan, Pakistan</div>
           </div>
           <div style="text-align:right;">
@@ -239,7 +239,7 @@ export default function BookingVoucher() {
         <div style="font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px;text-align:center;">
           This is a computer-generated invoice. No signature or stamp is required.
           <br />
-          GB Tourism Platform · Gilgit-Baltistan, Pakistan
+          North Tourism Platform · Gilgit-Baltistan, Pakistan
         </div>
       </div>
     `
@@ -504,7 +504,7 @@ export default function BookingVoucher() {
                 letterSpacing: '-0.02em',
                 marginBottom: '4px'
               }}>
-                🏔️ GB Tourism
+                🏔️ North Tourism
               </div>
               <div style={{
                 color: 'rgba(255,255,255,0.7)',
@@ -984,7 +984,7 @@ export default function BookingVoucher() {
                 fontSize: '0.75rem',
                 color: '#94a3b8'
               }}>
-                support@gbtourism.com
+                support@northtourism.com
               </div>
             </div>
 
@@ -1014,7 +1014,7 @@ export default function BookingVoucher() {
               color: '#94a3b8', textAlign: 'right'
             }}>
               <div>
-                Issued by GB Tourism Platform
+                Issued by North Tourism Platform
               </div>
               <div>
                 {new Date().toLocaleDateString(

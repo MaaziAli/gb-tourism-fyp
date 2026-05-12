@@ -1,5 +1,5 @@
 """
-Seed local development data for GB Tourism.
+Seed local development data for North Tourism.
 
 What this script does:
 1) Ensures all SQLAlchemy tables exist.
@@ -50,9 +50,9 @@ from app.models.listing import Listing
 from app.models.user import User
 
 
-ADMIN_EMAIL = "admin@gbtourism.com"
+ADMIN_EMAIL = "admin@northtourism.com"
 ADMIN_PASSWORD = "Admin@12345"
-PROVIDER_EMAIL = "provider@gbtourism.com"
+PROVIDER_EMAIL = "provider@northtourism.com"
 PROVIDER_PASSWORD = "Provider@12345"
 
 
@@ -141,7 +141,7 @@ def ensure_listing(
 
 
 def main() -> None:
-    print("== GB Tourism seed_data.py ==")
+    print("== North Tourism seed_data.py ==")
     print(f"DATABASE_URL: {settings.DATABASE_URL}")
 
     Base.metadata.create_all(bind=engine)
@@ -157,7 +157,7 @@ def main() -> None:
     try:
         admin = ensure_user(
             db,
-            full_name="GB Tourism Admin",
+            full_name="North Tourism Admin",
             email=ADMIN_EMAIL,
             password=ADMIN_PASSWORD,
             role="admin",

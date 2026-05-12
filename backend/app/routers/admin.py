@@ -263,7 +263,7 @@ def approve_listing(
     <p><strong>Time:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}</p>
     """
     send_admin_notification_email(
-        subject=f"[GB Tourism] Listing Approved: {listing.title}",
+        subject=f"[North Tourism] Listing Approved: {listing.title}",
         body_html=email_body,
     )
 
@@ -309,7 +309,7 @@ def reject_listing(
     <p><strong>Time:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}</p>
     """
     send_admin_notification_email(
-        subject=f"[GB Tourism] Listing Rejected: {listing.title}",
+        subject=f"[North Tourism] Listing Rejected: {listing.title}",
         body_html=email_body,
     )
 

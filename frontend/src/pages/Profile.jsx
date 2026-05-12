@@ -183,7 +183,7 @@ export default function Profile() {
               fontSize: '0.875rem',
             }}
           >
-            Manage your GB Tourism account
+            Manage your North Tourism account
           </p>
         </div>
       </div>

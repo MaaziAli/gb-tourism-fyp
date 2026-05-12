@@ -71,7 +71,7 @@ export default function ProviderPayments() {
           }}>
             <span>ℹ️</span>
             <span>
-              GB Tourism takes a 10% platform fee from
+              North Tourism takes a 10% platform fee from
               each booking. The remaining 90% is your
               earnings, released after the guest checks in.
             </span>

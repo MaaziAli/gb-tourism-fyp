@@ -1,4 +1,4 @@
-const PLACEHOLDER = 'https://placehold.co/400x250/e5e7eb/9ca3af?text=GB+Tourism'
+const PLACEHOLDER = 'https://placehold.co/400x250/e5e7eb/9ca3af?text=North+Tourism'
 
 export const getImageUrl = (imageUrl) => {
   if (!imageUrl) {

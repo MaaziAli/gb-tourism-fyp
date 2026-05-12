@@ -246,7 +246,7 @@ export default function CreateEvent() {
             🎪 Create New Event
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.75)', margin: 0, fontSize: '0.9rem' }}>
-            Host your event on GB Tourism
+            Host your event on North Tourism
           </p>
         </div>
       </div>

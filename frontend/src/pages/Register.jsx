@@ -71,7 +71,7 @@ export default function Register() {
               color: 'white', margin: '0 0 6px',
               fontSize: '1.6rem', fontWeight: 800
             }}>
-              Join GB Tourism
+              Join North Tourism
             </h1>
             <p style={{
               color: 'rgba(255,255,255,0.8)',
@@ -268,7 +268,7 @@ export default function Register() {
             color: 'rgba(255,255,255,0.8)',
             margin: 0, fontSize: '0.85rem'
           }}>
-            Create your GB Tourism account
+            Create your North Tourism account
           </p>
         </div>
 

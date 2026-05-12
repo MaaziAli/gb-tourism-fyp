@@ -24,7 +24,7 @@ def create_admin():
     try:
         existing = (
             db.query(User)
-            .filter(User.email == "admin@gbtourism.com")
+            .filter(User.email == "admin@northtourism.com")
             .first()
         )
         if existing:
@@ -33,8 +33,8 @@ def create_admin():
             return
 
         admin = User(
-            full_name="GB Tourism Admin",
-            email="admin@gbtourism.com",
+            full_name="North Tourism Admin",
+            email="admin@northtourism.com",
             hashed_password=hash_password("Admin@12345"),
             role="admin",
             is_active=True,
@@ -42,7 +42,7 @@ def create_admin():
         db.add(admin)
         db.commit()
         print("✅ Admin user created successfully!")
-        print("Email: admin@gbtourism.com")
+        print("Email: admin@northtourism.com")
         print("Password: Admin@12345")
     finally:
         db.close()

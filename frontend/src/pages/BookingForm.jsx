@@ -1316,7 +1316,7 @@ export default function BookingForm() {
                 onError={e => {
                   e.target.onerror = null
                   e.target.src =
-                    'https://placehold.co/340x160/e5e7eb/9ca3af?text=GB+Tourism'
+                    'https://placehold.co/340x160/e5e7eb/9ca3af?text=North+Tourism'
                 }}
                 style={{
                   width: '100%', height: '160px',

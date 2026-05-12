@@ -230,7 +230,7 @@ export default function Wishlist() {
                       onError={e => {
                         e.target.onerror = null
                         e.target.src =
-                          'https://placehold.co/400x180/e5e7eb/9ca3af?text=GB+Tourism'
+                          'https://placehold.co/400x180/e5e7eb/9ca3af?text=North+Tourism'
                       }}
                       onClick={() =>
                         navigate(

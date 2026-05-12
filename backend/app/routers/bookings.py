@@ -1516,7 +1516,7 @@ def get_booking_voucher(
         if booking.created_at
         else None,
         "qr_data": (
-            "GB-TOURISM-VOUCHER|"
+            "NORTH-TOURISM-VOUCHER|"
             f"REF:{booking_ref}|"
             f"BOOKING:{booking_id}|"
             f"GUEST:{guest.full_name if guest else ''}|"

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 const PLACEHOLDER =
-  'https://placehold.co/800x500/1e3a5f/ffffff?text=GB+Tourism'
+  'https://placehold.co/800x500/1e3a5f/ffffff?text=North+Tourism'
 
 function getImgUrl(raw) {
   if (!raw) return PLACEHOLDER

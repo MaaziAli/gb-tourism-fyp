@@ -1,5 +1,5 @@
 """
-GB Tourism - FastAPI Backend Application
+North Tourism - FastAPI Backend Application
 """
 
 from datetime import datetime
@@ -248,7 +248,7 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     def root():
-        return {"message": "GB Tourism Backend is running"}
+        return {"message": "North Tourism Backend is running"}
 
     return app
 

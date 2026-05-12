@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./db.sqlite3"
 
     # App
-    APP_TITLE: str = "GB Tourism Backend"
+    APP_TITLE: str = "North Tourism Backend"
     APP_VERSION: str = "0.1.0"
 
     # Stripe (test mode keys)
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
-    EMAIL_FROM: str = "noreply@gbtourism.com"
+    EMAIL_FROM: str = "noreply@northtourism.com"
 
     # Admin email – receives new-listing notifications
     ADMIN_EMAIL: str = "maazalisshahid@gmail.com"

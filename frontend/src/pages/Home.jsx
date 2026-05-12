@@ -1255,13 +1255,13 @@ export default function Home() {
               fontSize: '1.2rem', fontWeight: 800,
               color: 'var(--text-primary)', marginBottom: '4px'
             }}>
-              🏔️ GB Tourism
+              🏔️ North Tourism
             </div>
             <p style={{
               color: 'var(--text-muted)',
               margin: 0, fontSize: '0.8rem'
             }}>
-              © 2026 GB Tourism. Built for Gilgit-Baltistan.
+              © 2026 North Tourism. Built for Gilgit-Baltistan.
             </p>
           </div>
           <div style={{

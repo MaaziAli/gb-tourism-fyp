@@ -157,7 +157,7 @@ export default function Events() {
               color: 'white',
             }}
           >
-            🎪 GB Tourism Events
+            🎪 North Tourism Events
           </div>
           <h1
             style={{

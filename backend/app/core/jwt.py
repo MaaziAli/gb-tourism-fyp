@@ -8,7 +8,7 @@ from jose import JWTError, jwt
 
 SECRET_KEY = os.getenv(
     "SECRET_KEY",
-    "gb-tourism-secret-key-2024-very-long"
+    "north-tourism-secret-key-2024-very-long"
 )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7

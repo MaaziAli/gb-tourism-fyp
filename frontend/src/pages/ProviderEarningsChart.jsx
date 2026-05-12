@@ -803,7 +803,7 @@ export default function ProviderEarningsChart() {
                 step: '1',
                 icon: '🏨',
                 title: 'Guest Pays',
-                desc: 'Guest pays full booking amount to GB Tourism platform',
+                desc: 'Guest pays full booking amount to North Tourism platform',
                 color: '#2563eb',
               },
               {
